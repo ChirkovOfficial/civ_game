@@ -88,7 +88,7 @@ func _build_city_node(city: City, viewer: Player) -> Node3D:
 			text += "\n(не выбрано производство)"
 		else:
 			var t := CityRules.turns_to_build(game, city, item)
-			text += "\n%s · %s" % [CityRules.item_name(game, item), str(t) if t > 0 else "∞"]
+			text += "\n%s · %s" % [CityRules.item_name(game, item, city.owner), str(t) if t > 0 else "∞"]
 	label.text = text
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.font_size = 56

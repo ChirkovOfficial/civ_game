@@ -19,6 +19,7 @@ var buildings: Dictionary = {}
 var improvements: Dictionary = {}
 var harvest: Dictionary = {}
 var civs: Dictionary = {}
+var abilities: Dictionary = {}
 var placeholder_city_names: Array = []
 var setup: Dictionary = {}
 
@@ -67,6 +68,7 @@ func load_all(dir: String = DATA_DIR) -> void:
 	for x in imp_list:
 		improvement_ids.append(x["id"])
 	harvest = imp.get("harvest", {})
+	abilities = _index(_read(dir + "abilities.json").get("abilities", []))
 	var civ_file := _read(dir + "civs.json")
 	civs = _index(civ_file.get("civs", []))
 	placeholder_city_names = civ_file.get("placeholder", {}).get("city_names", [])
@@ -188,6 +190,21 @@ func validate() -> PackedStringArray:
 		var imp_id: String = resources[rid].get("improvement", "")
 		if imp_id != "" and not improvements.has(imp_id):
 			errors.append("Ресурс %s: нет улучшения %s" % [rid, imp_id])
+	for uid in units:
+		for a in units[uid].get("abilities", []):
+			if not abilities.has(a) and not ["FOUND_CITY", "BUILD_IMPROVEMENT", "TRADE_ROUTE", "OPEN_TERRAIN_BONUS_MOVE"].has(a):
+				errors.append("Юнит %s: нет особенности %s" % [uid, a])
+	for cid in civs:
+		var civ: Dictionary = civs[cid]
+		for a in civ.get("land_combat_abilities", []):
+			if not abilities.has(a):
+				errors.append("Цивилизация %s: нет особенности %s" % [cid, a])
+		for slot in civ.get("units", {}):
+			if not units.has(slot):
+				errors.append("Цивилизация %s: нет юнита-слота %s" % [cid, slot])
+			for a in civ["units"][slot].get("abilities", []):
+				if not abilities.has(a):
+					errors.append("Цивилизация %s, юнит %s: нет особенности %s" % [cid, slot, a])
 	for uid in constants.get("start_units", []):
 		if not units.has(uid):
 			errors.append("Стартовый юнит %s не существует" % uid)

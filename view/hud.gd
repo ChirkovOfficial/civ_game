@@ -331,7 +331,7 @@ func show_unit(u: Unit) -> void:
 		return
 	_unit_panel.visible = true
 	var def := game.data.unit_def(u.type)
-	_label(_unit_box, def.get("name", u.type), 20)
+	_label(_unit_box, Abilities.unit_name(game, u.owner, u.type), 20)
 	var lines := ["Очки движения: %s / %s" % [_fmt(u.moves_left), _fmt(Movement.max_moves(game, u))]]
 	if def.has("combat"):
 		var s := "Сила: %d" % def["combat"]
@@ -432,7 +432,7 @@ func refresh_city() -> void:
 	else:
 		var cost := CityRules.item_cost(game, city, item)
 		var prog := float(city.progress.get(City.item_key(item), 0.0))
-		_label(_city_box, "▶ %s — %s/%s ⚙, %d х." % [CityRules.item_name(game, item), _fmt(snappedf(prog, 0.1)),
+		_label(_city_box, "▶ %s — %s/%s ⚙, %d х." % [CityRules.item_name(game, item, city.owner), _fmt(snappedf(prog, 0.1)),
 			_fmt(cost), CityRules.turns_to_build(game, city, item)])
 		var pb := ProgressBar.new()
 		pb.max_value = cost
@@ -447,7 +447,7 @@ func refresh_city() -> void:
 		var t := CityRules.turns_to_build(game, city, it)
 		var kind: String = it["kind"]
 		var id: String = it["id"]
-		var b := _button(line, "%s — %s х." % [CityRules.item_name(game, it), str(t) if t > 0 else "∞"],
+		var b := _button(line, "%s — %s х." % [CityRules.item_name(game, it, city.owner), str(t) if t > 0 else "∞"],
 			func(): act.call({"type": "set_production", "city": city.id, "kind": kind, "id": id}))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var price := CityRules.purchase_cost(game, city, it)

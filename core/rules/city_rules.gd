@@ -329,9 +329,9 @@ static func assign_citizens(game: Game, city: City) -> void:
 
 # --- Производство (ГДД 4.2, 5.3) -----------------------------------------------------------------
 
-static func item_name(game: Game, item: Dictionary) -> String:
+static func item_name(game: Game, item: Dictionary, owner: int = -1) -> String:
 	if item.get("kind", "") == "unit":
-		return game.data.unit_def(item["id"]).get("name", item["id"])
+		return Abilities.unit_name(game, owner, item["id"])
 	return game.data.buildings.get(item.get("id", ""), {}).get("name", item.get("id", ""))
 
 
