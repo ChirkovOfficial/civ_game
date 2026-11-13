@@ -1,0 +1,15 @@
+{
+  "_doc": "Здания (ГДД 6.2). district — район, где строится здание (пока только CITY_CENTER; районы — веха M4). cost — ⚙ на стандартной скорости. maintenance — 💰/ход. capital_only/not_buildable — особые здания. requires: river — город у реки (ребро реки у центра).",
+  "buildings": [
+    {"id": "PALACE", "name": "Дворец", "district": "CITY_CENTER", "cost": 0, "not_buildable": true, "capital_only": true,
+     "yields": {"production": 2, "science": 2, "culture": 1, "gold": 5}, "housing": 1, "amenities": 1},
+    {"id": "MONUMENT", "name": "Монумент", "district": "CITY_CENTER", "cost": 60, "maintenance": 0,
+     "yields": {"culture": 2}, "loyalty": 1},
+    {"id": "GRANARY", "name": "Амбар", "district": "CITY_CENTER", "cost": 65, "maintenance": 1, "tech": "POTTERY",
+     "yields": {"food": 1}, "housing": 2},
+    {"id": "WATER_MILL", "name": "Водяная мельница", "district": "CITY_CENTER", "cost": 80, "maintenance": 1, "tech": "THE_WHEEL",
+     "yields": {"food": 1, "production": 1}, "requires": "river"},
+    {"id": "ANCIENT_WALLS", "name": "Античные стены", "district": "CITY_CENTER", "cost": 80, "maintenance": 0, "tech": "MASONRY",
+     "wall_hp": 100}
+  ]
+}

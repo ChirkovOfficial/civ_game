@@ -15,12 +15,20 @@ var units: Dictionary = {}
 var unit_classes: Dictionary = {}
 var techs: Dictionary = {}
 var civics: Dictionary = {}
+var buildings: Dictionary = {}
+var improvements: Dictionary = {}
+var harvest: Dictionary = {}
+var civs: Dictionary = {}
+var placeholder_city_names: Array = []
 var setup: Dictionary = {}
 
 ## Порядок объявления сохраняется (для детерминированного перебора).
 var resource_ids: Array[String] = []
 var tech_ids: Array[String] = []
 var civic_ids: Array[String] = []
+var building_ids: Array[String] = []
+var improvement_ids: Array[String] = []
+var unit_ids: Array[String] = []
 
 var load_errors: PackedStringArray = []
 
@@ -45,7 +53,23 @@ func load_all(dir: String = DATA_DIR) -> void:
 	resources = _index(res_list)
 	for r in res_list:
 		resource_ids.append(r["id"])
-	units = _index(_read(dir + "units.json").get("units", []))
+	var unit_list: Array = _read(dir + "units.json").get("units", [])
+	units = _index(unit_list)
+	for x in unit_list:
+		unit_ids.append(x["id"])
+	var b_list: Array = _read(dir + "buildings.json").get("buildings", [])
+	buildings = _index(b_list)
+	for x in b_list:
+		building_ids.append(x["id"])
+	var imp := _read(dir + "improvements.json")
+	var imp_list: Array = imp.get("improvements", [])
+	improvements = _index(imp_list)
+	for x in imp_list:
+		improvement_ids.append(x["id"])
+	harvest = imp.get("harvest", {})
+	var civ_file := _read(dir + "civs.json")
+	civs = _index(civ_file.get("civs", []))
+	placeholder_city_names = civ_file.get("placeholder", {}).get("city_names", [])
 	unit_classes = _read(dir + "unit_classes.json").get("classes", {})
 	var tech_list: Array = _read(dir + "techs.json").get("techs", [])
 	techs = _index(tech_list)
@@ -147,6 +171,23 @@ func validate() -> PackedStringArray:
 		for res_id in u.get("resource", {}).keys() + u.get("resource_per_turn", {}).keys():
 			if not resources.has(res_id):
 				errors.append("Юнит %s: нет ресурса %s" % [uid, res_id])
+	for bid in buildings:
+		var b: Dictionary = buildings[bid]
+		if b.has("tech") and not techs.has(b["tech"]):
+			errors.append("Здание %s: нет технологии %s" % [bid, b["tech"]])
+		if b.has("civic") and not civics.has(b["civic"]):
+			errors.append("Здание %s: нет института %s" % [bid, b["civic"]])
+	for iid in improvements:
+		var im: Dictionary = improvements[iid]
+		if im.has("tech") and not techs.has(im["tech"]):
+			errors.append("Улучшение %s: нет технологии %s" % [iid, im["tech"]])
+		for p in im.get("placements", []):
+			if p.has("civic") and not civics.has(p["civic"]):
+				errors.append("Улучшение %s: нет института %s" % [iid, p["civic"]])
+	for rid in resources:
+		var imp_id: String = resources[rid].get("improvement", "")
+		if imp_id != "" and not improvements.has(imp_id):
+			errors.append("Ресурс %s: нет улучшения %s" % [rid, imp_id])
 	for uid in constants.get("start_units", []):
 		if not units.has(uid):
 			errors.append("Стартовый юнит %s не существует" % uid)

@@ -31,6 +31,18 @@ func _process(_delta: float) -> bool:
 			_main.camera_rig.target_distance = float(args[3])
 			_main.camera_rig.distance = float(args[3])
 			_main.camera_rig._update_camera()
+	if _frames == 3 and args.size() > 5 and int(args[5]) > 0:
+		# Автоигра N ходов (за всех, включая игрока), затем фокус на столице игрока.
+		var g: Game = _main.game
+		for t in int(args[5]):
+			AIPlayer.take_turn(g, g.state.current_player)
+			g.apply_action({"type": "end_turn", "force": true})
+		_main._geometry_dirty = {"terrain": true, "improvements": true, "borders": true}
+		_main._select(null)
+		_main._after_action()
+		var caps := g.state.cities_of(0)
+		if not caps.is_empty():
+			_main.camera_rig.focus(_main.map_view.tile_world(caps[0].tile))
 	if _frames == 5 and args.size() > 4 and args[4] == "path":
 		# Показать предпросмотр пути выбранного юнита к клетке в 4 шагах на восток.
 		var u: Unit = _main.selected

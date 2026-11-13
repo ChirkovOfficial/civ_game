@@ -1,32 +1,143 @@
 {
   "_doc": "Константы баланса (ГДД 24). Всё, что можно настраивать без правки кода.",
-  "eras": ["ANCIENT", "CLASSICAL", "MEDIEVAL", "RENAISSANCE", "INDUSTRIAL", "MODERN", "ATOMIC", "INFORMATION", "FUTURE"],
-  "yield_types": ["food", "production", "gold", "science", "culture", "faith"],
-
+  "eras": [
+    "ANCIENT",
+    "CLASSICAL",
+    "MEDIEVAL",
+    "RENAISSANCE",
+    "INDUSTRIAL",
+    "MODERN",
+    "ATOMIC",
+    "INFORMATION",
+    "FUTURE"
+  ],
+  "yield_types": [
+    "food",
+    "production",
+    "gold",
+    "science",
+    "culture",
+    "faith"
+  ],
   "unit_hp": 100,
   "unit_default_sight": 2,
-  "unit_maintenance_by_era": {"START": 0, "ANCIENT": 1, "CLASSICAL": 2, "MEDIEVAL": 3, "RENAISSANCE": 4, "INDUSTRIAL": 5, "MODERN": 6, "ATOMIC": 7, "INFORMATION": 8, "FUTURE": 8},
-
-  "start_units": ["SETTLER", "WARRIOR"],
+  "unit_maintenance_by_era": {
+    "START": 0,
+    "ANCIENT": 1,
+    "CLASSICAL": 2,
+    "MEDIEVAL": 3,
+    "RENAISSANCE": 4,
+    "INDUSTRIAL": 5,
+    "MODERN": 6,
+    "ATOMIC": 7,
+    "INFORMATION": 8,
+    "FUTURE": 8
+  },
+  "start_units": [
+    "SETTLER",
+    "WARRIOR"
+  ],
   "start_min_capital_distance": 9,
-
   "city_min_distance": 4,
   "city_work_radius": 3,
   "city_border_radius": 5,
   "food_per_citizen": 2,
-
   "combat_base_damage": 30,
   "combat_exp_factor": 0.04,
   "combat_rand_min": 0.8,
   "combat_rand_max": 1.2,
   "river_attack_penalty": 5,
-
   "boost_fraction": 0.4,
-
   "fin_unlock_tech": "BANKING",
   "fin_base": 250,
   "fin_per_civ": 50,
   "fin_k": 1.5,
   "fin_turns": 10,
-  "fin_include_deals": false
+  "fin_include_deals": false,
+  "city_sight": 3,
+  "city_center_min_yields": {
+    "food": 2,
+    "production": 1
+  },
+  "growth_base": 15,
+  "growth_linear": 8,
+  "growth_exp": 1.5,
+  "science_per_pop": 0.5,
+  "culture_per_pop": 0.3,
+  "housing_base_fresh_water": 5,
+  "housing_base_coast": 3,
+  "housing_base_dry": 2,
+  "_housing_growth_doc": "Множитель роста по жилью H (ГДД 4.7): население ≤ H−2 → 1; = H−1 → 0.5; от H до H+4 → 0.25; ≥ H+5 → 0",
+  "housing_growth_full_below": 2,
+  "housing_growth_half": 0.5,
+  "housing_growth_over": 0.25,
+  "housing_growth_stop_above": 5,
+  "_amenity_doc": "Состояния довольства (ГДД 5.4): min — нижняя граница баланса; growth — множитель к излишку пищи (null = рост остановлен); yields — множитель доходов кроме пищи",
+  "amenity_states": [
+    {
+      "id": "ECSTATIC",
+      "name": "Экстаз",
+      "min": 5,
+      "growth": 1.2,
+      "yields": 1.2
+    },
+    {
+      "id": "HAPPY",
+      "name": "Счастье",
+      "min": 3,
+      "growth": 1.1,
+      "yields": 1.1
+    },
+    {
+      "id": "CONTENT",
+      "name": "Удовлетворение",
+      "min": 0,
+      "growth": 1.0,
+      "yields": 1.0
+    },
+    {
+      "id": "DISPLEASED",
+      "name": "Недовольство",
+      "min": -2,
+      "growth": 0.85,
+      "yields": 0.9
+    },
+    {
+      "id": "UNHAPPY",
+      "name": "Несчастье",
+      "min": -4,
+      "growth": 0.7,
+      "yields": 0.8
+    },
+    {
+      "id": "UNREST",
+      "name": "Волнения",
+      "min": -6,
+      "growth": 0.0,
+      "yields": 0.7
+    },
+    {
+      "id": "REVOLT",
+      "name": "Бунт",
+      "min": -999,
+      "growth": 0.0,
+      "yields": 0.4
+    }
+  ],
+  "luxury_amenity_cities": 4,
+  "border_cost_base": 10,
+  "border_cost_mult": 6,
+  "border_cost_exp": 1.3,
+  "tile_buy_base": 50,
+  "tile_buy_per_distance": 0.5,
+  "tile_buy_per_known": 0.02,
+  "gold_purchase_mult": 4,
+  "faith_purchase_mult": 2,
+  "starting_treasury": 10,
+  "_fresh_city_doc": "Город на месте леса/джунглей/болота убирает их (ГДД 5.1)",
+  "city_removes_features": [
+    "WOODS",
+    "RAINFOREST",
+    "MARSH"
+  ]
 }

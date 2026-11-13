@@ -17,9 +17,15 @@ var reveal_all := false
 var viewer: Player = null
 
 var _materials: Array[ShaderMaterial] = []
-var _resource_mm: MultiMesh
-var _resource_mat: ShaderMaterial
 var _copies: Array[Node3D] = []
+## Слои отрисовки: имя -> [узел в копии 0, 1, 2].
+var _layers := {}
+var _terrain_mat: ShaderMaterial
+var _feature_mat: ShaderMaterial
+var _water_mat: ShaderMaterial
+var _river_mat: ShaderMaterial
+var _border_mat: ShaderMaterial
+var _improvement_meshes := {}
 
 
 func build(g: Game) -> void:
@@ -28,26 +34,22 @@ func build(g: Game) -> void:
 		c.queue_free()
 	_copies.clear()
 	_materials.clear()
+	_layers.clear()
 	var map := game.state.map
 	world_width = map.grid.world_width(MapStyle.HEX_SIZE)
 	fog_image = Image.create(map.width, map.height, false, Image.FORMAT_RGBA8)
 	fog_image.fill(Color.BLACK)
 	fog_texture = ImageTexture.create_from_image(fog_image)
 
-	var terrain_mat := _make_material(TERRAIN_SHADER)
-	var feature_mat := _make_material(FEATURE_SHADER)
-	var water_mat := _make_material(OVERLAY_SHADER)
-	water_mat.render_priority = 1
-	var river_mat := _make_material(OVERLAY_SHADER)
-	river_mat.render_priority = 2
-	_resource_mat = feature_mat
-
-	var terrain_mesh := TerrainMeshBuilder.build_terrain(map)
-	var water_mesh := TerrainMeshBuilder.build_water(map)
-	var river_mesh := TerrainMeshBuilder.build_rivers(map)
-	var mountains := _build_mountains(map)
-	var trees := _build_trees(map)
-	_resource_mm = _build_resource_markers()
+	_terrain_mat = _make_material(TERRAIN_SHADER)
+	_feature_mat = _make_material(FEATURE_SHADER)
+	_water_mat = _make_material(OVERLAY_SHADER)
+	_water_mat.render_priority = 1
+	_river_mat = _make_material(OVERLAY_SHADER)
+	_river_mat.render_priority = 2
+	_border_mat = _make_material(OVERLAY_SHADER)
+	_border_mat.render_priority = 3
+	_improvement_meshes = ImprovementMeshes.build_all()
 
 	for k in [-1, 0, 1]:
 		var copy := Node3D.new()
@@ -55,15 +57,50 @@ func build(g: Game) -> void:
 		copy.position.x = k * world_width
 		add_child(copy)
 		_copies.append(copy)
-		_add_mesh(copy, terrain_mesh, terrain_mat)
-		_add_mesh(copy, water_mesh, water_mat)
-		_add_mesh(copy, river_mesh, river_mat)
-		for mm in [mountains, trees[0], trees[1], _resource_mm]:
-			if mm != null and mm.instance_count > 0:
-				var mmi := MultiMeshInstance3D.new()
-				mmi.multimesh = mm
-				mmi.material_override = feature_mat
-				copy.add_child(mmi)
+	_set_layer("water", TerrainMeshBuilder.build_water(map), _water_mat)
+	_set_layer("rivers", TerrainMeshBuilder.build_rivers(map), _river_mat)
+	_set_layer("mountains", _build_mountains(map), _feature_mat)
+	refresh_geometry()
+
+
+## Пересобирает то, что меняется по ходу игры. parts — набор из
+## "terrain" (рельеф и леса), "improvements", "borders"; пустой — всё.
+func refresh_geometry(parts: Dictionary = {}) -> void:
+	var map := game.state.map
+	var all := parts.is_empty()
+	if all or parts.has("terrain"):
+		_set_layer("terrain", TerrainMeshBuilder.build_terrain(map), _terrain_mat)
+		var trees := _build_trees(map)
+		_set_layer("crowns", trees[0], _feature_mat)
+		_set_layer("trunks", trees[1], _feature_mat)
+	if all or parts.has("improvements"):
+		refresh_improvements()
+	if all or parts.has("borders"):
+		refresh_borders()
+	if viewer != null and (all or parts.has("terrain")):
+		refresh_resources(viewer)
+
+
+## Создаёт/обновляет слой в трёх копиях. res — Mesh или MultiMesh.
+func _set_layer(layer_name: String, res: Resource, mat: Material, is_multimesh: bool = false) -> void:
+	if not _layers.has(layer_name):
+		var nodes := []
+		for copy in _copies:
+			var node: GeometryInstance3D
+			if res is MultiMesh or is_multimesh:
+				node = MultiMeshInstance3D.new()
+			else:
+				node = MeshInstance3D.new()
+			node.name = layer_name
+			node.material_override = mat
+			copy.add_child(node)
+			nodes.append(node)
+		_layers[layer_name] = nodes
+	for node in _layers[layer_name]:
+		if node is MultiMeshInstance3D:
+			node.multimesh = res
+		else:
+			node.mesh = res
 
 
 func _make_material(shader: Shader) -> ShaderMaterial:
@@ -73,15 +110,6 @@ func _make_material(shader: Shader) -> ShaderMaterial:
 	m.set_shader_parameter("reveal_all", reveal_all)
 	_materials.append(m)
 	return m
-
-
-func _add_mesh(parent: Node3D, mesh: Mesh, mat: Material) -> void:
-	if mesh == null:
-		return
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.material_override = mat
-	parent.add_child(mi)
 
 
 # --- Объекты на клетках -----------------------------------------------------------
@@ -169,20 +197,8 @@ func _build_trees(map: GameMap) -> Array:
 	return [mm_c, mm_t]
 
 
-func _build_resource_markers() -> MultiMesh:
-	var gem := SphereMesh.new()
-	gem.radius = 0.09
-	gem.height = 0.2
-	gem.radial_segments = 4
-	gem.rings = 2
-	var mm := _new_multimesh(gem, 0)
-	return mm
-
-
 ## Маркеры ресурсов зависят от технологий игрока (стратегические скрыты).
 func refresh_resources(player: Player) -> void:
-	if _resource_mm == null:
-		return
 	var map := game.state.map
 	var items: Array = []
 	for i in map.size():
@@ -194,20 +210,83 @@ func refresh_resources(player: Player) -> void:
 		if map.is_water(i):
 			pos.y = MapStyle.WATER_Y + 0.2
 		items.append([Transform3D(Basis(), pos), MapStyle.RESOURCE_COLORS.get(cls, Color.WHITE), _custom(i)])
-	_resource_mm.instance_count = items.size()
-	_fill(_resource_mm, items)
-	# Пустой MultiMesh мог не попасть в копии при сборке — добавим при необходимости.
-	if items.size() > 0:
-		for copy in _copies:
-			var has := false
-			for ch in copy.get_children():
-				if ch is MultiMeshInstance3D and ch.multimesh == _resource_mm:
-					has = true
-			if not has:
-				var mmi := MultiMeshInstance3D.new()
-				mmi.multimesh = _resource_mm
-				mmi.material_override = _resource_mat
-				copy.add_child(mmi)
+	var gem := SphereMesh.new()
+	gem.radius = 0.09
+	gem.height = 0.2
+	gem.radial_segments = 4
+	gem.rings = 2
+	var mm := _new_multimesh(gem, items.size())
+	_fill(mm, items)
+	_set_layer("resources", mm, _feature_mat)
+
+
+## Улучшения клеток: по слою на каждую деталь каждого типа.
+func refresh_improvements() -> void:
+	var map := game.state.map
+	var per_part := {}   # "IMP#k" -> [items]
+	for i in map.size():
+		var imp := map.improvement[i]
+		if imp == "" or not _improvement_meshes.has(imp):
+			continue
+		var base := _tile_pos(i)
+		if map.is_water(i):
+			base.y = MapStyle.WATER_Y
+		var rot := Basis(Vector3.UP, MapStyle.hash01(i, 90) * TAU)
+		var parts: Array = _improvement_meshes[imp]
+		for k in parts.size():
+			var part: Dictionary = parts[k]
+			var key := "%s#%d" % [imp, k]
+			if not per_part.has(key):
+				per_part[key] = []
+			for local in part["transforms"]:
+				var t: Transform3D = local
+				var world := Transform3D(rot * t.basis, base + rot * t.origin + Vector3(-0.1, 0, -0.05))
+				per_part[key].append([world, part["color"], _custom(i)])
+	for imp in _improvement_meshes:
+		var parts: Array = _improvement_meshes[imp]
+		for k in parts.size():
+			var key := "%s#%d" % [imp, k]
+			var items: Array = per_part.get(key, [])
+			var mm := _new_multimesh(parts[k]["mesh"], items.size())
+			_fill(mm, items)
+			_set_layer("imp_" + key, mm, _feature_mat)
+
+
+## Границы держав: цветная полоса вдоль рёбер, где сосед не принадлежит той же державе.
+func refresh_borders() -> void:
+	var map := game.state.map
+	var grid := map.grid
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var count := 0
+	for i in map.size():
+		var cid := map.owner_city[i]
+		if cid < 0:
+			continue
+		var owner_id := game.state.city(cid).owner
+		var col := game.state.player(owner_id).color
+		var c2 := grid.world_position(i, MapStyle.HEX_SIZE)
+		var h := maxf(MapStyle.tile_height(map, i), MapStyle.WATER_Y) + 0.03
+		var uv := TerrainMeshBuilder.tile_uv(grid, i)
+		for d in 6:
+			var nb := grid.neighbor(i, d)
+			var other := -1
+			if nb >= 0 and map.owner_city[nb] >= 0:
+				other = game.state.city(map.owner_city[nb]).owner
+			if other == owner_id:
+				continue
+			var a := c2 + HexGrid.corner_offset(d, MapStyle.HEX_SIZE)
+			var b := c2 + HexGrid.corner_offset((d + 1) % 6, MapStyle.HEX_SIZE)
+			var ai := c2 + (a - c2) * 0.84
+			var bi := c2 + (b - c2) * 0.84
+			var pts := [Vector3(a.x, h, a.y), Vector3(b.x, h, b.y), Vector3(bi.x, h, bi.y), Vector3(ai.x, h, ai.y)]
+			for idx in [0, 1, 2, 0, 2, 3]:
+				st.set_color(Color(col.r, col.g, col.b, 0.9))
+				st.set_uv2(uv)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(pts[idx])
+			count += 1
+	_set_layer("borders", st.commit() if count > 0 else null, _border_mat)
 
 
 func _fill(mm: MultiMesh, items: Array) -> void:

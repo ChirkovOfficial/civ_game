@@ -14,6 +14,8 @@ var map: GameMap
 var players: Array[Player] = []
 var units: Dictionary = {}   # id -> Unit
 var next_unit_id: int = 1
+var cities: Dictionary = {}  # id -> City
+var next_city_id: int = 1
 var start_positions: PackedInt32Array
 ## Пары держав в состоянии войны: "меньшийId,большийId" -> true. Дипломатия — веха M6.
 var wars: Dictionary = {}
@@ -44,6 +46,40 @@ func units_of(player_id: int) -> Array[Unit]:
 		if u.owner == player_id:
 			result.append(u)
 	return result
+
+
+func city(id: int) -> City:
+	return cities.get(id)
+
+
+## Город, центр которого в клетке, или null.
+func city_at(tile: int) -> City:
+	for id in _sorted_city_ids():
+		var c: City = cities[id]
+		if c.tile == tile:
+			return c
+	return null
+
+
+## Город, которому принадлежит клетка (по границам), или null.
+func city_owning(tile: int) -> City:
+	var cid := map.owner_city[tile]
+	return cities.get(cid) if cid >= 0 else null
+
+
+func cities_of(player_id: int) -> Array[City]:
+	var result: Array[City] = []
+	for id in _sorted_city_ids():
+		var c: City = cities[id]
+		if c.owner == player_id:
+			result.append(c)
+	return result
+
+
+func _sorted_city_ids() -> Array:
+	var ids := cities.keys()
+	ids.sort()
+	return ids
 
 
 func _sorted_unit_ids() -> Array:
@@ -98,6 +134,8 @@ func to_dict() -> Dictionary:
 		"map": map.to_dict(), "players": player_list, "units": unit_list,
 		"next_unit_id": next_unit_id, "start_positions": Array(start_positions),
 		"wars": wars.keys(),
+		"cities": _sorted_city_ids().map(func(id): return cities[id].to_dict()),
+		"next_city_id": next_city_id,
 	}
 
 
@@ -117,6 +155,10 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 	s.start_positions = PackedInt32Array(d["start_positions"])
 	for k in d.get("wars", []):
 		s.wars[k] = true
+	for cd in d.get("cities", []):
+		var c := City.from_dict(cd)
+		s.cities[c.id] = c
+	s.next_city_id = int(d.get("next_city_id", 1))
 	return s
 
 

@@ -1,0 +1,196 @@
+class_name EmpireRules
+extends RefCounted
+## Уровень державы: доходы, казна, содержание, исследования (ГДД 2, 4.3–4.6, 21, 22).
+
+
+# --- Доходы державы ---------------------------------------------------------------------------
+
+## Сводка за ход: доходы по типам, содержание, чистое золото.
+static func summary(game: Game, pid: int) -> Dictionary:
+	var total := {}
+	for t in Yields.TYPES:
+		total[t] = 0.0
+	var lux := CityRules.luxury_amenities(game, pid)
+	for city in game.state.cities_of(pid):
+		var y := CityRules.city_yields(game, city, lux)
+		for k in y:
+			if k != "food" and k != "production":
+				total[k] = float(total.get(k, 0.0)) + float(y[k])
+	var upkeep := maintenance(game, pid)
+	return {
+		"yields": total,
+		"maintenance": upkeep,
+		"net_gold": float(total["gold"]) - upkeep,
+	}
+
+
+static func unit_era(game: Game, unit_type: String) -> String:
+	var def := game.data.unit_def(unit_type)
+	if def.has("tech"):
+		return game.data.techs.get(def["tech"], {}).get("era", "START")
+	if def.has("civic"):
+		return game.data.civics.get(def["civic"], {}).get("era", "START")
+	return "START"
+
+
+static func unit_maintenance(game: Game, unit_type: String) -> float:
+	if game.data.unit_def(unit_type).get("class", "") == "CIVILIAN":
+		return 0.0
+	var table: Dictionary = game.data.const_value("unit_maintenance_by_era", {})
+	return float(table.get(unit_era(game, unit_type), 0))
+
+
+static func maintenance(game: Game, pid: int) -> float:
+	var m := 0.0
+	for u in game.state.units_of(pid):
+		m += unit_maintenance(game, u.type)
+	for city in game.state.cities_of(pid):
+		for bid in city.buildings:
+			m += float(game.data.buildings.get(bid, {}).get("maintenance", 0))
+	return m
+
+
+# --- Исследования -----------------------------------------------------------------------------
+
+static func tech_cost(game: Game, tech_id: String) -> float:
+	return roundf(float(game.data.techs.get(tech_id, {}).get("cost", 0)) * CityRules.speed_mult(game))
+
+
+static func civic_cost(game: Game, civic_id: String) -> float:
+	return roundf(float(game.data.civics.get(civic_id, {}).get("cost", 0)) * CityRules.speed_mult(game))
+
+
+static func _available(tree: Dictionary, ids: Array[String], known: Dictionary) -> Array[String]:
+	var result: Array[String] = []
+	for id in ids:
+		if known.has(id):
+			continue
+		var def: Dictionary = tree[id]
+		if def.get("future_shuffled", false) or def.get("repeatable", false):
+			continue   # эра будущего — веха M10
+		var ok := true
+		for pre in def.get("prereqs", []):
+			if not known.has(pre):
+				ok = false
+				break
+		if ok:
+			result.append(id)
+	return result
+
+
+static func available_techs(game: Game, pid: int) -> Array[String]:
+	return _available(game.data.techs, game.data.tech_ids, game.state.player(pid).known_techs)
+
+
+static func available_civics(game: Game, pid: int) -> Array[String]:
+	return _available(game.data.civics, game.data.civic_ids, game.state.player(pid).known_civics)
+
+
+static func turns_left(cost: float, progress: float, per_turn: float) -> int:
+	if per_turn <= 0.0:
+		return -1
+	return maxi(1, ceili((cost - progress) / per_turn))
+
+
+## Вкладывает очки в текущее исследование. Переполнение идёт в следующее (хранится в прогрессе
+## под ключом "_overflow" до выбора). kind: "tech" | "civic".
+static func add_research(game: Game, pid: int, kind: String, amount: float, events: Array) -> void:
+	var p := game.state.player(pid)
+	var progress: Dictionary = p.tech_progress if kind == "tech" else p.civic_progress
+	var current: String = p.current_tech if kind == "tech" else p.current_civic
+	if current == "":
+		progress["_overflow"] = float(progress.get("_overflow", 0.0)) + amount
+		return
+	progress[current] = float(progress.get(current, 0.0)) + amount
+	var cost := tech_cost(game, current) if kind == "tech" else civic_cost(game, current)
+	if float(progress[current]) < cost:
+		return
+	var extra := float(progress[current]) - cost
+	progress.erase(current)
+	progress["_overflow"] = float(progress.get("_overflow", 0.0)) + extra
+	if kind == "tech":
+		p.known_techs[current] = true
+		p.current_tech = ""
+		events.append({"type": "tech_researched", "player": pid, "tech": current})
+	else:
+		p.known_civics[current] = true
+		p.current_civic = ""
+		events.append({"type": "civic_completed", "player": pid, "civic": current})
+
+
+## Выбор исследования: переносит накопленное переполнение в новый объект.
+static func set_research(game: Game, pid: int, kind: String, id: String) -> String:
+	var p := game.state.player(pid)
+	var avail := available_techs(game, pid) if kind == "tech" else available_civics(game, pid)
+	if not avail.has(id):
+		return "Это исследование сейчас недоступно"
+	var progress: Dictionary = p.tech_progress if kind == "tech" else p.civic_progress
+	var ov := float(progress.get("_overflow", 0.0))
+	progress.erase("_overflow")
+	if kind == "tech":
+		p.current_tech = id
+	else:
+		p.current_civic = id
+	progress[id] = float(progress.get(id, 0.0)) + ov
+	return ""
+
+
+# --- Обработка начала хода (ГДД 2) ---------------------------------------------------------------
+
+static func process_turn_start(game: Game, pid: int, events: Array) -> void:
+	var p := game.state.player(pid)
+	var cities := game.state.cities_of(pid)
+	var lux := CityRules.luxury_amenities(game, pid)
+	# 1. Доходы державы.
+	var sum := summary(game, pid)
+	var y: Dictionary = sum["yields"]
+	p.treasury += float(sum["net_gold"])
+	p.faith += float(y.get("faith", 0.0))
+	if not cities.is_empty():
+		add_research(game, pid, "tech", float(y.get("science", 0.0)), events)
+		add_research(game, pid, "civic", float(y.get("culture", 0.0)), events)
+	# Пусть результат текущего исследования (если оно завершилось) сразу засчитается.
+	if p.treasury < 0.0:
+		_bankruptcy(game, pid, events)
+	# 2. Города: рост, границы, производство (доходы — по состоянию на начало хода).
+	for city in cities:
+		var cy := CityRules.city_yields(game, city, lux)
+		CityRules.process_growth(game, city, lux, events)
+		CityRules.process_borders(game, city, float(cy.get("culture", 0.0)), events)
+		CityRules.process_production(game, city, float(cy.get("production", 0.0)), events)
+		CityRules.assign_citizens(game, city)
+
+
+## Банкротство (ГДД 4.3): расформировать самый дорогой в содержании юнит.
+static func _bankruptcy(game: Game, pid: int, events: Array) -> void:
+	var worst: Unit = null
+	var worst_cost := 0.0
+	for u in game.state.units_of(pid):
+		var m := unit_maintenance(game, u.type)
+		if m > worst_cost:
+			worst_cost = m
+			worst = u
+	if worst != null:
+		events.append({"type": "unit_disbanded", "unit": worst.id, "player": pid, "reason": "bankruptcy"})
+		game.state.remove_unit(worst.id)
+	game.state.player(pid).treasury = 0.0
+
+
+# --- Обязательные решения перед концом хода (ГДД 2) --------------------------------------------
+
+## Список того, что мешает закончить ход: [{"type": ..., ...}].
+static func blocking_decisions(game: Game, pid: int) -> Array:
+	var result := []
+	var p := game.state.player(pid)
+	var cities := game.state.cities_of(pid)
+	if not cities.is_empty():
+		if p.current_tech == "" and not available_techs(game, pid).is_empty():
+			result.append({"type": "choose_tech", "text": "Выберите исследование"})
+		if p.current_civic == "" and not available_civics(game, pid).is_empty():
+			result.append({"type": "choose_civic", "text": "Выберите институт"})
+	for city in cities:
+		if city.queue.is_empty():
+			result.append({"type": "city_production", "city": city.id, "text": "Город %s ждёт производства" % city.name})
+	for u in game.units_needing_orders(pid):
+		result.append({"type": "unit_orders", "unit": u.id, "text": "Юнит ждёт приказа"})
+	return result

@@ -5,17 +5,21 @@ core/                 симуляция (без графики)
   game.gd             Game: данные + состояние, apply_action(), порядок ходов
   data/game_data.gd   загрузка и проверка data/*.json
   hex/hex_grid.gd     гекс-сетка: odd-r, цилиндр, расстояния, линии, мировые координаты
-  state/              GameState, GameMap (столбцы по клеткам), Player, Unit, GameRng
+  state/              GameState, GameMap (столбцы по клеткам), Player, Unit, City, GameRng
   map/map_generator.gd генератор карты
-  rules/              правила: movement, pathfinder (A*), visibility (туман), yields
-  ai/ai_player.gd     ИИ (пока разведка)
+  rules/              правила: movement, pathfinder (A*), visibility (туман), yields,
+                      city_rules (города), empire_rules (держава, исследования, конец хода),
+                      improvement_rules (строители)
+  ai/ai_player.gd     ИИ: исследования, расселение, производство, строители, гарнизоны
 data/                 весь контент и баланс (JSON)
 view/                 отображение и ввод (Godot-узлы)
   main.gd/.tscn       точка входа, связывает ядро и отображение
   map/                MapView, построение мешей, шейдеры (туман через текстуру)
-  units_view.gd, overlay_view.gd, camera_rig.gd, hud.gd, map_style.gd (палитра, высоты)
+  map/improvement_meshes.gd — временные модели улучшений
+  units_view.gd, cities_view.gd, overlay_view.gd, camera_rig.gd, hud.gd,
+  map_style.gd (палитра, высоты)
 tests/                тесты ядра (run_tests.gd + test_*.gd)
-tools/                служебные скрипты: проверка скриптов, скриншоты, дымовой тест
+tools/                служебные скрипты: проверка скриптов, скриншоты, дымовой тест, автоигра
 art/                  арты художника
 docs/                 GDD.md (дизайн), STATUS.md (прогресс), этот файл
 ```

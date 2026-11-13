@@ -62,8 +62,21 @@ static func recompute(game: Game, player_id: int) -> bool:
 	var p := game.state.player(player_id)
 	p.visible_count.fill(0)
 	var newly := false
+	var eyes: Array[PackedInt32Array] = []
 	for u in game.state.units_of(player_id):
-		for t in visible_tiles(game, u.tile, unit_sight(game, u)):
+		eyes.append(visible_tiles(game, u.tile, unit_sight(game, u)))
+	# Город видит свою территорию и окрестности центра.
+	var city_sight: int = int(game.data.const_value("city_sight", 3))
+	var map := game.state.map
+	for city in game.state.cities_of(player_id):
+		eyes.append(visible_tiles(game, city.tile, city_sight))
+		var own := PackedInt32Array()
+		for t in map.grid.tiles_in_radius(city.tile, int(game.data.const_value("city_border_radius", 5))):
+			if map.owner_city[t] == city.id:
+				own.append(t)
+		eyes.append(own)
+	for tiles in eyes:
+		for t in tiles:
 			p.visible_count[t] += 1
 			if p.revealed[t] == Player.FOG_UNEXPLORED:
 				p.revealed[t] = Player.FOG_REVEALED

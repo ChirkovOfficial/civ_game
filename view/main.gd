@@ -10,13 +10,25 @@ extends Node3D
 var game: Game
 var map_view: MapView
 var units_view: UnitsView
+var cities_view: CitiesView
 var overlay: OverlayView
 var camera_rig: CameraRig
 var hud: Hud
 
 var selected: Unit = null
+var selected_city: City = null
 var hover_tile := -1
 var _hover_path_target := -2
+## Какие части геометрии карты пересобрать при следующем обновлении.
+var _geometry_dirty := {}
+
+## Событие -> части геометрии, которые оно меняет.
+const GEOMETRY_EVENTS := {
+	"city_founded": ["terrain", "improvements", "borders"],
+	"border_grew": ["borders"],
+	"improvement_built": ["improvements"],
+	"harvested": ["terrain", "improvements"],
+}
 
 
 func _ready() -> void:
@@ -27,6 +39,9 @@ func _ready() -> void:
 	overlay = OverlayView.new()
 	overlay.name = "Overlay"
 	add_child(overlay)
+	cities_view = CitiesView.new()
+	cities_view.name = "Cities"
+	add_child(cities_view)
 	units_view = UnitsView.new()
 	units_view.name = "Units"
 	add_child(units_view)
@@ -35,10 +50,11 @@ func _ready() -> void:
 	add_child(camera_rig)
 	hud = Hud.new()
 	add_child(hud)
+	hud.act = act
 	hud.end_turn_pressed.connect(_end_turn)
-	hud.skip_pressed.connect(_skip_selected)
 	hud.new_map_pressed.connect(_new_game)
 	hud.reveal_toggled.connect(_set_reveal)
+	hud.city_closed.connect(func(): _select_city(null))
 	_new_game()
 
 
@@ -69,12 +85,17 @@ func _new_game() -> void:
 	})
 	print("Карта создана за %d мс, зерно %d" % [Time.get_ticks_msec() - t0, seed_value])
 	game.events_emitted.connect(_on_events)
+	hud.game = game
 	map_view.build(game)
 	var map := game.state.map
 	camera_rig.setup(map_view.world_width, map.grid.world_position(map.size() - 1).y + 1.0)
 	units_view.setup(game, map_view)
+	cities_view.setup(game, map_view)
 	overlay.setup(map_view)
 	selected = null
+	selected_city = null
+	hud.open_city(-1)
+	hud.close_research()
 	_refresh_all()
 	var start := game.state.start_positions[0]
 	camera_rig.focus(map_view.tile_world(start))
@@ -86,23 +107,59 @@ func _viewer() -> Player:
 	return game.state.player(game.state.current_player)
 
 
+## Применить действие от имени игрока и обновить экран.
+func act(action: Dictionary) -> Array:
+	var events := game.apply_action(action)
+	_after_action()
+	var t: String = action.get("type", "")
+	if t in ["found_city", "build_improvement", "harvest", "skip_unit", "sleep_unit"] and \
+			(selected == null or game.state.unit(selected.id) == null or selected.moves_left <= 0.0 or not selected.orders.is_empty()):
+		_select_next_unit()
+	if t == "found_city":
+		for e in events:
+			if e["type"] == "city_founded":
+				_select_city(game.state.city(e["city"]))
+	return events
+
+
 func _refresh_all() -> void:
+	if not _geometry_dirty.is_empty():
+		map_view.refresh_geometry(_geometry_dirty)
+		_geometry_dirty = {}
 	var viewer := _viewer()
 	map_view.refresh_fog(viewer)
 	map_view.refresh_resources(viewer)
 	units_view.selected_id = selected.id if selected != null else -1
 	units_view.refresh(viewer, camera_rig.position.x)
-	hud.set_turn(game.state.turn, viewer, game.units_needing_orders(viewer.id).size())
-	hud.show_unit(game, selected)
+	cities_view.refresh(viewer, camera_rig.position.x)
+	hud.refresh_top()
+	hud.refresh_research()
+	hud.show_unit(selected)
+	if selected_city != null and game.state.city(selected_city.id) != null:
+		hud.refresh_city()
+		overlay.show_city(game, selected_city, camera_rig.position.x)
+	var blocking := EmpireRules.blocking_decisions(game, viewer.id)
+	if blocking.is_empty():
+		hud.set_end_turn_text("Конец хода (Enter)", false)
+	else:
+		hud.set_end_turn_text(blocking[0]["text"], true)
 
 
 func _on_events(events: Array) -> void:
 	for e in events:
-		if e["type"] == "error":
+		var t: String = e["type"]
+		if GEOMETRY_EVENTS.has(t):
+			for part in GEOMETRY_EVENTS[t]:
+				_geometry_dirty[part] = true
+		if t == "error":
 			hud.show_message(e["message"])
-		elif e["type"] == "unit_blocked" and game.state.unit(e["unit"]) != null \
+		elif t == "unit_blocked" and game.state.unit(e["unit"]) != null \
 				and game.state.unit(e["unit"]).owner == game.state.current_player:
 			hud.show_message("Путь перекрыт")
+		elif t == "tech_researched" and e["player"] == game.state.current_player:
+			hud.show_message("Изучено: %s" % game.data.techs[e["tech"]]["name"], 3.0)
+		elif t == "civic_completed" and e["player"] == game.state.current_player:
+			hud.show_message("Принят институт: %s" % game.data.civics[e["civic"]]["name"], 3.0)
 
 
 func _process(_delta: float) -> void:
@@ -110,6 +167,7 @@ func _process(_delta: float) -> void:
 		return
 	# Фигурки и наложения следуют за камерой через шов цилиндра.
 	units_view.refresh(_viewer(), camera_rig.position.x)
+	cities_view.refresh(_viewer(), camera_rig.position.x)
 	_update_hover()
 
 
@@ -121,13 +179,12 @@ func _update_hover() -> void:
 		tile = -1
 	if tile != hover_tile:
 		hover_tile = tile
-		hud.show_tile(game, _viewer(), tile, map_view.reveal_all)
+		hud.show_tile(_viewer(), tile, map_view.reveal_all)
 	overlay.show_hover(tile, camera_rig.position.x)
-	# Предпросмотр пути для выбранного юнита.
-	var path_target := tile if selected != null and selected.moves_left >= 0.0 else -1
+	var path_target := tile if selected != null else -1
 	if path_target != _hover_path_target:
 		_hover_path_target = path_target
-		if path_target >= 0 and selected != null and path_target != selected.tile:
+		if path_target >= 0 and selected != null and game.state.unit(selected.id) != null and path_target != selected.tile:
 			overlay.show_path(Pathfinder.find_path(game, selected, path_target), camera_rig.position.x)
 		else:
 			overlay.clear_path()
@@ -137,7 +194,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
-			_select_at(hover_tile)
+			_click_tile(hover_tile)
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and selected != null and hover_tile >= 0:
 			_move_selected(hover_tile)
 	elif event is InputEventKey and event.pressed and not event.echo:
@@ -145,7 +202,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_ENTER, KEY_KP_ENTER:
 				_end_turn()
 			KEY_SPACE:
-				_skip_selected()
+				if selected != null:
+					act({"type": "skip_unit", "unit": selected.id})
+			KEY_F:
+				if selected != null:
+					act({"type": "sleep_unit", "unit": selected.id})
+			KEY_B:
+				if selected != null:
+					act({"type": "found_city", "unit": selected.id})
 			KEY_TAB:
 				_select_next_unit(true)
 			KEY_F2:
@@ -155,29 +219,50 @@ func _unhandled_input(event: InputEvent) -> void:
 				_new_game()
 			KEY_ESCAPE:
 				_select(null)
+				_select_city(null)
+				hud.close_research()
+
+
+func _click_tile(tile: int) -> void:
+	if tile < 0:
+		return
+	# В режиме города щелчок по ничьей клетке рядом — покупка.
+	if selected_city != null and game.state.map.owner_city[tile] < 0 \
+			and game.state.map.grid.distance(selected_city.tile, tile) <= 3:
+		act({"type": "buy_tile", "city": selected_city.id, "tile": tile})
+		return
+	var city := game.state.city_at(tile)
+	var mine: Array[Unit] = []
+	for u in game.state.units_at(tile):
+		if u.owner == game.state.current_player:
+			mine.append(u)
+	# Щелчок по городу открывает его (повторный щелчок — юниты в городе).
+	if city != null and _viewer().is_revealed(tile) and (selected_city != city or mine.is_empty()):
+		_select(null)
+		_select_city(city)
+		return
+	_select_city(null)
+	if mine.is_empty():
+		_select(null)
+		return
+	var idx := mine.find(selected)
+	_select(mine[(idx + 1) % mine.size()])
 
 
 func _select(u: Unit) -> void:
 	selected = u
 	_hover_path_target = -2
 	units_view.selected_id = u.id if u != null else -1
-	hud.show_unit(game, u)
+	hud.show_unit(u)
 
 
-func _select_at(tile: int) -> void:
-	if tile < 0:
-		_select(null)
-		return
-	var mine: Array[Unit] = []
-	for u in game.state.units_at(tile):
-		if u.owner == game.state.current_player:
-			mine.append(u)
-	if mine.is_empty():
-		_select(null)
-		return
-	# Повторный клик по той же клетке переключает между юнитами в ней.
-	var idx := mine.find(selected)
-	_select(mine[(idx + 1) % mine.size()])
+func _select_city(c: City) -> void:
+	selected_city = c
+	hud.open_city(c.id if c != null else -1)
+	if c == null:
+		overlay.clear_city()
+	else:
+		overlay.show_city(game, c, camera_rig.position.x)
 
 
 func _select_next_unit(cycle: bool = false) -> void:
@@ -192,21 +277,36 @@ func _select_next_unit(cycle: bool = false) -> void:
 
 
 func _move_selected(tile: int) -> void:
-	game.apply_action({"type": "move_unit", "unit": selected.id, "target": tile})
-	_after_action()
+	if game.state.unit(selected.id) == null:
+		_select(null)
+		return
+	act({"type": "move_unit", "unit": selected.id, "target": tile})
 	if selected != null and selected.moves_left <= 0.0:
 		_select_next_unit()
 
 
-func _skip_selected() -> void:
-	if selected == null:
-		return
-	game.apply_action({"type": "skip_unit", "unit": selected.id})
-	_after_action()
-	_select_next_unit()
-
-
+## Конец хода; если остались обязательные решения — показать первое из них.
 func _end_turn() -> void:
+	var blocking := EmpireRules.blocking_decisions(game, game.state.current_player)
+	if not blocking.is_empty():
+		var b: Dictionary = blocking[0]
+		hud.show_message(b["text"])
+		match b["type"]:
+			"choose_tech":
+				hud.open_research("tech")
+			"choose_civic":
+				hud.open_research("civic")
+			"city_production":
+				var c := game.state.city(b["city"])
+				_select(null)
+				_select_city(c)
+				camera_rig.focus(map_view.tile_world(c.tile, camera_rig.position.x))
+			"unit_orders":
+				var u := game.state.unit(b["unit"])
+				_select_city(null)
+				_select(u)
+				camera_rig.focus(map_view.tile_world(u.tile, camera_rig.position.x))
+		return
 	game.apply_action({"type": "end_turn"})
 	_select(null)
 	_after_action()
@@ -216,10 +316,14 @@ func _end_turn() -> void:
 
 func _after_action() -> void:
 	_hover_path_target = -2
+	if selected != null and game.state.unit(selected.id) == null:
+		selected = null
+	if selected_city != null and game.state.city(selected_city.id) == null:
+		_select_city(null)
 	_refresh_all()
 
 
 func _set_reveal(on: bool) -> void:
 	map_view.set_reveal_all(on)
 	map_view.refresh_resources(_viewer())
-	hud.show_tile(game, _viewer(), hover_tile, on)
+	hud.show_tile(_viewer(), hover_tile, on)

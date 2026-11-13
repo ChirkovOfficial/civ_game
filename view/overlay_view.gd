@@ -59,6 +59,58 @@ func show_hover(tile: int, cam_x: float) -> void:
 	_hover.position = map_view.tile_world(tile, cam_x) + Vector3(0, 0.025, 0)
 
 
+var _city_root: Node3D = null
+
+
+## Режим города: отмечает обрабатываемые клетки и цены клеток, доступных для покупки.
+func show_city(game: Game, city: City, cam_x: float) -> void:
+	clear_city()
+	_city_root = Node3D.new()
+	add_child(_city_root)
+	var worker := SphereMesh.new()
+	worker.radius = 0.09
+	worker.height = 0.18
+	var wm := StandardMaterial3D.new()
+	wm.albedo_color = Color(1.0, 0.95, 0.75)
+	wm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	for t in city.worked_tiles:
+		var mi := MeshInstance3D.new()
+		mi.mesh = worker
+		mi.material_override = wm
+		mi.position = map_view.tile_world(t, cam_x) + Vector3(-0.3, 0.25, -0.3)
+		_city_root.add_child(mi)
+	if city.owner != game.state.current_player:
+		return
+	var treasury := game.state.player(city.owner).treasury
+	for t in game.state.map.grid.tiles_in_radius(city.tile, int(game.data.const_value("city_work_radius", 3))):
+		if game.state.map.owner_city[t] >= 0:
+			continue
+		var adjacent := false
+		for nb in game.state.map.grid.neighbors(t):
+			if game.state.map.owner_city[nb] == city.id:
+				adjacent = true
+		if not adjacent:
+			continue
+		var cost := CityRules.tile_purchase_cost(game, city, t)
+		var label := Label3D.new()
+		label.text = "%d" % cost
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.font_size = 48
+		label.pixel_size = 0.004
+		label.outline_size = 10
+		label.modulate = Color(1.0, 0.86, 0.35) if treasury >= cost else Color(0.7, 0.7, 0.7)
+		label.outline_modulate = Color(0.1, 0.08, 0.02)
+		label.no_depth_test = true
+		label.position = map_view.tile_world(t, cam_x) + Vector3(0, 0.3, 0)
+		_city_root.add_child(label)
+
+
+func clear_city() -> void:
+	if _city_root != null:
+		_city_root.queue_free()
+		_city_root = null
+
+
 func clear_path() -> void:
 	for c in _path_root.get_children():
 		c.queue_free()

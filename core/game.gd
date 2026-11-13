@@ -37,14 +37,20 @@ static func new_game(game_data: GameData, settings: Dictionary) -> Game:
 	s.map = gen.generate(s.settings)
 	s.start_positions = gen.start_positions
 	var humans: Array = settings.get("humans", [0])
+	# Цивилизации по игрокам; по умолчанию у первого — базовая (Рим), у остальных — заглушки.
+	var civ_ids: Array = settings.get("civs", ["ROME"])
 	var colors: Array = game_data.setup.get("player_colors", [])
 	var game := Game.new(game_data, s)
 	for pid in mini(num_civs, s.start_positions.size()):
 		var p := Player.new()
 		p.id = pid
-		p.name = "Держава %d" % (pid + 1)
-		p.color = Color.html(colors[pid % colors.size()]) if not colors.is_empty() else Color.WHITE
+		p.civ_trait_id = civ_ids[pid] if pid < civ_ids.size() else ""
+		var civ: Dictionary = game_data.civs.get(p.civ_trait_id, {})
+		p.name = civ.get("name", "Держава %d" % (pid + 1))
+		var col: String = civ.get("color", colors[pid % colors.size()] if not colors.is_empty() else "#ffffff")
+		p.color = Color.html(col)
 		p.is_ai = not humans.has(pid)
+		p.treasury = float(game_data.const_value("starting_treasury", 0))
 		p.init_fog(s.map.size())
 		s.players.append(p)
 		game._spawn_start_units(pid, s.start_positions[pid])
@@ -98,8 +104,35 @@ func apply_action(action: Dictionary) -> Array:
 			var u := _own_unit(action, events)
 			if u != null:
 				u.orders = {}
+		"sleep_unit":
+			var u := _own_unit(action, events)
+			if u != null:
+				u.orders = {"type": "sleep"}
+				events.append({"type": "unit_updated", "unit": u.id})
+		"found_city":
+			_act_found_city(action, events)
+		"build_improvement":
+			_act_build_improvement(action, events)
+		"harvest":
+			var u := _own_unit(action, events)
+			if u != null:
+				var err := ImprovementRules.harvest(self, u, events)
+				if err != "":
+					events.append(_error(err))
+		"set_production":
+			_act_set_production(action, events)
+		"purchase":
+			_act_purchase(action, events)
+		"buy_tile":
+			_act_buy_tile(action, events)
+		"set_research":
+			_act_set_research(action, events)
 		"end_turn":
-			_act_end_turn(events)
+			var blocking := EmpireRules.blocking_decisions(self, state.current_player)
+			if not blocking.is_empty() and not action.get("force", false):
+				events.append(_error(blocking[0]["text"]))
+			else:
+				_act_end_turn(events)
 		_:
 			events.append(_error("Неизвестное действие: %s" % action.get("type", "")))
 	if not events.is_empty():
@@ -120,6 +153,120 @@ func _own_unit(action: Dictionary, events: Array) -> Unit:
 		events.append(_error("Это не ваш юнит"))
 		return null
 	return u
+
+
+func _own_city(action: Dictionary, events: Array) -> City:
+	var c := state.city(int(action.get("city", -1)))
+	if c == null:
+		events.append(_error("Город не найден"))
+		return null
+	if c.owner != state.current_player:
+		events.append(_error("Это не ваш город"))
+		return null
+	return c
+
+
+func _act_found_city(action: Dictionary, events: Array) -> void:
+	var u := _own_unit(action, events)
+	if u == null:
+		return
+	if not data.unit_def(u.type).get("abilities", []).has("FOUND_CITY"):
+		events.append(_error("Этот юнит не может основать город"))
+		return
+	if u.moves_left <= 0.0:
+		events.append(_error("Нет очков движения"))
+		return
+	var err := CityRules.found_city_error(self, u.owner, u.tile)
+	if err != "":
+		events.append(_error(err))
+		return
+	var tile := u.tile
+	var pid := u.owner
+	state.remove_unit(u.id)
+	events.append({"type": "unit_consumed", "unit": u.id})
+	var city := CityRules.found_city(self, pid, tile)
+	events.append({"type": "city_founded", "city": city.id, "player": pid, "tile": tile})
+	Visibility.recompute(self, pid)
+
+
+func _act_build_improvement(action: Dictionary, events: Array) -> void:
+	var u := _own_unit(action, events)
+	if u == null:
+		return
+	var imp: String = action.get("improvement", "")
+	var err := ImprovementRules.build_error(self, u, imp)
+	if err == "" and u.moves_left <= 0.0:
+		err = "Нет очков движения"
+	if err != "":
+		events.append(_error(err))
+		return
+	ImprovementRules.build(self, u, imp, events)
+
+
+func _act_set_production(action: Dictionary, events: Array) -> void:
+	var c := _own_city(action, events)
+	if c == null:
+		return
+	var item := {"kind": str(action.get("kind", "")), "id": str(action.get("id", ""))}
+	var err := CityRules.build_error(self, c, item)
+	if err != "":
+		events.append(_error(err))
+		return
+	# В очереди один объект: новый выбор заменяет текущий; прогресс прежнего сохраняется.
+	c.queue = [item]
+	events.append({"type": "city_updated", "city": c.id})
+
+
+func _act_purchase(action: Dictionary, events: Array) -> void:
+	var c := _own_city(action, events)
+	if c == null:
+		return
+	var item := {"kind": str(action.get("kind", "")), "id": str(action.get("id", ""))}
+	var err := CityRules.build_error(self, c, item)
+	var p := state.player(c.owner)
+	var price := CityRules.purchase_cost(self, c, item)
+	if err == "" and p.treasury < price:
+		err = "Не хватает золота (нужно %d)" % price
+	if err != "":
+		events.append(_error(err))
+		return
+	if not CityRules.complete_item(self, c, item, events):
+		events.append(_error("Юниту негде появиться"))
+		return
+	p.treasury -= price
+	c.progress.erase(City.item_key(item))
+	if not c.queue.is_empty() and City.item_key(c.queue[0]) == City.item_key(item):
+		c.queue.pop_front()
+	events.append({"type": "purchased", "city": c.id, "item": item, "price": price})
+	Visibility.recompute(self, c.owner)
+
+
+func _act_buy_tile(action: Dictionary, events: Array) -> void:
+	var c := _own_city(action, events)
+	if c == null:
+		return
+	var tile := int(action.get("tile", -1))
+	if not state.map.grid.is_valid_index(tile):
+		events.append(_error("Нет такой клетки"))
+		return
+	var err := CityRules.tile_purchase_error(self, c, tile)
+	if err != "":
+		events.append(_error(err))
+		return
+	state.player(c.owner).treasury -= CityRules.tile_purchase_cost(self, c, tile)
+	CityRules.claim_tile(self, c, tile)
+	CityRules.assign_citizens(self, c)
+	events.append({"type": "border_grew", "city": c.id, "tile": tile})
+	Visibility.recompute(self, c.owner)
+
+
+func _act_set_research(action: Dictionary, events: Array) -> void:
+	var kind: String = action.get("kind", "tech")
+	var err := EmpireRules.set_research(self, state.current_player, kind, str(action.get("id", "")))
+	if err != "":
+		events.append(_error(err))
+		return
+	events.append({"type": "research_changed", "player": state.current_player, "kind": kind})
 
 
 func _act_skip_unit(action: Dictionary, events: Array) -> void:
@@ -190,8 +337,15 @@ func _act_end_turn(events: Array) -> void:
 	state.current_player = next
 	_begin_player_turn(next, events)
 	# ИИ ходит сразу; управление возвращается, когда очередь дойдёт до человека.
+	# Если людей нет (автоигра), за один вызов проходит не больше одного круга.
+	var has_humans := false
+	for p in state.players:
+		if p.alive and not p.is_ai:
+			has_humans = true
 	var guard := 0
 	while state.player(state.current_player).is_ai and guard < state.players.size():
+		if not has_humans and next <= finished:
+			break
 		guard += 1
 		AIPlayer.take_turn(self, state.current_player)
 		var ai_id := state.current_player
@@ -200,6 +354,10 @@ func _act_end_turn(events: Array) -> void:
 		if n2 <= ai_id:
 			state.turn += 1
 			events.append({"type": "new_round", "turn": state.turn})
+			if not has_humans:
+				state.current_player = n2
+				_begin_player_turn(n2, events)
+				break
 		state.current_player = n2
 		_begin_player_turn(n2, events)
 
@@ -213,9 +371,10 @@ func _next_alive_player(from: int) -> int:
 	return from
 
 
-## Начало хода игрока (ГДД 2, упрощённо для M1): восстановление ОД,
-## исполнение постоянных приказов, пересчёт видимости.
+## Начало хода игрока (ГДД 2): доходы державы, города (рост, границы, производство),
+## восстановление ОД, исполнение постоянных приказов, пересчёт видимости.
 func _begin_player_turn(pid: int, events: Array) -> void:
+	EmpireRules.process_turn_start(self, pid, events)
 	for u in state.units_of(pid):
 		u.moves_left = Movement.max_moves(self, u)
 		u.acted = false

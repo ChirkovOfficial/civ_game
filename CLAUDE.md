@@ -27,8 +27,9 @@ godot --headless --path . --import                      # один раз: кэ�
 godot --headless --path . -s tools/check_scripts.gd     # компиляция всех скриптов
 godot --headless --path . -s tests/run_tests.gd         # все тесты, код 0 = ок
 TEST_FILTER=test_movement godot --headless --path . -s tests/run_tests.gd
-xvfb-run -a -s "-screen 0 1600x900x24" godot --path . -s tools/screenshot.gd -- out.png <зерно> [reveal|fog] [дистанция] [path]
+xvfb-run -a -s "-screen 0 1600x900x24" godot --path . -s tools/screenshot.gd -- out.png <зерно> [reveal|fog] [дистанция] [path|-] [ходов автоигры]
 xvfb-run -a -s "-screen 0 1600x900x24" godot --path . -s tools/smoke_view.gd   # дымовой тест интерфейса
+godot --headless --path . -s tools/autoplay.gd -- 120 SMALL 3                    # автоигра ИИ, статистика
 ```
 Рендерер проекта — **Compatibility (OpenGL)**: так скриншоты в контейнере (Mesa llvmpipe)
 совпадают с тем, что видит игрок. Свет в этом рендерере считается в sRGB.
@@ -54,6 +55,9 @@ xvfb-run -a -s "-screen 0 1600x900x24" godot --path . -s tools/smoke_view.gd   #
 - `Array[int] + Array[int]` даёт нетипизированный `Array` — собирать через `append_array`.
 - JSON возвращает числа как `float`: при загрузке приводить к `int` (`Unit._ints_in_dict`).
 - После добавления нового `class_name` перезапустить `--import`, иначе класс не найдётся.
+- Интерфейс: панели с якорями добавлять в дерево **после** установки якорей и `position`
+  (см. `Hud._attach`), иначе позиция считается от левого верхнего угла родителя.
+- Лямбды захватывают переменные цикла по значению — так и задумано в кнопках HUD.
 
 ## Работа с владельцем проекта
 

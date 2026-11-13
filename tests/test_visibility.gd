@@ -58,7 +58,7 @@ func test_save_load_roundtrip() -> void:
 			target = t
 			break
 	g.apply_action({"type": "move_unit", "unit": u.id, "target": target})
-	g.apply_action({"type": "end_turn"})
+	g.apply_action({"type": "end_turn", "force": true})
 	var text := g.state.to_json()
 	var restored := GameState.from_json(text, g.data)
 	var a: Dictionary = g.state.to_dict()

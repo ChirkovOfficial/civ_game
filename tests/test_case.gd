@@ -49,6 +49,7 @@ static func blank_game(w: int = 20, h: int = 12, num_players: int = 2) -> Game:
 		p.name = "P%d" % pid
 		p.color = Color.WHITE
 		p.is_ai = pid != 0
+		p.civ_trait_id = "ROME" if pid == 0 else ""
 		p.init_fog(s.map.size())
 		s.players.append(p)
 	return Game.new(data, s)
