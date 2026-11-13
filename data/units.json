@@ -1,0 +1,84 @@
+{
+  "_doc": "Юниты (ГДД 9.2). class — линия развития; domain: LAND | SEA | AIR. combat — сила ближнего боя, ranged — дальнего/бомбардировки, range — дальность. resource: разовая стоимость в запасе; resource_per_turn: содержание ресурса. tech/civic — что открывает (пусто = доступен со старта). upgrades_to — следующий в линии. Содержание в золоте считается по эре открывающей технологии (constants.unit_maintenance_by_era).",
+  "units": [
+    {"id": "SETTLER", "name": "Поселенец", "class": "CIVILIAN", "domain": "LAND", "moves": 2, "sight": 3, "cost": 80, "cost_progression": 30, "abilities": ["FOUND_CITY"], "pop_cost": 1},
+    {"id": "BUILDER", "name": "Строитель", "class": "CIVILIAN", "domain": "LAND", "moves": 2, "sight": 2, "cost": 50, "cost_progression": 4, "charges": 3, "abilities": ["BUILD_IMPROVEMENT"]},
+    {"id": "TRADER",  "name": "Торговец",  "class": "CIVILIAN", "domain": "LAND", "moves": 1, "sight": 2, "cost": 40, "civic": "FOREIGN_TRADE", "abilities": ["TRADE_ROUTE"]},
+
+    {"id": "WARRIOR",      "name": "Воин",               "class": "MELEE", "domain": "LAND", "combat": 20, "moves": 2, "sight": 2, "cost": 40, "upgrades_to": "SWORDSMAN"},
+    {"id": "SWORDSMAN",    "name": "Мечник",             "class": "MELEE", "domain": "LAND", "combat": 35, "moves": 2, "sight": 2, "cost": 90,  "resource": {"IRON": 20}, "tech": "IRON_WORKING", "upgrades_to": "MAN_AT_ARMS"},
+    {"id": "MAN_AT_ARMS",  "name": "Латник",             "class": "MELEE", "domain": "LAND", "combat": 45, "moves": 2, "sight": 2, "cost": 160, "resource": {"IRON": 20}, "tech": "APPRENTICESHIP", "upgrades_to": "MUSKETMAN"},
+    {"id": "MUSKETMAN",    "name": "Мушкетёр",           "class": "MELEE", "domain": "LAND", "combat": 55, "moves": 2, "sight": 2, "cost": 240, "resource": {"NITER": 20}, "tech": "GUNPOWDER", "upgrades_to": "LINE_INFANTRY"},
+    {"id": "LINE_INFANTRY","name": "Линейная пехота",    "class": "MELEE", "domain": "LAND", "combat": 65, "moves": 2, "sight": 2, "cost": 360, "resource": {"NITER": 20}, "tech": "MILITARY_SCIENCE", "upgrades_to": "INFANTRY"},
+    {"id": "INFANTRY",     "name": "Пехота",             "class": "MELEE", "domain": "LAND", "combat": 75, "moves": 2, "sight": 2, "cost": 430, "resource_per_turn": {"OIL": 1}, "tech": "REPLACEABLE_PARTS", "upgrades_to": "MECHANIZED_INFANTRY"},
+    {"id": "MECHANIZED_INFANTRY", "name": "Мотопехота",  "class": "MELEE", "domain": "LAND", "combat": 85, "moves": 3, "sight": 2, "cost": 650, "resource_per_turn": {"OIL": 1}, "tech": "SATELLITES"},
+
+    {"id": "SPEARMAN",     "name": "Копейщик",           "class": "ANTI_CAVALRY", "domain": "LAND", "combat": 25, "moves": 2, "sight": 2, "cost": 65,  "tech": "BRONZE_WORKING", "upgrades_to": "PIKEMAN"},
+    {"id": "PIKEMAN",      "name": "Пикинёр",            "class": "ANTI_CAVALRY", "domain": "LAND", "combat": 45, "moves": 2, "sight": 2, "cost": 180, "tech": "MILITARY_TACTICS", "upgrades_to": "PIKE_AND_SHOT"},
+    {"id": "PIKE_AND_SHOT","name": "Пикинёры и аркебузиры", "class": "ANTI_CAVALRY", "domain": "LAND", "combat": 55, "moves": 2, "sight": 2, "cost": 250, "resource": {"NITER": 20}, "tech": "METAL_CASTING", "upgrades_to": "AT_CREW"},
+    {"id": "AT_CREW",      "name": "Расчёт ПТО",         "class": "ANTI_CAVALRY", "domain": "LAND", "combat": 75, "moves": 2, "sight": 2, "cost": 400, "tech": "CHEMISTRY", "upgrades_to": "MODERN_AT"},
+    {"id": "MODERN_AT",    "name": "Современное ПТО",    "class": "ANTI_CAVALRY", "domain": "LAND", "combat": 85, "moves": 3, "sight": 2, "cost": 580, "tech": "COMPOSITES"},
+
+    {"id": "SLINGER",      "name": "Пращник",            "class": "RANGED", "domain": "LAND", "combat": 5,  "ranged": 15, "range": 1, "moves": 2, "sight": 2, "cost": 35, "upgrades_to": "ARCHER"},
+    {"id": "ARCHER",       "name": "Лучник",             "class": "RANGED", "domain": "LAND", "combat": 15, "ranged": 25, "range": 2, "moves": 2, "sight": 2, "cost": 60,  "tech": "ARCHERY", "upgrades_to": "CROSSBOWMAN"},
+    {"id": "CROSSBOWMAN",  "name": "Арбалетчик",         "class": "RANGED", "domain": "LAND", "combat": 30, "ranged": 40, "range": 2, "moves": 2, "sight": 2, "cost": 180, "tech": "MACHINERY", "upgrades_to": "FIELD_CANNON"},
+    {"id": "FIELD_CANNON", "name": "Полевая пушка",      "class": "RANGED", "domain": "LAND", "combat": 50, "ranged": 60, "range": 2, "moves": 2, "sight": 2, "cost": 330, "tech": "BALLISTICS", "upgrades_to": "MACHINE_GUN"},
+    {"id": "MACHINE_GUN",  "name": "Пулемёт",            "class": "RANGED", "domain": "LAND", "combat": 70, "ranged": 85, "range": 2, "moves": 2, "sight": 2, "cost": 540, "tech": "ADVANCED_BALLISTICS"},
+
+    {"id": "HORSEMAN",     "name": "Всадник",            "class": "LIGHT_CAVALRY", "domain": "LAND", "combat": 36, "moves": 4, "sight": 2, "cost": 80,  "resource": {"HORSES": 20}, "tech": "HORSEBACK_RIDING", "upgrades_to": "COURSER"},
+    {"id": "COURSER",      "name": "Курсёр",             "class": "LIGHT_CAVALRY", "domain": "LAND", "combat": 46, "moves": 5, "sight": 2, "cost": 200, "resource": {"HORSES": 20}, "tech": "CASTLES", "upgrades_to": "CAVALRY"},
+    {"id": "CAVALRY",      "name": "Кавалерия",          "class": "LIGHT_CAVALRY", "domain": "LAND", "combat": 62, "moves": 5, "sight": 2, "cost": 330, "resource": {"HORSES": 20}, "tech": "MILITARY_SCIENCE", "upgrades_to": "HELICOPTER"},
+    {"id": "HELICOPTER",   "name": "Вертолёт",           "class": "LIGHT_CAVALRY", "domain": "LAND", "combat": 86, "moves": 4, "sight": 2, "cost": 600, "resource_per_turn": {"ALUMINUM": 1}, "tech": "SYNTHETIC_MATERIALS"},
+
+    {"id": "HEAVY_CHARIOT","name": "Тяжёлая колесница",  "class": "HEAVY_CAVALRY", "domain": "LAND", "combat": 28, "moves": 2, "sight": 2, "cost": 65,  "tech": "THE_WHEEL", "upgrades_to": "KNIGHT", "abilities": ["OPEN_TERRAIN_BONUS_MOVE"]},
+    {"id": "KNIGHT",       "name": "Рыцарь",             "class": "HEAVY_CAVALRY", "domain": "LAND", "combat": 50, "moves": 4, "sight": 2, "cost": 220, "resource": {"IRON": 20}, "tech": "STIRRUPS", "upgrades_to": "CUIRASSIER"},
+    {"id": "CUIRASSIER",   "name": "Кирасир",            "class": "HEAVY_CAVALRY", "domain": "LAND", "combat": 64, "moves": 4, "sight": 2, "cost": 330, "resource": {"IRON": 20}, "tech": "BALLISTICS", "upgrades_to": "TANK"},
+    {"id": "TANK",         "name": "Танк",               "class": "HEAVY_CAVALRY", "domain": "LAND", "combat": 85, "moves": 4, "sight": 2, "cost": 480, "resource_per_turn": {"OIL": 1}, "tech": "COMBUSTION", "upgrades_to": "MODERN_ARMOR"},
+    {"id": "MODERN_ARMOR", "name": "Современный танк",   "class": "HEAVY_CAVALRY", "domain": "LAND", "combat": 95, "moves": 4, "sight": 2, "cost": 680, "resource_per_turn": {"OIL": 1}, "tech": "COMPOSITES"},
+
+    {"id": "CATAPULT",     "name": "Катапульта",         "class": "SIEGE", "domain": "LAND", "combat": 23, "ranged": 35,  "range": 2, "moves": 2, "sight": 2, "cost": 120, "tech": "ENGINEERING", "upgrades_to": "TREBUCHET"},
+    {"id": "TREBUCHET",    "name": "Требушет",           "class": "SIEGE", "domain": "LAND", "combat": 35, "ranged": 45,  "range": 2, "moves": 2, "sight": 2, "cost": 200, "tech": "MILITARY_ENGINEERING", "upgrades_to": "BOMBARD"},
+    {"id": "BOMBARD",      "name": "Бомбарда",           "class": "SIEGE", "domain": "LAND", "combat": 45, "ranged": 55,  "range": 2, "moves": 2, "sight": 2, "cost": 280, "resource": {"NITER": 20}, "tech": "METAL_CASTING", "upgrades_to": "ARTILLERY"},
+    {"id": "ARTILLERY",    "name": "Артиллерия",         "class": "SIEGE", "domain": "LAND", "combat": 60, "ranged": 80,  "range": 3, "moves": 2, "sight": 2, "cost": 430, "resource_per_turn": {"OIL": 1}, "tech": "STEEL", "upgrades_to": "ROCKET_ARTILLERY"},
+    {"id": "ROCKET_ARTILLERY", "name": "Реактивная артиллерия", "class": "SIEGE", "domain": "LAND", "combat": 70, "ranged": 100, "range": 3, "moves": 3, "sight": 2, "cost": 680, "resource_per_turn": {"ALUMINUM": 1}, "tech": "GUIDANCE_SYSTEMS"},
+
+    {"id": "SCOUT",        "name": "Разведчик",          "class": "RECON", "domain": "LAND", "combat": 10, "moves": 3, "sight": 2, "cost": 30, "upgrades_to": "SKIRMISHER"},
+    {"id": "SKIRMISHER",   "name": "Застрельщик",        "class": "RECON", "domain": "LAND", "combat": 20, "ranged": 30, "range": 1, "moves": 3, "sight": 2, "cost": 150, "tech": "MACHINERY", "upgrades_to": "RANGER"},
+    {"id": "RANGER",       "name": "Рейнджер",           "class": "RECON", "domain": "LAND", "combat": 45, "ranged": 60, "range": 1, "moves": 3, "sight": 2, "cost": 380, "tech": "RIFLING", "upgrades_to": "SPEC_OPS"},
+    {"id": "SPEC_OPS",     "name": "Спецназ",            "class": "RECON", "domain": "LAND", "combat": 55, "ranged": 65, "range": 1, "moves": 3, "sight": 2, "cost": 480, "tech": "PLASTICS"},
+
+    {"id": "GALLEY",       "name": "Галера",             "class": "NAVAL_MELEE", "domain": "SEA", "combat": 30, "moves": 3, "sight": 2, "cost": 65,  "tech": "SAILING", "upgrades_to": "CARAVEL"},
+    {"id": "CARAVEL",      "name": "Каравелла",          "class": "NAVAL_MELEE", "domain": "SEA", "combat": 55, "moves": 4, "sight": 2, "cost": 240, "tech": "CARTOGRAPHY", "upgrades_to": "IRONCLAD"},
+    {"id": "IRONCLAD",     "name": "Броненосец",         "class": "NAVAL_MELEE", "domain": "SEA", "combat": 70, "moves": 5, "sight": 2, "cost": 380, "resource": {"COAL": 20}, "tech": "STEAM_POWER", "upgrades_to": "DESTROYER"},
+    {"id": "DESTROYER",    "name": "Эсминец",            "class": "NAVAL_MELEE", "domain": "SEA", "combat": 85, "moves": 4, "sight": 2, "cost": 540, "resource_per_turn": {"OIL": 1}, "tech": "COMBINED_ARMS"},
+
+    {"id": "QUADRIREME",   "name": "Квадрирема",         "class": "NAVAL_RANGED", "domain": "SEA", "combat": 20, "ranged": 25, "range": 1, "moves": 3, "sight": 2, "cost": 120, "tech": "SHIPBUILDING", "upgrades_to": "FRIGATE"},
+    {"id": "FRIGATE",      "name": "Фрегат",             "class": "NAVAL_RANGED", "domain": "SEA", "combat": 45, "ranged": 55, "range": 2, "moves": 4, "sight": 2, "cost": 280, "resource": {"NITER": 20}, "tech": "SQUARE_RIGGING", "upgrades_to": "BATTLESHIP"},
+    {"id": "BATTLESHIP",   "name": "Линкор",             "class": "NAVAL_RANGED", "domain": "SEA", "combat": 60, "ranged": 70, "range": 3, "moves": 5, "sight": 2, "cost": 430, "resource_per_turn": {"OIL": 1}, "tech": "REFINING", "upgrades_to": "MISSILE_CRUISER"},
+    {"id": "MISSILE_CRUISER", "name": "Ракетный крейсер", "class": "NAVAL_RANGED", "domain": "SEA", "combat": 75, "ranged": 85, "range": 3, "moves": 5, "sight": 2, "cost": 680, "resource_per_turn": {"OIL": 1}, "tech": "LASERS"},
+
+    {"id": "PRIVATEER",    "name": "Капер",              "class": "NAVAL_RAIDER", "domain": "SEA", "combat": 40, "ranged": 40, "range": 2, "moves": 4, "sight": 2, "cost": 280, "civic": "MERCANTILISM", "upgrades_to": "SUBMARINE"},
+    {"id": "SUBMARINE",    "name": "Подводная лодка",    "class": "NAVAL_RAIDER", "domain": "SEA", "combat": 65, "ranged": 75, "range": 2, "moves": 3, "sight": 2, "cost": 480, "resource_per_turn": {"OIL": 1}, "tech": "ELECTRICITY", "upgrades_to": "NUCLEAR_SUBMARINE"},
+    {"id": "NUCLEAR_SUBMARINE", "name": "Атомная подлодка", "class": "NAVAL_RAIDER", "domain": "SEA", "combat": 80, "ranged": 85, "range": 2, "moves": 4, "sight": 2, "cost": 680, "resource_per_turn": {"URANIUM": 1}, "tech": "TELECOMMUNICATIONS"},
+
+    {"id": "AIRCRAFT_CARRIER", "name": "Авианосец",      "class": "NAVAL_CARRIER", "domain": "SEA", "combat": 65, "moves": 3, "sight": 2, "cost": 540, "resource_per_turn": {"OIL": 1}, "tech": "COMBINED_ARMS"},
+
+    {"id": "BIPLANE",      "name": "Биплан",             "class": "AIR_FIGHTER", "domain": "AIR", "combat": 80,  "ranged": 75,  "range": 6,  "moves": 0, "sight": 2, "cost": 430, "resource_per_turn": {"OIL": 1}, "tech": "FLIGHT", "upgrades_to": "FIGHTER"},
+    {"id": "FIGHTER",      "name": "Истребитель",        "class": "AIR_FIGHTER", "domain": "AIR", "combat": 100, "ranged": 100, "range": 8,  "moves": 0, "sight": 2, "cost": 520, "resource_per_turn": {"ALUMINUM": 1}, "tech": "ADVANCED_FLIGHT", "upgrades_to": "JET_FIGHTER"},
+    {"id": "JET_FIGHTER",  "name": "Реактивный истребитель", "class": "AIR_FIGHTER", "domain": "AIR", "combat": 110, "ranged": 110, "range": 10, "moves": 0, "sight": 2, "cost": 650, "resource_per_turn": {"ALUMINUM": 1}, "tech": "LASERS"},
+    {"id": "BOMBER",       "name": "Бомбардировщик",     "class": "AIR_BOMBER",  "domain": "AIR", "combat": 85,  "ranged": 110, "range": 10, "moves": 0, "sight": 2, "cost": 560, "resource_per_turn": {"ALUMINUM": 1}, "tech": "ADVANCED_FLIGHT", "upgrades_to": "JET_BOMBER"},
+    {"id": "JET_BOMBER",   "name": "Реактивный бомбардировщик", "class": "AIR_BOMBER", "domain": "AIR", "combat": 90, "ranged": 120, "range": 15, "moves": 0, "sight": 2, "cost": 700, "resource_per_turn": {"ALUMINUM": 1}, "tech": "STEALTH_TECHNOLOGY"},
+
+    {"id": "GIANT_DEATH_ROBOT", "name": "Гигантский боевой робот", "class": "GDR", "domain": "LAND", "combat": 130, "ranged": 120, "range": 3, "moves": 4, "sight": 2, "cost": 1500, "resource_per_turn": {"URANIUM": 1}, "tech": "ROBOTICS"},
+
+    {"id": "BATTERING_RAM", "name": "Таран",             "class": "SUPPORT", "domain": "LAND", "moves": 2, "sight": 2, "cost": 65,  "tech": "MASONRY"},
+    {"id": "SIEGE_TOWER",  "name": "Осадная башня",      "class": "SUPPORT", "domain": "LAND", "moves": 2, "sight": 2, "cost": 100, "tech": "CONSTRUCTION"},
+    {"id": "MILITARY_ENGINEER", "name": "Военный инженер", "class": "SUPPORT", "domain": "LAND", "moves": 2, "sight": 2, "cost": 170, "charges": 2, "tech": "MILITARY_ENGINEERING"},
+    {"id": "MEDIC",        "name": "Медик",              "class": "SUPPORT", "domain": "LAND", "moves": 2, "sight": 2, "cost": 370, "tech": "SANITATION"},
+    {"id": "OBSERVATION_BALLOON", "name": "Наблюдательный аэростат", "class": "SUPPORT", "domain": "LAND", "moves": 2, "sight": 2, "cost": 240, "tech": "FLIGHT"},
+    {"id": "AA_GUN",       "name": "Зенитное орудие",    "class": "SUPPORT", "domain": "LAND", "combat": 60, "moves": 2, "sight": 2, "cost": 400, "tech": "STEEL", "upgrades_to": "MOBILE_SAM"},
+    {"id": "MOBILE_SAM",   "name": "Мобильный ЗРК",      "class": "SUPPORT", "domain": "LAND", "combat": 80, "moves": 3, "sight": 2, "cost": 590, "tech": "GUIDANCE_SYSTEMS"},
+    {"id": "SUPPLY_CONVOY","name": "Конвой снабжения",   "class": "SUPPORT", "domain": "LAND", "moves": 3, "sight": 2, "cost": 400, "tech": "COMBUSTION"},
+    {"id": "DRONE",        "name": "Дрон",               "class": "SUPPORT", "domain": "LAND", "moves": 3, "sight": 3, "cost": 520, "tech": "COMPUTERS"}
+  ]
+}

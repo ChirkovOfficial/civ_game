@@ -1,0 +1,26 @@
+{
+  "_doc": "Параметры настройки партии (ГДД 1).",
+  "map_sizes": [
+    {"id": "DUEL",     "name": "Дуэль",       "width": 44,  "height": 26, "civs": 2,  "city_states": 3},
+    {"id": "TINY",     "name": "Крошечная",   "width": 60,  "height": 38, "civs": 4,  "city_states": 6},
+    {"id": "SMALL",    "name": "Малая",       "width": 74,  "height": 46, "civs": 6,  "city_states": 9},
+    {"id": "STANDARD", "name": "Стандартная", "width": 84,  "height": 54, "civs": 8,  "city_states": 12},
+    {"id": "LARGE",    "name": "Большая",     "width": 96,  "height": 60, "civs": 10, "city_states": 15},
+    {"id": "HUGE",     "name": "Огромная",    "width": 106, "height": 66, "civs": 12, "city_states": 18}
+  ],
+  "game_speeds": [
+    {"id": "ONLINE",   "name": "Сетевая",     "multiplier": 0.5},
+    {"id": "QUICK",    "name": "Быстрая",     "multiplier": 0.67},
+    {"id": "STANDARD", "name": "Стандартная", "multiplier": 1.0},
+    {"id": "EPIC",     "name": "Эпическая",   "multiplier": 1.5},
+    {"id": "MARATHON", "name": "Марафон",     "multiplier": 3.0}
+  ],
+  "map_types": [
+    {"id": "CONTINENTS",   "name": "Континенты",     "land_fraction": 0.38, "blobs": 2},
+    {"id": "PANGAEA",      "name": "Пангея",         "land_fraction": 0.40, "blobs": 1},
+    {"id": "ARCHIPELAGO",  "name": "Архипелаг",      "land_fraction": 0.30, "blobs": 0},
+    {"id": "FRACTAL",      "name": "Фрактал",        "land_fraction": 0.38, "blobs": -1},
+    {"id": "INLAND_SEA",   "name": "Внутреннее море", "land_fraction": 0.55, "blobs": -2}
+  ],
+  "player_colors": ["#c8423a", "#3a6fc8", "#e0b23a", "#4fa65a", "#8e4fb8", "#e07a2e", "#3ab8b0", "#d45c9c", "#7a5a3a", "#9aa63a", "#5a5a8e", "#cccccc"]
+}

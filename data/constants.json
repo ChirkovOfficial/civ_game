@@ -1,0 +1,32 @@
+{
+  "_doc": "Константы баланса (ГДД 24). Всё, что можно настраивать без правки кода.",
+  "eras": ["ANCIENT", "CLASSICAL", "MEDIEVAL", "RENAISSANCE", "INDUSTRIAL", "MODERN", "ATOMIC", "INFORMATION", "FUTURE"],
+  "yield_types": ["food", "production", "gold", "science", "culture", "faith"],
+
+  "unit_hp": 100,
+  "unit_default_sight": 2,
+  "unit_maintenance_by_era": {"START": 0, "ANCIENT": 1, "CLASSICAL": 2, "MEDIEVAL": 3, "RENAISSANCE": 4, "INDUSTRIAL": 5, "MODERN": 6, "ATOMIC": 7, "INFORMATION": 8, "FUTURE": 8},
+
+  "start_units": ["SETTLER", "WARRIOR"],
+  "start_min_capital_distance": 9,
+
+  "city_min_distance": 4,
+  "city_work_radius": 3,
+  "city_border_radius": 5,
+  "food_per_citizen": 2,
+
+  "combat_base_damage": 30,
+  "combat_exp_factor": 0.04,
+  "combat_rand_min": 0.8,
+  "combat_rand_max": 1.2,
+  "river_attack_penalty": 5,
+
+  "boost_fraction": 0.4,
+
+  "fin_unlock_tech": "BANKING",
+  "fin_base": 250,
+  "fin_per_civ": 50,
+  "fin_k": 1.5,
+  "fin_turns": 10,
+  "fin_include_deals": false
+}

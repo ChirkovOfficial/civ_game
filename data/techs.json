@@ -1,0 +1,856 @@
+{
+ "_doc": "Дерево технологий (ГДД 21). Сгенерировано из docs/GDD.md скриптом, далее правится вручную. unlocks_text/boost_text — описания; машинные условия эврик будут добавлены позже.",
+ "techs": [
+  {
+   "id": "POTTERY",
+   "name": "Гончарное дело",
+   "era": "ANCIENT",
+   "cost": 25,
+   "prereqs": [],
+   "unlocks_text": "Амбар; чудо Великая купальня"
+  },
+  {
+   "id": "ANIMAL_HUSBANDRY",
+   "name": "Животноводство",
+   "era": "ANCIENT",
+   "cost": 25,
+   "prereqs": [],
+   "unlocks_text": "Пастбище, Лагерь; показывает Лошадей"
+  },
+  {
+   "id": "MINING",
+   "name": "Горное дело",
+   "era": "ANCIENT",
+   "cost": 25,
+   "prereqs": [],
+   "unlocks_text": "Рудник, Каменоломня; вырубка леса"
+  },
+  {
+   "id": "SAILING",
+   "name": "Мореходство",
+   "era": "ANCIENT",
+   "cost": 50,
+   "prereqs": [],
+   "unlocks_text": "Галера, Рыбацкие лодки; строители могут плавать",
+   "boost_text": "основать город на побережье"
+  },
+  {
+   "id": "ASTROLOGY",
+   "name": "Астрология",
+   "era": "ANCIENT",
+   "cost": 50,
+   "prereqs": [],
+   "unlocks_text": "район Священное место, Святилище; Стоунхендж",
+   "boost_text": "найти чудо природы"
+  },
+  {
+   "id": "IRRIGATION",
+   "name": "Орошение",
+   "era": "ANCIENT",
+   "cost": 50,
+   "prereqs": [
+    "POTTERY"
+   ],
+   "unlocks_text": "Плантация; осушение болот; Висячие сады",
+   "boost_text": "улучшить ресурс фермой"
+  },
+  {
+   "id": "WRITING",
+   "name": "Письменность",
+   "era": "ANCIENT",
+   "cost": 50,
+   "prereqs": [
+    "POTTERY"
+   ],
+   "unlocks_text": "район Кампус, Библиотека",
+   "boost_text": "встретить другую державу"
+  },
+  {
+   "id": "ARCHERY",
+   "name": "Стрельба из лука",
+   "era": "ANCIENT",
+   "cost": 50,
+   "prereqs": [
+    "ANIMAL_HUSBANDRY"
+   ],
+   "unlocks_text": "Лучник; Храм Артемиды",
+   "boost_text": "убить юнит Пращником"
+  },
+  {
+   "id": "MASONRY",
+   "name": "Каменная кладка",
+   "era": "ANCIENT",
+   "cost": 80,
+   "prereqs": [
+    "MINING"
+   ],
+   "unlocks_text": "Античные стены, Таран; Пирамиды",
+   "boost_text": "построить Каменоломню"
+  },
+  {
+   "id": "BRONZE_WORKING",
+   "name": "Обработка бронзы",
+   "era": "ANCIENT",
+   "cost": 80,
+   "prereqs": [
+    "MINING"
+   ],
+   "unlocks_text": "район Военный лагерь, Казармы, Копейщик; показывает Железо; вырубка джунглей",
+   "boost_text": "убить 3 варваров"
+  },
+  {
+   "id": "THE_WHEEL",
+   "name": "Колесо",
+   "era": "ANCIENT",
+   "cost": 80,
+   "prereqs": [
+    "MINING"
+   ],
+   "unlocks_text": "Тяжёлая колесница, Водяная мельница",
+   "boost_text": "улучшить ресурс рудником"
+  },
+  {
+   "id": "CELESTIAL_NAVIGATION",
+   "name": "Небесная навигация",
+   "era": "CLASSICAL",
+   "cost": 120,
+   "prereqs": [
+    "SAILING",
+    "ASTROLOGY"
+   ],
+   "unlocks_text": "район Гавань, Маяк; Великий маяк",
+   "boost_text": "улучшить 2 морских ресурса"
+  },
+  {
+   "id": "CURRENCY",
+   "name": "Деньги",
+   "era": "CLASSICAL",
+   "cost": 120,
+   "prereqs": [
+    "WRITING"
+   ],
+   "unlocks_text": "район Коммерческий центр, Рынок",
+   "boost_text": "создать торговый путь"
+  },
+  {
+   "id": "HORSEBACK_RIDING",
+   "name": "Верховая езда",
+   "era": "CLASSICAL",
+   "cost": 120,
+   "prereqs": [
+    "ARCHERY"
+   ],
+   "unlocks_text": "Всадник, Конюшня",
+   "boost_text": "построить Пастбище"
+  },
+  {
+   "id": "IRON_WORKING",
+   "name": "Обработка железа",
+   "era": "CLASSICAL",
+   "cost": 120,
+   "prereqs": [
+    "BRONZE_WORKING"
+   ],
+   "unlocks_text": "Мечник",
+   "boost_text": "построить рудник на Железе"
+  },
+  {
+   "id": "SHIPBUILDING",
+   "name": "Кораблестроение",
+   "era": "CLASSICAL",
+   "cost": 200,
+   "prereqs": [
+    "SAILING"
+   ],
+   "unlocks_text": "Квадрирема; все наземные юниты могут плавать; Колосс",
+   "boost_text": "иметь 2 Галеры"
+  },
+  {
+   "id": "MATHEMATICS",
+   "name": "Математика",
+   "era": "CLASSICAL",
+   "cost": 200,
+   "prereqs": [
+    "CURRENCY"
+   ],
+   "unlocks_text": "+1 ОД кораблям; Петра",
+   "boost_text": "построить 3 разных специализированных района"
+  },
+  {
+   "id": "CONSTRUCTION",
+   "name": "Строительство",
+   "era": "CLASSICAL",
+   "cost": 200,
+   "prereqs": [
+    "MASONRY",
+    "HORSEBACK_RIDING"
+   ],
+   "unlocks_text": "Лесопилка, Осадная башня; Терракотовая армия",
+   "boost_text": "построить Водяную мельницу"
+  },
+  {
+   "id": "ENGINEERING",
+   "name": "Инженерное дело",
+   "era": "CLASSICAL",
+   "cost": 200,
+   "prereqs": [
+    "THE_WHEEL"
+   ],
+   "unlocks_text": "Катапульта, район Акведук; Мачу-Пикчу",
+   "boost_text": "построить Античные стены"
+  },
+  {
+   "id": "MILITARY_TACTICS",
+   "name": "Военная тактика",
+   "era": "MEDIEVAL",
+   "cost": 300,
+   "prereqs": [
+    "MATHEMATICS"
+   ],
+   "unlocks_text": "Пикинёр",
+   "boost_text": "убить юнит Копейщиком"
+  },
+  {
+   "id": "BUTTRESS",
+   "name": "Контрфорс",
+   "era": "MEDIEVAL",
+   "cost": 300,
+   "prereqs": [
+    "SHIPBUILDING",
+    "MATHEMATICS"
+   ],
+   "unlocks_text": "район Плотина; Собор Св. Софии",
+   "boost_text": "построить чудо классической эры или позже"
+  },
+  {
+   "id": "APPRENTICESHIP",
+   "name": "Ученичество",
+   "era": "MEDIEVAL",
+   "cost": 300,
+   "prereqs": [
+    "CURRENCY",
+    "HORSEBACK_RIDING"
+   ],
+   "unlocks_text": "район Промышленная зона, Мастерская, Латник; Рудники +1⚙",
+   "boost_text": "построить 3 Рудника"
+  },
+  {
+   "id": "MACHINERY",
+   "name": "Механика",
+   "era": "MEDIEVAL",
+   "cost": 300,
+   "prereqs": [
+    "IRON_WORKING",
+    "ENGINEERING"
+   ],
+   "unlocks_text": "Арбалетчик, Застрельщик; Килва-Кисивани",
+   "boost_text": "иметь 3 Лучников"
+  },
+  {
+   "id": "EDUCATION",
+   "name": "Образование",
+   "era": "MEDIEVAL",
+   "cost": 390,
+   "prereqs": [
+    "APPRENTICESHIP",
+    "MATHEMATICS"
+   ],
+   "unlocks_text": "Университет",
+   "boost_text": "завербовать Великого учёного"
+  },
+  {
+   "id": "STIRRUPS",
+   "name": "Стремена",
+   "era": "MEDIEVAL",
+   "cost": 390,
+   "prereqs": [
+    "HORSEBACK_RIDING"
+   ],
+   "unlocks_text": "Рыцарь; Пастбища +1🍞",
+   "boost_text": "изучить институт Феодализм"
+  },
+  {
+   "id": "MILITARY_ENGINEERING",
+   "name": "Военная инженерия",
+   "era": "MEDIEVAL",
+   "cost": 390,
+   "prereqs": [
+    "CONSTRUCTION"
+   ],
+   "unlocks_text": "Военный инженер, Арсенал, Требушет; показывает Селитру",
+   "boost_text": "построить Акведук"
+  },
+  {
+   "id": "CASTLES",
+   "name": "Замки",
+   "era": "MEDIEVAL",
+   "cost": 390,
+   "prereqs": [
+    "CONSTRUCTION"
+   ],
+   "unlocks_text": "Средневековые стены, Курсёр; Альгамбра",
+   "boost_text": "форма правления с 6 слотами курсов"
+  },
+  {
+   "id": "CARTOGRAPHY",
+   "name": "Картография",
+   "era": "RENAISSANCE",
+   "cost": 600,
+   "prereqs": [
+    "SHIPBUILDING"
+   ],
+   "unlocks_text": "Каравелла; выход в океан; Рыбацкие лодки +2💰; Каса-де-Контратасьон",
+   "boost_text": "построить 2 Гавани"
+  },
+  {
+   "id": "MASS_PRODUCTION",
+   "name": "Массовое производство",
+   "era": "RENAISSANCE",
+   "cost": 600,
+   "prereqs": [
+    "EDUCATION",
+    "SHIPBUILDING"
+   ],
+   "unlocks_text": "Верфь; Венецианский арсенал",
+   "boost_text": "построить Лесопилку"
+  },
+  {
+   "id": "BANKING",
+   "name": "Банковское дело",
+   "era": "RENAISSANCE",
+   "cost": 600,
+   "prereqs": [
+    "EDUCATION",
+    "STIRRUPS"
+   ],
+   "unlocks_text": "Банк; Каменоломни +💰; Большой Зимбабве; запускает гонку Финансовой победы",
+   "boost_text": "изучить институт Гильдии"
+  },
+  {
+   "id": "GUNPOWDER",
+   "name": "Порох",
+   "era": "RENAISSANCE",
+   "cost": 600,
+   "prereqs": [
+    "APPRENTICESHIP",
+    "STIRRUPS",
+    "MILITARY_ENGINEERING"
+   ],
+   "unlocks_text": "Мушкетёр",
+   "boost_text": "построить Арсенал"
+  },
+  {
+   "id": "PRINTING",
+   "name": "Книгопечатание",
+   "era": "RENAISSANCE",
+   "cost": 600,
+   "prereqs": [
+    "MACHINERY"
+   ],
+   "unlocks_text": "+1 дипл. видимость; ×2 туризм литературы; Запретный город",
+   "boost_text": "построить 2 Университета"
+  },
+  {
+   "id": "SQUARE_RIGGING",
+   "name": "Прямое парусное вооружение",
+   "era": "RENAISSANCE",
+   "cost": 730,
+   "prereqs": [
+    "CARTOGRAPHY"
+   ],
+   "unlocks_text": "Фрегат",
+   "boost_text": "убить юнит Мушкетёром"
+  },
+  {
+   "id": "ASTRONOMY",
+   "name": "Астрономия",
+   "era": "RENAISSANCE",
+   "cost": 730,
+   "prereqs": [
+    "EDUCATION"
+   ],
+   "unlocks_text": "Дворец Потала; +🔬 от… (соседство гор — контент)",
+   "boost_text": "Университет рядом с горой"
+  },
+  {
+   "id": "METAL_CASTING",
+   "name": "Литьё металла",
+   "era": "RENAISSANCE",
+   "cost": 730,
+   "prereqs": [
+    "GUNPOWDER"
+   ],
+   "unlocks_text": "Бомбарда, Пикинёры и аркебузиры",
+   "boost_text": "иметь 2 Арбалетчиков"
+  },
+  {
+   "id": "SIEGE_TACTICS",
+   "name": "Осадная тактика",
+   "era": "RENAISSANCE",
+   "cost": 730,
+   "prereqs": [
+    "CASTLES"
+   ],
+   "unlocks_text": "Ренессансные стены, Форт",
+   "boost_text": "иметь 2 Бомбарды"
+  },
+  {
+   "id": "INDUSTRIALIZATION",
+   "name": "Индустриализация",
+   "era": "INDUSTRIAL",
+   "cost": 930,
+   "prereqs": [
+    "MASS_PRODUCTION",
+    "SQUARE_RIGGING"
+   ],
+   "unlocks_text": "Фабрика, Угольная электростанция; показывает Уголь; Рудники +1⚙; Рурская долина",
+   "boost_text": "построить 3 Мастерские"
+  },
+  {
+   "id": "SCIENTIFIC_THEORY",
+   "name": "Научная теория",
+   "era": "INDUSTRIAL",
+   "cost": 930,
+   "prereqs": [
+    "ASTRONOMY",
+    "BANKING"
+   ],
+   "unlocks_text": "Плантации +1🍞; Оксфордский университет",
+   "boost_text": "изучить институт Просвещение"
+  },
+  {
+   "id": "BALLISTICS",
+   "name": "Баллистика",
+   "era": "INDUSTRIAL",
+   "cost": 930,
+   "prereqs": [
+    "METAL_CASTING"
+   ],
+   "unlocks_text": "Полевая пушка, Кирасир",
+   "boost_text": "иметь 2 Форта"
+  },
+  {
+   "id": "MILITARY_SCIENCE",
+   "name": "Военная наука",
+   "era": "INDUSTRIAL",
+   "cost": 930,
+   "prereqs": [
+    "PRINTING",
+    "SIEGE_TACTICS"
+   ],
+   "unlocks_text": "Кавалерия, Линейная пехота, Военная академия",
+   "boost_text": "убить юнит Рыцарем"
+  },
+  {
+   "id": "STEAM_POWER",
+   "name": "Паровая тяга",
+   "era": "INDUSTRIAL",
+   "cost": 1070,
+   "prereqs": [
+    "INDUSTRIALIZATION"
+   ],
+   "unlocks_text": "Броненосец; район Канал; +2 ОД плывущим наземным юнитам",
+   "boost_text": "построить 2 Верфи"
+  },
+  {
+   "id": "SANITATION",
+   "name": "Санитария",
+   "era": "INDUSTRIAL",
+   "cost": 1070,
+   "prereqs": [
+    "SCIENTIFIC_THEORY"
+   ],
+   "unlocks_text": "Канализация, Медик",
+   "boost_text": "построить 2 Пригорода"
+  },
+  {
+   "id": "ECONOMICS",
+   "name": "Экономика",
+   "era": "INDUSTRIAL",
+   "cost": 1070,
+   "prereqs": [
+    "METAL_CASTING",
+    "SCIENTIFIC_THEORY"
+   ],
+   "unlocks_text": "Биржа; Биг-Бен",
+   "boost_text": "построить 2 Банка"
+  },
+  {
+   "id": "RIFLING",
+   "name": "Нарезное оружие",
+   "era": "INDUSTRIAL",
+   "cost": 1070,
+   "prereqs": [
+    "BALLISTICS",
+    "MILITARY_SCIENCE"
+   ],
+   "unlocks_text": "Рейнджер",
+   "boost_text": "построить рудник на Селитре"
+  },
+  {
+   "id": "FLIGHT",
+   "name": "Авиация",
+   "era": "MODERN",
+   "cost": 1250,
+   "prereqs": [
+    "INDUSTRIALIZATION",
+    "SCIENTIFIC_THEORY"
+   ],
+   "unlocks_text": "район Аэродром, Ангар, Биплан, Наблюдательный аэростат, Аэродромная полоса; туризм от улучшений с культурой",
+   "boost_text": "построить чудо промышленной эры или позже"
+  },
+  {
+   "id": "REPLACEABLE_PARTS",
+   "name": "Сменные детали",
+   "era": "MODERN",
+   "cost": 1250,
+   "prereqs": [
+    "ECONOMICS"
+   ],
+   "unlocks_text": "Пехота; Фермы: +1🍞 за каждую соседнюю ферму",
+   "boost_text": "иметь 3 Мушкетёров"
+  },
+  {
+   "id": "STEEL",
+   "name": "Сталь",
+   "era": "MODERN",
+   "cost": 1250,
+   "prereqs": [
+    "RIFLING"
+   ],
+   "unlocks_text": "Артиллерия, Зенитное орудие; Городские укрепления (всем городам); Лесопилки +1⚙; Эйфелева башня",
+   "boost_text": "построить рудник на Угле"
+  },
+  {
+   "id": "REFINING",
+   "name": "Очистка нефти",
+   "era": "MODERN",
+   "cost": 1250,
+   "prereqs": [
+    "RIFLING"
+   ],
+   "unlocks_text": "показывает Нефть; Нефтяная скважина; Линкор",
+   "boost_text": "построить 2 Угольные электростанции"
+  },
+  {
+   "id": "ELECTRICITY",
+   "name": "Электричество",
+   "era": "MODERN",
+   "cost": 1370,
+   "prereqs": [
+    "STEAM_POWER"
+   ],
+   "unlocks_text": "Подводная лодка, Морской порт, Нефтяная электростанция, ГЭС, Ветропарк",
+   "boost_text": "иметь 3 Каперов"
+  },
+  {
+   "id": "RADIO",
+   "name": "Радио",
+   "era": "MODERN",
+   "cost": 1370,
+   "prereqs": [
+    "FLIGHT",
+    "STEAM_POWER"
+   ],
+   "unlocks_text": "Радиовещательный центр; Приморский курорт; показывает Алюминий",
+   "boost_text": "построить Национальный парк"
+  },
+  {
+   "id": "CHEMISTRY",
+   "name": "Химия",
+   "era": "MODERN",
+   "cost": 1370,
+   "prereqs": [
+    "SANITATION"
+   ],
+   "unlocks_text": "Исследовательская лаборатория, Расчёт ПТО, Горный тоннель",
+   "boost_text": "иметь действующий Научный союз"
+  },
+  {
+   "id": "COMBUSTION",
+   "name": "Двигатель внутр. сгорания",
+   "era": "MODERN",
+   "cost": 1370,
+   "prereqs": [
+    "STEEL",
+    "REFINING"
+   ],
+   "unlocks_text": "Танк, Конвой снабжения",
+   "boost_text": "извлечь артефакт Археологом"
+  },
+  {
+   "id": "ADVANCED_FLIGHT",
+   "name": "Усовершенствованная авиация",
+   "era": "ATOMIC",
+   "cost": 1410,
+   "prereqs": [
+    "RADIO"
+   ],
+   "unlocks_text": "Истребитель, Бомбардировщик, Аэропорт",
+   "boost_text": "построить 3 Биплана"
+  },
+  {
+   "id": "ROCKETRY",
+   "name": "Ракетостроение",
+   "era": "ATOMIC",
+   "cost": 1410,
+   "prereqs": [
+    "RADIO",
+    "CHEMISTRY"
+   ],
+   "unlocks_text": "район Космопорт; проект «Спутник Земли»; Ракетная шахта; Каменоломни +1⚙",
+   "boost_text": "завербовать Великого учёного эры или построить Аэродром"
+  },
+  {
+   "id": "ADVANCED_BALLISTICS",
+   "name": "Передовая баллистика",
+   "era": "ATOMIC",
+   "cost": 1410,
+   "prereqs": [
+    "REPLACEABLE_PARTS",
+    "STEEL"
+   ],
+   "unlocks_text": "Пулемёт",
+   "boost_text": "построить 2 электростанции"
+  },
+  {
+   "id": "COMBINED_ARMS",
+   "name": "Общевойсковой бой",
+   "era": "ATOMIC",
+   "cost": 1410,
+   "prereqs": [
+    "STEEL",
+    "COMBUSTION"
+   ],
+   "unlocks_text": "Эсминец, Авианосец",
+   "boost_text": "построить Аэродромную полосу"
+  },
+  {
+   "id": "PLASTICS",
+   "name": "Пластмассы",
+   "era": "ATOMIC",
+   "cost": 1410,
+   "prereqs": [
+    "COMBUSTION"
+   ],
+   "unlocks_text": "Морская нефтяная платформа, Спецназ, Морской ветропарк; Рыбацкие лодки +1🍞",
+   "boost_text": "построить Нефтяную скважину"
+  },
+  {
+   "id": "COMPUTERS",
+   "name": "Компьютеры",
+   "era": "ATOMIC",
+   "cost": 1580,
+   "prereqs": [
+    "ELECTRICITY",
+    "RADIO"
+   ],
+   "unlocks_text": "+25% туризма; Дамба от наводнений; Дрон",
+   "boost_text": "форма правления с 8 слотами"
+  },
+  {
+   "id": "NUCLEAR_FISSION",
+   "name": "Расщепление ядра",
+   "era": "ATOMIC",
+   "cost": 1580,
+   "prereqs": [
+    "ADVANCED_BALLISTICS",
+    "COMBINED_ARMS"
+   ],
+   "unlocks_text": "показывает Уран; «Манхэттенский проект»; Атомная электростанция",
+   "boost_text": "построить Исследовательскую лабораторию в 2 городах"
+  },
+  {
+   "id": "SYNTHETIC_MATERIALS",
+   "name": "Синтетические материалы",
+   "era": "ATOMIC",
+   "cost": 1580,
+   "prereqs": [
+    "PLASTICS"
+   ],
+   "unlocks_text": "Вертолёт; Геотермальная станция; Лагеря +1💰",
+   "boost_text": "построить 2 Исследовательские лаборатории"
+  },
+  {
+   "id": "TELECOMMUNICATIONS",
+   "name": "Телекоммуникации",
+   "era": "INFORMATION",
+   "cost": 1850,
+   "prereqs": [
+    "COMPUTERS"
+   ],
+   "unlocks_text": "Атомная подводная лодка",
+   "boost_text": "построить 2 Радиовещательных центра"
+  },
+  {
+   "id": "SATELLITES",
+   "name": "Спутники",
+   "era": "INFORMATION",
+   "cost": 1850,
+   "prereqs": [
+    "ADVANCED_FLIGHT",
+    "ROCKETRY"
+   ],
+   "unlocks_text": "проект «Высадка на Луну»; Мотопехота; открывает всю карту (после спутника)",
+   "boost_text": "выполнить проект «Спутник Земли»"
+  },
+  {
+   "id": "GUIDANCE_SYSTEMS",
+   "name": "Системы наведения",
+   "era": "INFORMATION",
+   "cost": 1850,
+   "prereqs": [
+    "ROCKETRY",
+    "ADVANCED_BALLISTICS"
+   ],
+   "unlocks_text": "Реактивная артиллерия, Мобильный ЗРК",
+   "boost_text": "сбить Истребитель"
+  },
+  {
+   "id": "LASERS",
+   "name": "Лазеры",
+   "era": "INFORMATION",
+   "cost": 1850,
+   "prereqs": [
+    "NUCLEAR_FISSION"
+   ],
+   "unlocks_text": "Реактивный истребитель, Ракетный крейсер",
+   "boost_text": "иметь 2 Авианосца"
+  },
+  {
+   "id": "COMPOSITES",
+   "name": "Композиты",
+   "era": "INFORMATION",
+   "cost": 1850,
+   "prereqs": [
+    "SYNTHETIC_MATERIALS"
+   ],
+   "unlocks_text": "Современный танк, Современное ПТО",
+   "boost_text": "иметь 3 Танка"
+  },
+  {
+   "id": "STEALTH_TECHNOLOGY",
+   "name": "Технология «Стелс»",
+   "era": "INFORMATION",
+   "cost": 1850,
+   "prereqs": [
+    "SYNTHETIC_MATERIALS"
+   ],
+   "unlocks_text": "Реактивный бомбардировщик",
+   "boost_text": "иметь 2 Бомбардировщика"
+  },
+  {
+   "id": "ROBOTICS",
+   "name": "Робототехника",
+   "era": "INFORMATION",
+   "cost": 2155,
+   "prereqs": [
+    "COMPUTERS"
+   ],
+   "unlocks_text": "Гигантский боевой робот; Пастбища +1⚙",
+   "boost_text": "изучить институт Глобализация"
+  },
+  {
+   "id": "NUCLEAR_FUSION",
+   "name": "Термоядерный синтез",
+   "era": "INFORMATION",
+   "cost": 2155,
+   "prereqs": [
+    "LASERS"
+   ],
+   "unlocks_text": "проект «Операция „Плющ“», термоядерный заряд",
+   "boost_text": "выполнить «Манхэттенский проект»"
+  },
+  {
+   "id": "NANOTECHNOLOGY",
+   "name": "Нанотехнологии",
+   "era": "INFORMATION",
+   "cost": 2155,
+   "prereqs": [
+    "COMPOSITES"
+   ],
+   "unlocks_text": "проект «Марсианская колония»",
+   "boost_text": "построить рудник на Алюминии"
+  },
+  {
+   "id": "SEASTEADS",
+   "name": "Морские посёлки",
+   "era": "FUTURE",
+   "cost": 2500,
+   "prereqs": [],
+   "unlocks_text": "улучшение Морской посёлок",
+   "future_shuffled": true
+  },
+  {
+   "id": "ADVANCED_AI",
+   "name": "Продвинутый ИИ",
+   "era": "FUTURE",
+   "cost": 2500,
+   "prereqs": [],
+   "unlocks_text": "модуль ГБР; +🔬",
+   "future_shuffled": true
+  },
+  {
+   "id": "ADVANCED_POWER_CELLS",
+   "name": "Усовершенствованные аккумуляторы",
+   "era": "FUTURE",
+   "cost": 2500,
+   "prereqs": [],
+   "unlocks_text": "Солнечная станция+, модуль ГБР; юниты не требуют нефти… (опц.)",
+   "future_shuffled": true
+  },
+  {
+   "id": "CYBERNETICS",
+   "name": "Кибернетика",
+   "era": "FUTURE",
+   "cost": 2500,
+   "prereqs": [],
+   "unlocks_text": "модуль ГБР; +5 HP лечения",
+   "future_shuffled": true
+  },
+  {
+   "id": "SMART_MATERIALS",
+   "name": "Умные материалы",
+   "era": "FUTURE",
+   "cost": 2500,
+   "prereqs": [],
+   "unlocks_text": "проект «Экспедиция к экзопланете»",
+   "future_shuffled": true
+  },
+  {
+   "id": "PREDICTIVE_SYSTEMS",
+   "name": "Предиктивные системы",
+   "era": "FUTURE",
+   "cost": 2500,
+   "prereqs": [],
+   "unlocks_text": "модуль ГБР (ПВО); видимость бедствий",
+   "future_shuffled": true
+  },
+  {
+   "id": "OFFWORLD_MISSION",
+   "name": "Внеземная миссия",
+   "era": "FUTURE",
+   "cost": 2500,
+   "prereqs": [],
+   "unlocks_text": "проекты «Лазерная станция» (ускорение экспедиции)",
+   "future_shuffled": true
+  },
+  {
+   "id": "FUTURE_TECH",
+   "name": "Технология будущего",
+   "era": "FUTURE",
+   "cost": 2600,
+   "prereqs": [
+    "SEASTEADS",
+    "ADVANCED_AI",
+    "ADVANCED_POWER_CELLS",
+    "CYBERNETICS",
+    "SMART_MATERIALS",
+    "PREDICTIVE_SYSTEMS",
+    "OFFWORLD_MISSION"
+   ],
+   "unlocks_text": "повторяемая; +счёт",
+   "repeatable": true
+  }
+ ]
+}

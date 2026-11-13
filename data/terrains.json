@@ -1,0 +1,17 @@
+{
+  "_doc": "Базовый ландшафт (ГДД 3.2) и модификаторы рельефа. Числа — баланс, можно менять.",
+  "terrains": [
+    {"id": "GRASS",  "name": "Луга",      "yields": {"food": 2},            "water": false, "move_cost": 1},
+    {"id": "PLAINS", "name": "Равнины",   "yields": {"food": 1, "production": 1}, "water": false, "move_cost": 1},
+    {"id": "DESERT", "name": "Пустыня",   "yields": {},                     "water": false, "move_cost": 1},
+    {"id": "TUNDRA", "name": "Тундра",    "yields": {"food": 1},            "water": false, "move_cost": 1},
+    {"id": "SNOW",   "name": "Снега",     "yields": {},                     "water": false, "move_cost": 1},
+    {"id": "COAST",  "name": "Побережье", "yields": {"food": 1, "gold": 1}, "water": true,  "move_cost": 1},
+    {"id": "LAKE",   "name": "Озеро",     "yields": {"food": 1, "gold": 1}, "water": true,  "move_cost": 1, "fresh_water": true},
+    {"id": "OCEAN",  "name": "Океан",     "yields": {"food": 1},            "water": true,  "move_cost": 1, "requires_tech": "CARTOGRAPHY"}
+  ],
+  "relief": {
+    "HILLS":    {"name": "Холмы", "yields": {"production": 1}, "move_cost_add": 1, "defense": 3, "blocks_sight": true, "sight_height": 1},
+    "MOUNTAIN": {"name": "Горы",  "impassable": true, "no_yields": true, "blocks_sight": true, "sight_height": 3}
+  }
+}

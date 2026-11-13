@@ -1,0 +1,13 @@
+{
+  "_doc": "Особенности местности (ГДД 3.3). move_cost — полная стоимость входа на ровной клетке; на холмах добавляется надбавка холмов. sight_add — добавка к высоте препятствия для обзора.",
+  "features": [
+    {"id": "WOODS",       "name": "Лес",     "yields": {"production": 1}, "move_cost": 2, "defense": 3,  "sight_add": 1, "terrains": ["GRASS", "PLAINS", "TUNDRA"], "removable_by": "MINING"},
+    {"id": "RAINFOREST",  "name": "Джунгли", "yields": {"food": 1},       "move_cost": 2, "defense": 3,  "sight_add": 1, "terrains": ["GRASS", "PLAINS"], "removable_by": "BRONZE_WORKING"},
+    {"id": "MARSH",       "name": "Болото",  "yields": {"food": 1},       "move_cost": 2, "defense": -2, "terrains": ["GRASS"], "removable_by": "IRRIGATION"},
+    {"id": "FLOODPLAINS", "name": "Пойма",   "yields": {},                "move_cost": 1, "defense": -2, "terrains": ["DESERT", "GRASS", "PLAINS"], "terrain_yields": {"DESERT": {"food": 3}}},
+    {"id": "OASIS",       "name": "Оазис",   "yields": {"food": 3, "gold": 1}, "move_cost": 1, "fresh_water": true, "terrains": ["DESERT"], "no_improvement": true},
+    {"id": "REEF",        "name": "Риф",     "yields": {"food": 1, "production": 1}, "move_cost": 2, "terrains": ["COAST"]},
+    {"id": "ICE",         "name": "Лёд",     "yields": {}, "impassable": true, "terrains": ["COAST", "OCEAN"]},
+    {"id": "GEOTHERMAL",  "name": "Геотермальный источник", "yields": {"science": 1}, "move_cost": 1, "terrains": ["PLAINS", "TUNDRA", "SNOW", "DESERT", "GRASS"]}
+  ]
+}
