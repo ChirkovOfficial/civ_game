@@ -5,6 +5,8 @@ extends CanvasLayer
 
 signal end_turn_pressed
 signal new_map_pressed
+signal save_pressed
+signal load_pressed
 signal reveal_toggled(on: bool)
 signal city_closed
 
@@ -111,6 +113,16 @@ func _ready() -> void:
 	_reveal_button.text = "Вся карта (F2)"
 	_reveal_button.toggled.connect(func(on): reveal_toggled.emit(on))
 	br.add_child(_reveal_button)
+	var file_row := HBoxContainer.new()
+	br.add_child(file_row)
+	var save_b := Button.new()
+	save_b.text = "Сохранить (F6)"
+	save_b.pressed.connect(func(): save_pressed.emit())
+	file_row.add_child(save_b)
+	var load_b := Button.new()
+	load_b.text = "Загрузить (F9)"
+	load_b.pressed.connect(func(): load_pressed.emit())
+	file_row.add_child(load_b)
 	var new_map := Button.new()
 	new_map.text = "Новая карта (F5)"
 	new_map.pressed.connect(func(): new_map_pressed.emit())

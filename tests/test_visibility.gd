@@ -69,3 +69,27 @@ func test_save_load_roundtrip() -> void:
 		check(JSON.stringify(a["map"][k]) == JSON.stringify(b["map"].get(k)), "поле карты %s совпадает" % k)
 	check_eq(restored.turn, g.state.turn)
 	check_eq(restored.rng.randf(), g.state.rng.randf(), "ГПСЧ продолжает ту же последовательность")
+
+
+func test_save_load_continue_identical() -> void:
+	# Сохранили посреди автоигры, загрузили — дальше партия идёт так же, как без перерыва.
+	var g := Game.new_game(GameData.get_default(), {"map_size": "DUEL", "seed": 17, "humans": []})
+	for t in 25:
+		AIPlayer.take_turn(g, g.state.current_player)
+		g.apply_action({"type": "end_turn", "force": true})
+	var loaded := SaveLoad.from_dict(g.data, bytes_to_var(g.state.to_bytes()))
+	for t in 15:
+		for game in [g, loaded]:
+			AIPlayer.take_turn(game, game.state.current_player)
+			game.apply_action({"type": "end_turn", "force": true})
+	check(g.state.to_json() == loaded.state.to_json(), "после загрузки партия продолжается идентично")
+
+
+func test_save_file_roundtrip() -> void:
+	var g := small_game(23)
+	check_eq(SaveLoad.save(g, "test_slot"), "")
+	var loaded := SaveLoad.load_game(g.data, "test_slot")
+	check(loaded != null)
+	check(loaded.state.to_json() == g.state.to_json())
+	check(loaded.state.player(0).is_visible(g.state.start_positions[0]), "видимость пересчитана")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SaveLoad.path_for("test_slot")))

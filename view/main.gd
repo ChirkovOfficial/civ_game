@@ -60,6 +60,8 @@ func _ready() -> void:
 	hud.act = act
 	hud.end_turn_pressed.connect(_end_turn)
 	hud.new_map_pressed.connect(_new_game)
+	hud.save_pressed.connect(save_game)
+	hud.load_pressed.connect(load_game)
 	hud.reveal_toggled.connect(_set_reveal)
 	hud.city_closed.connect(func(): _select_city(null))
 	_new_game()
@@ -87,10 +89,31 @@ func _setup_environment() -> void:
 func _new_game() -> void:
 	var seed_value := fixed_seed if fixed_seed != 0 else randi() % 1000000 + 1
 	var t0 := Time.get_ticks_msec()
-	game = Game.new_game(GameData.get_default(), {
+	var g := Game.new_game(GameData.get_default(), {
 		"map_size": map_size, "map_type": map_type, "seed": seed_value, "humans": [0],
 	})
 	print("Карта создана за %d мс, зерно %d" % [Time.get_ticks_msec() - t0, seed_value])
+	_attach_game(g)
+	hud.show_message("Зерно карты: %d" % seed_value)
+
+
+func save_game() -> void:
+	var err := SaveLoad.save(game)
+	hud.show_message("Игра сохранена (F9 — загрузить)" if err == "" else err)
+
+
+func load_game() -> void:
+	var g := SaveLoad.load_game(GameData.get_default())
+	if g == null:
+		hud.show_message("Сохранения нет (F6 — сохранить)")
+		return
+	_attach_game(g)
+	hud.show_message("Игра загружена: ход %d" % g.state.turn)
+
+
+## Подключает партию к отображению (новую или загруженную).
+func _attach_game(g: Game) -> void:
+	game = g
 	game.events_emitted.connect(_on_events)
 	hud.game = game
 	map_view.build(game)
@@ -103,11 +126,14 @@ func _new_game() -> void:
 	selected_city = null
 	hud.open_city(-1)
 	hud.close_research()
+	_geometry_dirty = {}
 	_refresh_all()
-	var start := game.state.start_positions[0]
-	camera_rig.focus(map_view.tile_world(start))
+	var focus_tile := game.state.start_positions[0]
+	var caps := game.state.cities_of(game.state.current_player)
+	if not caps.is_empty():
+		focus_tile = caps[0].tile
+	camera_rig.focus(map_view.tile_world(focus_tile))
 	_select_next_unit()
-	hud.show_message("Зерно карты: %d" % seed_value)
 
 
 func _viewer() -> Player:
@@ -257,6 +283,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				hud.set_reveal(map_view.reveal_all)
 			KEY_F5:
 				_new_game()
+			KEY_F6:
+				save_game()
+			KEY_F9:
+				load_game()
 			KEY_ESCAPE:
 				_select(null)
 				_select_city(null)

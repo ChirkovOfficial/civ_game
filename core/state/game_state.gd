@@ -212,7 +212,17 @@ func _camps_list() -> Array:
 
 
 func to_json() -> String:
-	return JSON.stringify(to_dict())
+	# full_precision: иначе дробные числа округляются и партия после загрузки расходится.
+	return JSON.stringify(to_dict(), "", true, true)
+
+
+## Точный двоичный снимок (без потерь дробных чисел) — для файлов сохранений.
+func to_bytes() -> PackedByteArray:
+	return var_to_bytes(to_dict())
+
+
+static func from_bytes(bytes: PackedByteArray, data: GameData) -> GameState:
+	return from_dict(bytes_to_var(bytes), data)
 
 
 static func from_json(text: String, data: GameData) -> GameState:

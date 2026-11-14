@@ -30,5 +30,5 @@ func test_ai_deterministic() -> void:
 	var a := _autoplay(5, 40)
 	var b := _autoplay(5, 40)
 	check(a.state.to_json() == b.state.to_json(), "одинаковое зерно — одинаковая партия")
-	var restored := GameState.from_json(a.state.to_json(), a.data)
+	var restored := GameState.from_bytes(a.state.to_bytes(), a.data)
 	check(restored.to_json() == a.state.to_json(), "сохранение с городами восстанавливается без потерь")

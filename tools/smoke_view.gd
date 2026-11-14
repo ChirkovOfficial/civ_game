@@ -64,6 +64,13 @@ func _process(_delta: float) -> bool:
 		var city3: City = g.state.cities_of(0)[0]
 		_main._select_city(city3)
 		_main.camera_rig.focus(_main.map_view.tile_world(city3.tile))
+	if _frames == 42:
+		_main.save_game()
+	if _frames == 43:
+		_main._new_game()
+	if _frames == 44:
+		_main.load_game()
+		g = _main.game
 	if _frames == 46:
 		root.get_viewport().get_texture().get_image().save_png("/tmp/smoke.png")
 		var h: Hud = _main.hud

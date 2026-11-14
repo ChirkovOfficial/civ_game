@@ -472,7 +472,9 @@ static func _adjacent_free(game: Game, u: Unit, tile: int) -> int:
 static func _clear_camps(game: Game, pid: int) -> void:
 	var s := game.state
 	var p := s.player(pid)
-	for tile in s.camps:
+	var camp_tiles := s.camps.keys()
+	camp_tiles.sort()
+	for tile in camp_tiles:
 		var ct := int(tile)
 		if not p.is_revealed(ct):
 			continue
