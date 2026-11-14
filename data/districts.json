@@ -1,0 +1,703 @@
+{
+ "_doc": "Районы (ГДД 6, docs/CITIES.md). adjacency: source — mountain | feature(id) | district (любой соседний район, включая центр) | district_type(id) | city_center | river (once) | sea_resource | strategic_resource | improvement(id) | wonder; value — бонус к main_yield (или к yield). placement: water, flat, not_adjacent_city_center, one_per_civ, needs_fresh_or_mountain, feature, river_edges, min_same_distance (вместо правила скоплений), requires_adjacent_any. tiers — уровни района: название, технология/институт, доп. доходы, множитель соседства, доп. жильё/довольство/санитария. specialized — занимает лимит района по населению. residential — жилой. Названия уровней у цивилизаций — civs.json → district_names.",
+ "districts": [
+  {
+   "id": "CAMPUS",
+   "name": "Кампус",
+   "main_yield": "science",
+   "adjacency": [
+    {
+     "source": "mountain",
+     "value": 1
+    },
+    {
+     "source": "feature",
+     "value": 2,
+     "id": "GEOTHERMAL"
+    },
+    {
+     "source": "feature",
+     "value": 2,
+     "id": "REEF"
+    },
+    {
+     "source": "feature",
+     "value": 0.5,
+     "id": "RAINFOREST"
+    },
+    {
+     "source": "district",
+     "value": 0.5
+    }
+   ],
+   "placement": {},
+   "tiers": [
+    {
+     "name": "Кампус",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Кампус II",
+     "tech": "EDUCATION",
+     "yields": {
+      "science": 1
+     },
+     "adjacency_mult": 1.25
+    },
+    {
+     "name": "Кампус III",
+     "tech": "CHEMISTRY",
+     "yields": {
+      "science": 2
+     },
+     "adjacency_mult": 1.5
+    }
+   ],
+   "tech": "WRITING",
+   "specialist": {
+    "science": 2
+   },
+   "specialized": true
+  },
+  {
+   "id": "HOLY_SITE",
+   "name": "Священное место",
+   "main_yield": "faith",
+   "adjacency": [
+    {
+     "source": "mountain",
+     "value": 1
+    },
+    {
+     "source": "feature",
+     "value": 0.5,
+     "id": "WOODS"
+    },
+    {
+     "source": "district",
+     "value": 0.5
+    }
+   ],
+   "placement": {},
+   "tiers": [
+    {
+     "name": "Священное место",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Священное место II",
+     "tech": "ASTRONOMY",
+     "yields": {
+      "faith": 1
+     },
+     "adjacency_mult": 1.25
+    },
+    {
+     "name": "Священное место III",
+     "tech": "SCIENTIFIC_THEORY",
+     "yields": {
+      "faith": 2
+     },
+     "adjacency_mult": 1.5
+    }
+   ],
+   "tech": "ASTROLOGY",
+   "specialist": {
+    "faith": 2
+   },
+   "specialized": true
+  },
+  {
+   "id": "ENCAMPMENT",
+   "name": "Военный лагерь",
+   "main_yield": "production",
+   "adjacency": [],
+   "placement": {
+    "not_adjacent_city_center": true
+   },
+   "tiers": [
+    {
+     "name": "Военный лагерь",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Военный лагерь II",
+     "tech": "CASTLES",
+     "yields": {
+      "production": 1
+     },
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Военный лагерь III",
+     "tech": "MILITARY_SCIENCE",
+     "yields": {
+      "production": 2
+     },
+     "adjacency_mult": 1.0
+    }
+   ],
+   "tech": "BRONZE_WORKING",
+   "specialist": {
+    "production": 2
+   },
+   "district_hp": 100,
+   "specialized": true
+  },
+  {
+   "id": "HARBOR",
+   "name": "Гавань",
+   "main_yield": "gold",
+   "adjacency": [
+    {
+     "source": "city_center",
+     "value": 2
+    },
+    {
+     "source": "sea_resource",
+     "value": 1
+    },
+    {
+     "source": "district",
+     "value": 0.5
+    }
+   ],
+   "placement": {
+    "water": true
+   },
+   "tiers": [
+    {
+     "name": "Гавань",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Гавань II",
+     "tech": "CARTOGRAPHY",
+     "yields": {
+      "gold": 1
+     },
+     "adjacency_mult": 1.25
+    },
+    {
+     "name": "Гавань III",
+     "tech": "STEAM_POWER",
+     "yields": {
+      "gold": 2
+     },
+     "adjacency_mult": 1.5
+    }
+   ],
+   "tech": "CELESTIAL_NAVIGATION",
+   "specialist": {
+    "gold": 4
+   },
+   "specialized": true
+  },
+  {
+   "id": "COMMERCIAL_HUB",
+   "name": "Коммерческий центр",
+   "main_yield": "gold",
+   "adjacency": [
+    {
+     "source": "river",
+     "value": 2,
+     "once": true
+    },
+    {
+     "source": "district_type",
+     "value": 2,
+     "id": "HARBOR"
+    },
+    {
+     "source": "district",
+     "value": 0.5
+    }
+   ],
+   "placement": {},
+   "tiers": [
+    {
+     "name": "Коммерческий центр",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Коммерческий центр II",
+     "tech": "BANKING",
+     "yields": {
+      "gold": 2
+     },
+     "adjacency_mult": 1.25
+    },
+    {
+     "name": "Коммерческий центр III",
+     "tech": "ECONOMICS",
+     "yields": {
+      "gold": 3
+     },
+     "adjacency_mult": 1.5
+    }
+   ],
+   "tech": "CURRENCY",
+   "specialist": {
+    "gold": 4
+   },
+   "specialized": true
+  },
+  {
+   "id": "THEATER_SQUARE",
+   "name": "Театральная площадь",
+   "main_yield": "culture",
+   "adjacency": [
+    {
+     "source": "wonder",
+     "value": 2
+    },
+    {
+     "source": "district_type",
+     "value": 2,
+     "id": "ENTERTAINMENT_COMPLEX"
+    },
+    {
+     "source": "district_type",
+     "value": 2,
+     "id": "WATER_PARK"
+    },
+    {
+     "source": "district",
+     "value": 0.5
+    }
+   ],
+   "placement": {},
+   "tiers": [
+    {
+     "name": "Театральная площадь",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Театральная площадь II",
+     "tech": "ENGINEERING",
+     "yields": {
+      "culture": 1
+     },
+     "adjacency_mult": 1.25
+    },
+    {
+     "name": "Театральная площадь III",
+     "tech": "PRINTING",
+     "yields": {
+      "culture": 2
+     },
+     "adjacency_mult": 1.5
+    }
+   ],
+   "civic": "DRAMA_POETRY",
+   "specialist": {
+    "culture": 2
+   },
+   "specialized": true
+  },
+  {
+   "id": "INDUSTRIAL_ZONE",
+   "name": "Промышленная зона",
+   "main_yield": "production",
+   "adjacency": [
+    {
+     "source": "district_type",
+     "value": 2,
+     "id": "AQUEDUCT"
+    },
+    {
+     "source": "district_type",
+     "value": 2,
+     "id": "DAM"
+    },
+    {
+     "source": "improvement",
+     "value": 1,
+     "id": "QUARRY"
+    },
+    {
+     "source": "strategic_resource",
+     "value": 1
+    },
+    {
+     "source": "improvement",
+     "value": 0.5,
+     "id": "MINE"
+    },
+    {
+     "source": "improvement",
+     "value": 0.5,
+     "id": "LUMBER_MILL"
+    },
+    {
+     "source": "district",
+     "value": 0.5
+    }
+   ],
+   "placement": {},
+   "tiers": [
+    {
+     "name": "Промышленная зона",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Промышленная зона II",
+     "tech": "MASS_PRODUCTION",
+     "yields": {
+      "production": 1
+     },
+     "adjacency_mult": 1.25
+    },
+    {
+     "name": "Промышленная зона III",
+     "tech": "INDUSTRIALIZATION",
+     "yields": {
+      "production": 2
+     },
+     "adjacency_mult": 1.5
+    }
+   ],
+   "tech": "APPRENTICESHIP",
+   "specialist": {
+    "production": 2
+   },
+   "specialized": true
+  },
+  {
+   "id": "ENTERTAINMENT_COMPLEX",
+   "name": "Развлекательный комплекс",
+   "main_yield": "",
+   "adjacency": [],
+   "placement": {},
+   "tiers": [
+    {
+     "name": "Развлекательный комплекс",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Развлекательный комплекс II",
+     "tech": "CONSTRUCTION",
+     "yields": {},
+     "adjacency_mult": 1.0,
+     "amenities": 1
+    },
+    {
+     "name": "Развлекательный комплекс III",
+     "civic": "NATURAL_HISTORY",
+     "yields": {},
+     "adjacency_mult": 1.0,
+     "amenities": 1
+    }
+   ],
+   "civic": "GAMES_RECREATION",
+   "amenities": 1,
+   "specialized": true
+  },
+  {
+   "id": "WATER_PARK",
+   "name": "Аквапарк",
+   "main_yield": "",
+   "adjacency": [],
+   "placement": {
+    "water": true
+   },
+   "tiers": [
+    {
+     "name": "Аквапарк",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Аквапарк II",
+     "civic": "PROFESSIONAL_SPORTS",
+     "yields": {},
+     "adjacency_mult": 1.0,
+     "amenities": 1
+    }
+   ],
+   "civic": "NATURAL_HISTORY",
+   "amenities": 1,
+   "exclusive_with": "ENTERTAINMENT_COMPLEX",
+   "specialized": true
+  },
+  {
+   "id": "GOVERNMENT_PLAZA",
+   "name": "Правительственная площадь",
+   "main_yield": "",
+   "adjacency": [],
+   "placement": {
+    "one_per_civ": true
+   },
+   "tiers": [
+    {
+     "name": "Правительственная площадь",
+     "yields": {},
+     "adjacency_mult": 1.0
+    }
+   ],
+   "civic": "STATE_WORKFORCE",
+   "gives_adjacency": 1,
+   "order": 2,
+   "specialized": true
+  },
+  {
+   "id": "BATHS",
+   "name": "Бани",
+   "main_yield": "",
+   "adjacency": [],
+   "placement": {},
+   "tiers": [
+    {
+     "name": "Бани",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Бани II",
+     "tech": "ENGINEERING",
+     "yields": {},
+     "adjacency_mult": 1.0,
+     "sanitation": 1,
+     "amenities": 1
+    },
+    {
+     "name": "Бани III",
+     "tech": "SANITATION",
+     "yields": {},
+     "adjacency_mult": 1.0,
+     "sanitation": 2
+    }
+   ],
+   "tech": "POTTERY",
+   "sanitation": 2,
+   "amenities": 1,
+   "specialized": true
+  },
+  {
+   "id": "AQUEDUCT",
+   "name": "Акведук",
+   "main_yield": "",
+   "adjacency": [],
+   "placement": {
+    "needs_fresh_or_mountain": true,
+    "min_same_distance": 3
+   },
+   "tiers": [
+    {
+     "name": "Акведук",
+     "yields": {},
+     "adjacency_mult": 1.0
+    }
+   ],
+   "tech": "ENGINEERING",
+   "specialized": false,
+   "housing": 2,
+   "sanitation": 3
+  },
+  {
+   "id": "DAM",
+   "name": "Плотина",
+   "main_yield": "",
+   "adjacency": [],
+   "placement": {
+    "feature": "FLOODPLAINS",
+    "river_edges": 2,
+    "min_same_distance": 3
+   },
+   "tiers": [
+    {
+     "name": "Плотина",
+     "yields": {},
+     "adjacency_mult": 1.0
+    }
+   ],
+   "tech": "BUTTRESS",
+   "specialized": false,
+   "housing": 3,
+   "amenities": 1
+  },
+  {
+   "id": "RESIDENTIAL_DENSE",
+   "name": "Плотная застройка",
+   "main_yield": "",
+   "adjacency": [],
+   "placement": {},
+   "tiers": [
+    {
+     "name": "Плотная застройка",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Плотная застройка II",
+     "tech": "ENGINEERING",
+     "yields": {},
+     "adjacency_mult": 1.0,
+     "housing": 1
+    },
+    {
+     "name": "Плотная застройка III",
+     "tech": "SANITATION",
+     "yields": {},
+     "adjacency_mult": 1.0,
+     "housing": 2
+    }
+   ],
+   "tech": "POTTERY",
+   "specialized": false,
+   "residential": true,
+   "housing": 6,
+   "sanitation": -2,
+   "order": -2
+  },
+  {
+   "id": "RESIDENTIAL_URBAN",
+   "name": "Городская застройка",
+   "main_yield": "",
+   "adjacency": [
+    {
+     "source": "district_type",
+     "value": 1,
+     "yield": "culture",
+     "id": "CAMPUS"
+    },
+    {
+     "source": "district_type",
+     "value": 1,
+     "yield": "culture",
+     "id": "HOLY_SITE"
+    },
+    {
+     "source": "district_type",
+     "value": 1,
+     "yield": "culture",
+     "id": "BATHS"
+    }
+   ],
+   "placement": {},
+   "tiers": [
+    {
+     "name": "Городская застройка",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Городская застройка II",
+     "tech": "ENGINEERING",
+     "yields": {},
+     "adjacency_mult": 1.0,
+     "housing": 1
+    },
+    {
+     "name": "Городская застройка III",
+     "tech": "SANITATION",
+     "yields": {},
+     "adjacency_mult": 1.0,
+     "housing": 1
+    }
+   ],
+   "tech": "MASONRY",
+   "specialized": false,
+   "residential": true,
+   "housing": 4
+  },
+  {
+   "id": "RESIDENTIAL_RICH",
+   "name": "Богатая застройка",
+   "main_yield": "gold",
+   "adjacency": [
+    {
+     "source": "district_type",
+     "value": 1,
+     "id": "COMMERCIAL_HUB"
+    }
+   ],
+   "placement": {
+    "requires_adjacent_any": [
+     "CITY_CENTER",
+     "BUILDING:BANK",
+     "WONDER"
+    ]
+   },
+   "tiers": [
+    {
+     "name": "Богатая застройка",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Богатая застройка II",
+     "tech": "BANKING",
+     "yields": {
+      "gold": 2
+     },
+     "adjacency_mult": 1.0,
+     "housing": 1
+    },
+    {
+     "name": "Богатая застройка III",
+     "tech": "ECONOMICS",
+     "yields": {
+      "gold": 3
+     },
+     "adjacency_mult": 1.0,
+     "housing": 1
+    }
+   ],
+   "civic": "EARLY_EMPIRE",
+   "specialized": false,
+   "residential": true,
+   "housing": 4,
+   "cost_mult": 1.5,
+   "maintenance": 2,
+   "base_yields": {
+    "gold": 3
+   }
+  },
+  {
+   "id": "AIRPORT",
+   "name": "Аэропорт",
+   "main_yield": "",
+   "adjacency": [],
+   "placement": {
+    "flat": true
+   },
+   "tiers": [
+    {
+     "name": "Аэропорт",
+     "yields": {},
+     "adjacency_mult": 1.0
+    }
+   ],
+   "tech": "FLIGHT",
+   "specialized": true
+  },
+  {
+   "id": "SPACEPORT",
+   "name": "Космопорт",
+   "main_yield": "",
+   "adjacency": [],
+   "placement": {
+    "flat": true
+   },
+   "tiers": [
+    {
+     "name": "Космопорт",
+     "yields": {},
+     "adjacency_mult": 1.0
+    }
+   ],
+   "tech": "ROCKETRY",
+   "specialized": false,
+   "cost_override": 1800
+  }
+ ]
+}

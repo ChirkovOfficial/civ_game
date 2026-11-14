@@ -24,6 +24,7 @@ static func take_turn(game: Game, pid: int) -> void:
 		if city.queue.is_empty():
 			_choose_production(game, city)
 	_spend_gold(game, pid)
+	_choose_doctrines(game, pid)
 	_handle_commanders(game, pid)
 	_handle_military(game, pid)
 	_equip_units(game, pid)
@@ -41,6 +42,8 @@ static func _spend_gold(game: Game, pid: int) -> void:
 			if city.queue.is_empty():
 				continue
 			var item: Dictionary = city.queue[0]
+			if item["kind"] == "district" or item["kind"] == "district_upgrade":
+				continue
 			if p.treasury - CityRules.purchase_cost(game, city, item) < reserve:
 				continue
 			var t := CityRules.turns_to_build(game, city, item)
@@ -50,7 +53,7 @@ static func _spend_gold(game: Game, pid: int) -> void:
 		if best == null or best_turns < 3:
 			break
 		var it: Dictionary = best.queue[0]
-		game.apply_action({"type": "purchase", "city": best.id, "kind": it["kind"], "id": it["id"]})
+		game.apply_action({"type": "purchase", "city": best.id, "kind": it["kind"], "id": it["id"], "tile": int(it.get("tile", -1))})
 	for city in game.state.cities_of(pid):
 		for t in CityRules.border_candidates(game, city):
 			var rid := game.state.map.resource[t]
@@ -234,8 +237,9 @@ static func _queued(game: Game, pid: int, unit_id: String) -> int:
 static func _best_combat_unit(game: Game, city: City) -> String:
 	var best := ""
 	var best_str := -1
-	for item in CityRules.buildable_items(game, city):
-		if item["kind"] != "unit":
+	for uid in game.data.unit_ids:
+		var item := {"kind": "unit", "id": uid}
+		if CityRules.build_error(game, city, item) != "":
 			continue
 		var def := game.data.unit_def(item["id"])
 		var cls: String = def.get("class", "")
@@ -271,10 +275,17 @@ static func _choose_production(game: Game, city: City) -> void:
 		candidates.append({"kind": "unit", "id": combat})
 	if cities.size() + settlers < target_cities and settlers < 1:
 		candidates.append({"kind": "unit", "id": "SETTLER"})
+	# Развитый город сначала строит районы, а не очередного строителя (docs/CITIES.md).
+	var districts_first := city.population >= 4 and builders >= cities.size() / 2
+	var district_list := _district_candidates(game, city, threatened)
+	if districts_first:
+		candidates.append_array(district_list)
 	if builders < cities.size():
 		candidates.append({"kind": "unit", "id": "BUILDER"})
 	for bid in ["MONUMENT", "GRANARY", "WATER_MILL"]:
 		candidates.append({"kind": "building", "id": bid})
+	if not districts_first:
+		candidates.append_array(district_list)
 	if combat != "" and military < cities.size() * 2:
 		candidates.append({"kind": "unit", "id": combat})
 	var commanders := _count_units(game, pid, func(u: Unit) -> bool: return Army.is_commander(game, u) or not u.commander.is_empty()) \
@@ -287,8 +298,114 @@ static func _choose_production(game: Game, city: City) -> void:
 		candidates.append({"kind": "unit", "id": combat})
 	for item in candidates:
 		if CityRules.build_error(game, city, item) == "":
-			game.apply_action({"type": "set_production", "city": city.id, "kind": item["kind"], "id": item["id"]})
+			game.apply_action({"type": "set_production", "city": city.id, "kind": item["kind"], "id": item["id"],
+				"tile": int(item.get("tile", -1))})
 			return
+
+
+# --- Районы и губернаторы (docs/CITIES.md) -----------------------------------------------------------
+
+## Порядок предпочтения специализированных районов.
+const DISTRICT_PRIORITY := ["CAMPUS", "COMMERCIAL_HUB", "INDUSTRIAL_ZONE", "HOLY_SITE", "THEATER_SQUARE",
+	"HARBOR", "ENCAMPMENT", "ENTERTAINMENT_COMPLEX", "GOVERNMENT_PLAZA"]
+
+
+## Кандидаты производства в районах: достроить начатое, здания и улучшения районов,
+## жилые районы и акведук при нехватке жилья, Термы для больших городов, новый спец. район.
+static func _district_candidates(game: Game, city: City, threatened: bool) -> Array:
+	var result := []
+	var items := CityRules.district_items(game, city)
+	for it in items:
+		if it["kind"] == "district" and it.has("tile"):
+			result.append(it)
+	var buildings := []
+	for it in items:
+		if it["kind"] == "building" or it["kind"] == "district_upgrade":
+			buildings.append(it)
+	buildings.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return CityRules.item_cost(game, city, a) < CityRules.item_cost(game, city, b))
+	result.append_array(buildings)
+	var types := {}
+	for it in items:
+		if it["kind"] == "district" and not it.has("tile"):
+			types[it["id"]] = true
+	var housing := CityRules.housing(game, city)
+	if float(city.population) >= housing - 1.0:
+		for t in ["AQUEDUCT", "DAM", "RESIDENTIAL_URBAN", "RESIDENTIAL_DENSE"]:
+			if types.has(t):
+				result.append(_district_pick(game, city, t))
+	if city.population >= int(game.data.const_value("city_life_threshold_pop", 10)) - 1:
+		if types.has("BATHS"):
+			result.append(_district_pick(game, city, "BATHS"))
+	var order := DISTRICT_PRIORITY.duplicate()
+	if threatened:
+		order.erase("ENCAMPMENT")
+		order.push_front("ENCAMPMENT")
+	var best := {}
+	var best_score := -INF
+	for i in order.size():
+		var t2: String = order[i]
+		if not types.has(t2) or (t2 == "ENCAMPMENT" and not threatened and DistrictRules.of_type(city, t2).size() > 0):
+			continue
+		var pick := _district_pick(game, city, t2)
+		var sc := float(pick["score"]) - i * 0.4 - DistrictRules.of_type(city, t2).size() * 1.5
+		if sc > best_score:
+			best_score = sc
+			best = pick
+	if not best.is_empty():
+		result.append(best)
+	var clean := []
+	for r in result:
+		if not r.is_empty():
+			var item: Dictionary = r.duplicate()
+			item.erase("score")
+			clean.append(item)
+	return clean
+
+
+## Лучшая клетка для района: соседство + римская урбанизация − потеря дохода клетки.
+static func _district_pick(game: Game, city: City, type: String) -> Dictionary:
+	var best := {}
+	var best_score := -INF
+	var p := game.state.player(city.owner)
+	var map := game.state.map
+	var nero := not DistrictRules.city_ability(game, city.owner, "NERO_URBANIZATION").is_empty()
+	for t in DistrictRules.valid_tiles(game, city, type):
+		var sc := Yields.total(DistrictRules.adjacency(game, city.owner, type, t))
+		sc -= Yields.total(CityRules.tile_yields(game, t, p)) * 0.3
+		if nero and DistrictRules.is_specialized(game, type):
+			for nb in map.grid.neighbors(t):
+				var nd := map.district[nb]
+				if nd != "" and nd != DistrictRules.CENTER and nd != type and DistrictRules.is_specialized(game, nd):
+					sc += 0.6
+		sc -= map.grid.distance(city.tile, t) * 0.1
+		if sc > best_score:
+			best_score = sc
+			best = {"kind": "district", "id": type, "tile": t, "score": sc}
+	return best
+
+
+## Губернаторы: в самые большие города; доктрина по обстановке.
+static func _choose_doctrines(game: Game, pid: int) -> void:
+	var p := game.state.player(pid)
+	var cities := game.state.cities_of(pid)
+	cities.sort_custom(func(a: City, b: City) -> bool:
+		return a.population > b.population or (a.population == b.population and a.id < b.id))
+	for city in cities:
+		if CityLife.governors_used(game, pid) >= CityLife.governors_total(game, pid) and city.doctrine == "":
+			break
+		if city.population < int(game.data.const_value("city_life_threshold_pop", 10)) - 2:
+			continue
+		var want := "PERSUASION"
+		var order_bal := float(CityLife.order(game, city)["balance"])
+		if order_bal < -2.0:
+			want = "AUTOCRACY"
+		elif p.faith > city.population * 10.0:
+			want = "RELIGIOUS"
+		elif EmpireRules.summary(game, pid)["net_gold"] < city.population:
+			want = "AUTOCRACY"
+		if city.doctrine == "" or (city.doctrine != want and CityLife.doctrine_active(city) and order_bal < -3.0):
+			game.apply_action({"type": "set_doctrine", "city": city.id, "doctrine": want})
 
 
 # --- Гарнизоны и разведка -----------------------------------------------------------------------------

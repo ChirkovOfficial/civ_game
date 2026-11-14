@@ -52,6 +52,11 @@ static func maintenance(game: Game, pid: int) -> float:
 	for city in game.state.cities_of(pid):
 		for bid in city.buildings:
 			m += float(game.data.buildings.get(bid, {}).get("maintenance", 0))
+		for d in city.districts:
+			m += float(DistrictRules.ddef(game, d["type"]).get("maintenance", 0))
+			for bid in d["buildings"]:
+				m += float(game.data.buildings.get(bid, {}).get("maintenance", 0))
+		m += float(CityLife.doctrine_upkeep(game, city)["gold"])
 	return m
 
 
@@ -169,6 +174,8 @@ static func process_turn_start(game: Game, pid: int, events: Array) -> void:
 			wall_max = maxi(wall_max, int(game.data.buildings.get(bid, {}).get("wall_hp", 0)))
 		if city.wall_hp < wall_max and game.state.turn - city.last_attacked_turn >= int(game.data.const_value("wall_regen_delay", 3)):
 			city.wall_hp = mini(wall_max, city.wall_hp + int(game.data.const_value("wall_regen", 25)))
+	for city in cities:
+		CityLife.process_city(game, city, events)
 	for city in cities:
 		var cy := CityRules.city_yields(game, city, lux)
 		CityRules.process_growth(game, city, lux, events)

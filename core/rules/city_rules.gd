@@ -70,6 +70,7 @@ static func found_city(game: Game, pid: int, tile: int) -> City:
 	if c(game, "city_removes_features", []).has(map.feature[tile]):
 		map.feature[tile] = ""
 	map.improvement[tile] = ""
+	map.district[tile] = DistrictRules.CENTER
 	claim_tile(game, city, tile)
 	for nb in map.grid.neighbors(tile):
 		if map.owner_city[nb] < 0:
@@ -139,6 +140,7 @@ static func housing(game: Game, city: City) -> float:
 		var imp := map.improvement[t]
 		if imp != "":
 			h += float(game.data.improvements.get(imp, {}).get("housing", 0))
+	h += float(DistrictRules.city_totals(game, city)["housing"])
 	return h
 
 
@@ -176,11 +178,14 @@ static func luxury_amenities(game: Game, pid: int) -> Dictionary:
 	var kind_list := kinds.keys()
 	kind_list.sort()
 	var per_kind: int = int(c(game, "luxury_amenity_cities", 4))
+	var base := {}
+	for city in cities:
+		base[city.id] = _base_amenities(game, city) - amenities_needed(city)
 	for _rid in kind_list:
 		var order := cities.duplicate()
 		order.sort_custom(func(a: City, b: City) -> bool:
-			var ba := _base_amenities(game, a) + int(result[a.id]) - amenities_needed(a)
-			var bb := _base_amenities(game, b) + int(result[b.id]) - amenities_needed(b)
+			var ba := int(base[a.id]) + int(result[a.id])
+			var bb := int(base[b.id]) + int(result[b.id])
 			return ba < bb or (ba == bb and a.id < b.id))
 		for k in mini(per_kind, order.size()):
 			result[order[k].id] += 1
@@ -191,6 +196,8 @@ static func _base_amenities(game: Game, city: City) -> int:
 	var a := 0
 	for bid in city.buildings:
 		a += int(game.data.buildings.get(bid, {}).get("amenities", 0))
+	a += int(DistrictRules.city_totals(game, city)["amenities"])
+	a += int(CityLife.doctrine_effect(game, city).get("amenities", 0))
 	return a
 
 
@@ -221,14 +228,17 @@ static func city_yields(game: Game, city: City, lux: Dictionary = {}) -> Diction
 		Yields.add_into(y, tile_yields(game, t, p))
 	for bid in city.buildings:
 		Yields.add_into(y, game.data.buildings.get(bid, {}).get("yields", {}))
+	Yields.add_into(y, DistrictRules.city_totals(game, city)["yields"])
 	y["science"] = float(y.get("science", 0)) + city.population * float(c(game, "science_per_pop", 0.5))
 	y["culture"] = float(y.get("culture", 0)) + city.population * float(c(game, "culture_per_pop", 0.3))
 	var st: Dictionary = amenity_info(game, city, lux)["state"]
-	var mult := float(st.get("yields", 1.0))
-	if mult != 1.0:
-		for k in y:
-			if k != "food":
-				y[k] = float(y[k]) * mult
+	var life := CityLife.yield_mults(game, city)
+	var mult := float(st.get("yields", 1.0)) * float(life["non_food"])
+	var all_mult := float(life["all"])
+	for k in y:
+		var m := all_mult * (mult if k != "food" else 1.0)
+		if m != 1.0:
+			y[k] = float(y[k]) * m
 	return y
 
 
@@ -242,7 +252,7 @@ static func food_delta(game: Game, city: City, lux: Dictionary = {}) -> float:
 	if surplus <= 0.0:
 		return surplus
 	var st: Dictionary = amenity_info(game, city, lux)["state"]
-	return surplus * housing_growth_mult(game, city) * float(st.get("growth", 1.0))
+	return surplus * housing_growth_mult(game, city) * float(st.get("growth", 1.0)) * CityLife.growth_mult(game, city)
 
 
 static func growth_threshold(game: Game, pop: int) -> int:
@@ -273,8 +283,8 @@ static func workable_tiles(game: Game, city: City) -> Array[int]:
 	for t in map.grid.tiles_in_radius(city.tile, radius):
 		if t == city.tile or map.owner_city[t] != city.id or taken.has(t):
 			continue
-		if game.state.city_at(t) != null:
-			continue
+		if map.district[t] != "":
+			continue   # центр города и районы жители не обрабатывают
 		result.append(t)
 	result.sort()
 	return result
@@ -301,30 +311,62 @@ static func assign_citizens(game: Game, city: City) -> void:
 	var scores := {}
 	for t in candidates:
 		scores[t] = tile_yields(game, t, p)
-	while city.worked_tiles.size() < city.population:
+	# Места специалистов в районах (по месту на здание): "клетка" -> [свободно, доход одного].
+	city.specialists = {}
+	var slots := {}
+	for d in city.districts:
+		if not d["complete"]:
+			continue
+		var spec: Dictionary = DistrictRules.ddef(game, d["type"]).get("specialist", {})
+		var n := 0
+		for bid in d["buildings"]:
+			n += int(game.data.buildings.get(bid, {}).get("specialist_slots", 0))
+		if n > 0 and not spec.is_empty():
+			slots[str(d["tile"])] = [n, spec]
+	var placed := city.worked_tiles.size()
+	while placed < city.population:
+		var w := DEFAULT_WEIGHTS.duplicate()
+		if food < need_food:
+			w["food"] = float(w["food"]) * 3.0
+		elif at_housing_cap:
+			w["food"] = float(w["food"]) * 0.5
+		if city.focus != "" and w.has(city.focus):
+			w[city.focus] = float(w[city.focus]) * 2.0
 		var best := -1
 		var best_score := -INF
 		for t in candidates:
 			if city.worked_tiles.has(t):
 				continue
-			var y: Dictionary = scores[t]
-			var w := DEFAULT_WEIGHTS.duplicate()
-			if food < need_food:
-				w["food"] = float(w["food"]) * 3.0
-			elif at_housing_cap:
-				w["food"] = float(w["food"]) * 0.5
-			if city.focus != "" and w.has(city.focus):
-				w[city.focus] = float(w[city.focus]) * 2.0
-			var sc := 0.0
-			for k in y:
-				sc += float(y[k]) * float(w.get(k, 0.5))
+			var sc := _score(scores[t], w)
 			if sc > best_score:
 				best_score = sc
 				best = t
-		if best < 0:
-			break   # клеток не хватает — лишние жители пока без дела (специалисты — веха M4)
-		city.worked_tiles.append(best)
-		food += float(scores[best].get("food", 0))
+		var best_slot := ""
+		var slot_keys := slots.keys()
+		slot_keys.sort()
+		for key in slot_keys:
+			if int(slots[key][0]) <= 0:
+				continue
+			var sc2 := _score(slots[key][1], w)
+			if sc2 > best_score:
+				best_score = sc2
+				best_slot = key
+		if best_slot != "":
+			slots[best_slot][0] = int(slots[best_slot][0]) - 1
+			city.specialists[best_slot] = int(city.specialists.get(best_slot, 0)) + 1
+		elif best >= 0:
+			city.worked_tiles.append(best)
+			food += float(scores[best].get("food", 0))
+		else:
+			break   # ни клеток, ни мест специалистов — лишние жители без дела
+		placed += 1
+
+
+static func _score(y: Dictionary, w: Dictionary) -> float:
+	var sc := 0.0
+	for k in y:
+		sc += float(y[k]) * float(w.get(k, 0.5))
+	return sc
 
 
 # --- Производство (ГДД 4.2, 5.3) -----------------------------------------------------------------
@@ -332,12 +374,26 @@ static func assign_citizens(game: Game, city: City) -> void:
 static func item_name(game: Game, item: Dictionary, owner: int = -1) -> String:
 	if item.get("kind", "") == "unit":
 		return Abilities.unit_name(game, owner, item["id"])
+	if item.get("kind", "") == "district":
+		return DistrictRules.display_name(game, owner, item["id"], 1)
+	if item.get("kind", "") == "district_upgrade":
+		var city := game.state.city_owning(int(item.get("tile", -1))) if item.has("tile") else null
+		var tier := 1
+		if city != null:
+			tier = int(DistrictRules.entry_at(city, int(item["tile"])).get("tier", 1))
+		return "%s → %s" % [DistrictRules.display_name(game, owner, item["id"], tier),
+			DistrictRules.display_name(game, owner, item["id"], tier + 1)]
 	return game.data.buildings.get(item.get("id", ""), {}).get("name", item.get("id", ""))
 
 
 ## Стоимость объекта в ⚙ с учётом скорости и роста цены (поселенцы, строители).
 static func item_cost(game: Game, city: City, item: Dictionary) -> float:
 	var base := 0.0
+	if item["kind"] == "district":
+		var e := DistrictRules.entry_at(city, int(item.get("tile", -1)))
+		return float(e["cost"]) if not e.is_empty() else DistrictRules.cost(game, city, item["id"])
+	if item["kind"] == "district_upgrade":
+		return DistrictRules.upgrade_cost(game, city, DistrictRules.entry_at(city, int(item.get("tile", -1))))
 	if item["kind"] == "unit":
 		var def := game.data.unit_def(item["id"])
 		var made: int = int(game.state.player(city.owner).produced.get(item["id"], 0))
@@ -387,15 +443,30 @@ static func build_error(game: Game, city: City, item: Dictionary) -> String:
 			return "Неизвестное здание"
 		if b.get("not_buildable", false):
 			return "Нельзя построить"
-		if city.has_building(id):
-			return "Уже построено"
-		if b.get("district", "CITY_CENTER") != "CITY_CENTER":
-			return "Нужен район"
 		if not _unlocked(p, b):
 			return "Не открыто"
+		if b.get("district", "CITY_CENTER") != "CITY_CENTER":
+			if not item.has("tile"):
+				return "Нужен район «%s»" % DistrictRules.display_name(game, city.owner, b["district"])
+			return DistrictRules.building_error(game, city, id, int(item["tile"]))
+		if city.has_building(id):
+			return "Уже построено"
 		if b.get("requires", "") == "river" and not game.state.map.has_river(city.tile):
 			return "Город должен стоять у реки"
 		return ""
+	if kind == "district":
+		if not item.has("tile"):
+			return DistrictRules.type_error(game, city, id)
+		var tile := int(item["tile"])
+		var e := DistrictRules.entry_at(city, tile)
+		if not e.is_empty():
+			return "" if e["type"] == id and not e["complete"] else "Клетка занята"
+		return DistrictRules.placement_error(game, city, id, tile)
+	if kind == "district_upgrade":
+		var e2 := DistrictRules.entry_at(city, int(item.get("tile", -1)))
+		if e2.is_empty() or e2["type"] != id:
+			return "Нет такого района"
+		return DistrictRules.upgrade_error(game, city, e2)
 	return "Неизвестный объект"
 
 
@@ -406,9 +477,36 @@ static func buildable_items(game: Game, city: City) -> Array:
 		if build_error(game, city, item) == "":
 			result.append(item)
 	for bid in game.data.building_ids:
+		if game.data.buildings[bid].get("district", "CITY_CENTER") != "CITY_CENTER":
+			continue
 		var item := {"kind": "building", "id": bid}
 		if build_error(game, city, item) == "":
 			result.append(item)
+	result.append_array(district_items(game, city))
+	return result
+
+
+## Районы и всё, что строится в районах: новые районы (без клетки — её выбирают на карте),
+## недостроенные районы, здания районов, улучшения районов до следующего уровня.
+static func district_items(game: Game, city: City) -> Array:
+	var result := []
+	for type in game.data.district_ids:
+		if DistrictRules.type_error(game, city, type) == "" and not DistrictRules.valid_tiles(game, city, type).is_empty():
+			result.append({"kind": "district", "id": type})
+	for d in city.districts:
+		var tile := int(d["tile"])
+		if not d["complete"]:
+			result.append({"kind": "district", "id": d["type"], "tile": tile})
+			continue
+		for bid in game.data.building_ids:
+			if game.data.buildings[bid].get("district", "") != d["type"]:
+				continue
+			var item := {"kind": "building", "id": bid, "tile": tile}
+			if build_error(game, city, item) == "":
+				result.append(item)
+		var up := {"kind": "district_upgrade", "id": d["type"], "tile": tile}
+		if build_error(game, city, up) == "":
+			result.append(up)
 	return result
 
 
@@ -453,6 +551,19 @@ static func complete_item(game: Game, city: City, item: Dictionary, events: Arra
 			city.food_stored = 0.0
 			assign_citizens(game, city)
 		events.append({"type": "unit_created", "unit": u.id, "city": city.id})
+	elif item["kind"] == "district":
+		var e := DistrictRules.entry_at(city, int(item["tile"]))
+		e["complete"] = true
+		assign_citizens(game, city)
+		events.append({"type": "district_completed", "district": item["id"], "city": city.id, "tile": int(item["tile"])})
+	elif item["kind"] == "district_upgrade":
+		var e2 := DistrictRules.entry_at(city, int(item["tile"]))
+		e2["tier"] = int(e2["tier"]) + 1
+		events.append({"type": "district_upgraded", "district": item["id"], "city": city.id, "tile": int(item["tile"]), "tier": e2["tier"]})
+	elif item.has("tile"):
+		DistrictRules.entry_at(city, int(item["tile"]))["buildings"].append(item["id"])
+		assign_citizens(game, city)
+		events.append({"type": "building_created", "building": item["id"], "city": city.id, "tile": int(item["tile"])})
 	else:
 		city.buildings.append(item["id"])
 		var b: Dictionary = game.data.buildings[item["id"]]

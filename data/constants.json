@@ -273,5 +273,52 @@
  ],
  "barbarian_max_camps_per_civ": 1,
  "barbarian_max_units_per_camp": 4,
- "commander_retreat_hp": 50
+ "commander_retreat_hp": 50,
+ "district_base_cost": 54,
+ "district_cost_progress_mult": 9,
+ "district_repeat_cost": 0.25,
+ "district_upgrade_cost_frac": 0.5,
+ "district_cluster_max": 3,
+ "district_cluster_gap": 3,
+ "specialist_food_cost": 0,
+ "city_life_threshold_pop": 10,
+ "sanitation_per_pop": 0.5,
+ "order_per_pop": 0.3,
+ "epidemic_chance_per_point": 0.02,
+ "epidemic_chance_max": 0.3,
+ "epidemic_turns": 5,
+ "epidemic_yield_mult": 0.9,
+ "order_unrest_yield_penalty_per_point": 0.05,
+ "order_unrest_max_penalty": 0.5,
+ "governor_appoint_turns": 5,
+ "governors_base": 1,
+ "governors_per_cities": 3,
+ "doctrines": [
+  {
+   "id": "RELIGIOUS",
+   "name": "Религиозное воздействие",
+   "text": "Тратит веру (0.5 за жителя в ход): +3 порядка, +1 довольство.",
+   "order": 3,
+   "amenities": 1,
+   "faith_per_pop": 0.5
+  },
+  {
+   "id": "PERSUASION",
+   "name": "Политическое убеждение",
+   "text": "Тратит золото (0.5 за жителя в ход): +2 порядка, +1 санитария (просвещение горожан).",
+   "order": 2,
+   "sanitation": 1,
+   "gold_per_pop": 0.5
+  },
+  {
+   "id": "AUTOCRACY",
+   "name": "Жёсткая автократия",
+   "text": "Бесплатно: +6 порядка, но −1 довольство и −25% к росту; после 20 ходов подряд — ещё −2 порядка.",
+   "order": 6,
+   "amenities": -1,
+   "growth_mult": 0.75,
+   "fatigue_turns": 20,
+   "fatigue_order": -2
+  }
+ ]
 }

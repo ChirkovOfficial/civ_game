@@ -16,6 +16,7 @@ var unit_classes: Dictionary = {}
 var techs: Dictionary = {}
 var civics: Dictionary = {}
 var buildings: Dictionary = {}
+var districts: Dictionary = {}
 var improvements: Dictionary = {}
 var harvest: Dictionary = {}
 ## Прочие разделы improvements.json (например, "pillage").
@@ -34,6 +35,7 @@ var resource_ids: Array[String] = []
 var tech_ids: Array[String] = []
 var civic_ids: Array[String] = []
 var building_ids: Array[String] = []
+var district_ids: Array[String] = []
 var improvement_ids: Array[String] = []
 var unit_ids: Array[String] = []
 
@@ -68,6 +70,10 @@ func load_all(dir: String = DATA_DIR) -> void:
 	buildings = _index(b_list)
 	for x in b_list:
 		building_ids.append(x["id"])
+	var d_list: Array = _read(dir + "districts.json").get("districts", [])
+	districts = _index(d_list)
+	for x in d_list:
+		district_ids.append(x["id"])
 	var imp := _read(dir + "improvements.json")
 	var imp_list: Array = imp.get("improvements", [])
 	improvements = _index(imp_list)
@@ -192,6 +198,34 @@ func validate() -> PackedStringArray:
 			errors.append("Здание %s: нет технологии %s" % [bid, b["tech"]])
 		if b.has("civic") and not civics.has(b["civic"]):
 			errors.append("Здание %s: нет института %s" % [bid, b["civic"]])
+	for bid in buildings:
+		var b: Dictionary = buildings[bid]
+		var dist: String = b.get("district", "CITY_CENTER")
+		if dist != "CITY_CENTER" and not districts.has(dist):
+			errors.append("Здание %s: нет района %s" % [bid, dist])
+	for did in districts:
+		var dd: Dictionary = districts[did]
+		var reqs: Array = [dd]
+		reqs.append_array(dd.get("tiers", []))
+		for r in reqs:
+			if r.has("tech") and not techs.has(r["tech"]):
+				errors.append("Район %s: нет технологии %s" % [did, r["tech"]])
+			if r.has("civic") and not civics.has(r["civic"]):
+				errors.append("Район %s: нет института %s" % [did, r["civic"]])
+		var pl: Dictionary = dd.get("placement", {})
+		if pl.has("feature") and not features.has(pl["feature"]):
+			errors.append("Район %s: нет особенности %s" % [did, pl["feature"]])
+		for a in dd.get("adjacency", []):
+			if a["source"] == "feature" and not features.has(a.get("id", "")):
+				errors.append("Район %s: соседство с несуществующей особенностью %s" % [did, a.get("id", "")])
+			if a["source"] == "district_type" and not districts.has(a.get("id", "")):
+				errors.append("Район %s: соседство с несуществующим районом %s" % [did, a.get("id", "")])
+			if a["source"] == "improvement" and not improvements.has(a.get("id", "")):
+				errors.append("Район %s: соседство с несуществующим улучшением %s" % [did, a.get("id", "")])
+	for cid in civs:
+		for did in civs[cid].get("district_names", {}):
+			if not districts.has(did) and did != "CITY_CENTER":
+				errors.append("Цивилизация %s: название для несуществующего района %s" % [cid, did])
 	for iid in improvements:
 		var im: Dictionary = improvements[iid]
 		if im.has("tech") and not techs.has(im["tech"]):

@@ -126,6 +126,8 @@ func apply_action(action: Dictionary) -> Array:
 			_act_set_production(action, events)
 		"purchase":
 			_act_purchase(action, events)
+		"set_doctrine":
+			_act_set_doctrine(action, events)
 		"buy_tile":
 			_act_buy_tile(action, events)
 		"set_research":
@@ -337,11 +339,17 @@ func _act_set_production(action: Dictionary, events: Array) -> void:
 	var c := _own_city(action, events)
 	if c == null:
 		return
-	var item := {"kind": str(action.get("kind", "")), "id": str(action.get("id", ""))}
+	var item := _item_from(action)
 	var err := CityRules.build_error(self, c, item)
+	if err == "" and item["kind"] == "district" and not item.has("tile"):
+		err = "Выберите клетку для района"
 	if err != "":
 		events.append(_error(err))
 		return
+	if item["kind"] == "district" and DistrictRules.entry_at(c, int(item["tile"])).is_empty():
+		DistrictRules.place(self, c, item["id"], int(item["tile"]))
+		CityRules.assign_citizens(self, c)
+		events.append({"type": "district_placed", "city": c.id, "district": item["id"], "tile": int(item["tile"])})
 	# В очереди один объект: новый выбор заменяет текущий; прогресс прежнего сохраняется.
 	c.queue = [item]
 	events.append({"type": "city_updated", "city": c.id})
@@ -351,8 +359,10 @@ func _act_purchase(action: Dictionary, events: Array) -> void:
 	var c := _own_city(action, events)
 	if c == null:
 		return
-	var item := {"kind": str(action.get("kind", "")), "id": str(action.get("id", ""))}
+	var item := _item_from(action)
 	var err := CityRules.build_error(self, c, item)
+	if err == "" and (item["kind"] == "district" or item["kind"] == "district_upgrade"):
+		err = "Районы за золото не покупаются"
 	var p := state.player(c.owner)
 	var price := CityRules.purchase_cost(self, c, item)
 	if err == "" and p.treasury < price:
@@ -369,6 +379,27 @@ func _act_purchase(action: Dictionary, events: Array) -> void:
 		c.queue.pop_front()
 	events.append({"type": "purchased", "city": c.id, "item": item, "price": price})
 	Visibility.recompute(self, c.owner)
+
+
+## Объект производства из действия: {"kind", "id"} и, для районов и их зданий, "tile".
+static func _item_from(action: Dictionary) -> Dictionary:
+	var item := {"kind": str(action.get("kind", "")), "id": str(action.get("id", ""))}
+	if action.has("tile") and int(action["tile"]) >= 0:
+		item["tile"] = int(action["tile"])
+	return item
+
+
+func _act_set_doctrine(action: Dictionary, events: Array) -> void:
+	var c := _own_city(action, events)
+	if c == null:
+		return
+	var doctrine := str(action.get("doctrine", ""))
+	var err := CityLife.set_doctrine_error(self, c, doctrine)
+	if err != "":
+		events.append(_error(err))
+		return
+	CityLife.set_doctrine(self, c, doctrine)
+	events.append({"type": "city_updated", "city": c.id})
 
 
 func _act_buy_tile(action: Dictionary, events: Array) -> void:

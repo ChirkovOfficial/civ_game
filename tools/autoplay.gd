@@ -24,9 +24,15 @@ func _init() -> void:
 		var cities := g.state.cities_of(p.id)
 		var pop := 0
 		var buildings := 0
+		var districts := []
+		var max_pop := 0
 		for c in cities:
 			pop += c.population
+			max_pop = maxi(max_pop, c.population)
 			buildings += c.buildings.size()
+			for d in c.districts:
+				buildings += d["buildings"].size()
+				districts.append("%s%s" % [d["type"].substr(0, 4), "" if d["complete"] else "…"])
 		var sm := EmpireRules.summary(g, p.id)
 		var y: Dictionary = sm["yields"]
 		var imps := 0
@@ -38,4 +44,5 @@ func _init() -> void:
 			p.name, cities.size(), pop, buildings, imps, g.state.units_of(p.id).size(),
 			p.known_techs.size(), p.known_civics.size(), p.treasury,
 			y["science"], y["culture"], sm["net_gold"]])
+		print("             районы: %s; крупнейший город %d" % [", ".join(districts), max_pop])
 	quit()

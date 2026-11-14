@@ -1,15 +1,416 @@
 {
-  "_doc": "Здания (ГДД 6.2). district — район, где строится здание (пока только CITY_CENTER; районы — веха M4). cost — ⚙ на стандартной скорости. maintenance — 💰/ход. capital_only/not_buildable — особые здания. requires: river — город у реки (ребро реки у центра).",
-  "buildings": [
-    {"id": "PALACE", "name": "Дворец", "district": "CITY_CENTER", "cost": 0, "not_buildable": true, "capital_only": true,
-     "yields": {"production": 2, "science": 2, "culture": 1, "gold": 5}, "housing": 1, "amenities": 1},
-    {"id": "MONUMENT", "name": "Монумент", "district": "CITY_CENTER", "cost": 60, "maintenance": 0,
-     "yields": {"culture": 2}, "loyalty": 1},
-    {"id": "GRANARY", "name": "Амбар", "district": "CITY_CENTER", "cost": 65, "maintenance": 1, "tech": "POTTERY",
-     "yields": {"food": 1}, "housing": 2},
-    {"id": "WATER_MILL", "name": "Водяная мельница", "district": "CITY_CENTER", "cost": 80, "maintenance": 1, "tech": "THE_WHEEL",
-     "yields": {"food": 1, "production": 1}, "requires": "river"},
-    {"id": "ANCIENT_WALLS", "name": "Античные стены", "district": "CITY_CENTER", "cost": 80, "maintenance": 0, "tech": "MASONRY",
-     "wall_hp": 100}
-  ]
+ "_doc": "Здания (ГДД 6.2). district — район; здание строится в конкретном экземпляре района (клетке). requires_building — предыдущее здание (или exclusive_group, если подходит любое из группы). exclusive_group — взаимоисключающие (Казармы/Конюшня, музеи). specialist_slots — места специалистов. regional/regional_amenities + radius — эффект на свои города в радиусе (без суммирования одинаковых). stock_cap — +лимит стратегических запасов.",
+ "buildings": [
+  {
+   "id": "PALACE",
+   "name": "Дворец",
+   "district": "CITY_CENTER",
+   "cost": 0,
+   "not_buildable": true,
+   "capital_only": true,
+   "yields": {
+    "production": 2,
+    "science": 2,
+    "culture": 1,
+    "gold": 5
+   },
+   "housing": 1,
+   "amenities": 1
+  },
+  {
+   "id": "MONUMENT",
+   "name": "Монумент",
+   "district": "CITY_CENTER",
+   "cost": 60,
+   "maintenance": 0,
+   "yields": {
+    "culture": 2
+   },
+   "loyalty": 1
+  },
+  {
+   "id": "GRANARY",
+   "name": "Амбар",
+   "district": "CITY_CENTER",
+   "cost": 65,
+   "maintenance": 1,
+   "tech": "POTTERY",
+   "yields": {
+    "food": 1
+   },
+   "housing": 2
+  },
+  {
+   "id": "WATER_MILL",
+   "name": "Водяная мельница",
+   "district": "CITY_CENTER",
+   "cost": 80,
+   "maintenance": 1,
+   "tech": "THE_WHEEL",
+   "yields": {
+    "food": 1,
+    "production": 1
+   },
+   "requires": "river"
+  },
+  {
+   "id": "ANCIENT_WALLS",
+   "name": "Античные стены",
+   "district": "CITY_CENTER",
+   "cost": 80,
+   "maintenance": 0,
+   "tech": "MASONRY",
+   "wall_hp": 100
+  },
+  {
+   "id": "LIBRARY",
+   "name": "Библиотека",
+   "district": "CAMPUS",
+   "cost": 90,
+   "maintenance": 1,
+   "yields": {
+    "science": 2
+   },
+   "tech": "WRITING",
+   "specialist_slots": 1
+  },
+  {
+   "id": "UNIVERSITY",
+   "name": "Университет",
+   "district": "CAMPUS",
+   "cost": 250,
+   "maintenance": 2,
+   "yields": {
+    "science": 4
+   },
+   "tech": "EDUCATION",
+   "requires_building": "LIBRARY",
+   "housing": 1,
+   "specialist_slots": 1
+  },
+  {
+   "id": "RESEARCH_LAB",
+   "name": "Исследовательская лаборатория",
+   "district": "CAMPUS",
+   "cost": 480,
+   "maintenance": 3,
+   "yields": {
+    "science": 5
+   },
+   "tech": "CHEMISTRY",
+   "requires_building": "UNIVERSITY",
+   "specialist_slots": 1
+  },
+  {
+   "id": "SHRINE",
+   "name": "Святилище",
+   "district": "HOLY_SITE",
+   "cost": 70,
+   "maintenance": 1,
+   "yields": {
+    "faith": 2
+   },
+   "tech": "ASTROLOGY",
+   "specialist_slots": 1
+  },
+  {
+   "id": "TEMPLE",
+   "name": "Храм",
+   "district": "HOLY_SITE",
+   "cost": 120,
+   "maintenance": 2,
+   "yields": {
+    "faith": 4
+   },
+   "requires_building": "SHRINE",
+   "civic": "THEOLOGY",
+   "specialist_slots": 1
+  },
+  {
+   "id": "BARRACKS",
+   "name": "Казармы",
+   "district": "ENCAMPMENT",
+   "cost": 90,
+   "maintenance": 1,
+   "yields": {
+    "production": 1
+   },
+   "tech": "BRONZE_WORKING",
+   "housing": 1,
+   "exclusive_group": "ENC1",
+   "stock_cap": 10,
+   "specialist_slots": 1
+  },
+  {
+   "id": "STABLE",
+   "name": "Конюшня",
+   "district": "ENCAMPMENT",
+   "cost": 120,
+   "maintenance": 1,
+   "yields": {
+    "production": 1
+   },
+   "tech": "HORSEBACK_RIDING",
+   "housing": 1,
+   "exclusive_group": "ENC1",
+   "stock_cap": 10,
+   "specialist_slots": 1
+  },
+  {
+   "id": "ARMORY",
+   "name": "Арсенал",
+   "district": "ENCAMPMENT",
+   "cost": 195,
+   "maintenance": 2,
+   "yields": {
+    "production": 2
+   },
+   "tech": "MILITARY_ENGINEERING",
+   "requires_building": "ENC1",
+   "stock_cap": 10,
+   "specialist_slots": 1
+  },
+  {
+   "id": "MILITARY_ACADEMY",
+   "name": "Военная академия",
+   "district": "ENCAMPMENT",
+   "cost": 390,
+   "maintenance": 3,
+   "yields": {
+    "production": 3
+   },
+   "tech": "MILITARY_SCIENCE",
+   "requires_building": "ARMORY",
+   "housing": 1,
+   "stock_cap": 10,
+   "specialist_slots": 1
+  },
+  {
+   "id": "LIGHTHOUSE",
+   "name": "Маяк",
+   "district": "HARBOR",
+   "cost": 120,
+   "maintenance": 1,
+   "yields": {
+    "food": 1,
+    "gold": 2
+   },
+   "tech": "CELESTIAL_NAVIGATION",
+   "housing": 1,
+   "specialist_slots": 1
+  },
+  {
+   "id": "SHIPYARD",
+   "name": "Верфь",
+   "district": "HARBOR",
+   "cost": 290,
+   "maintenance": 2,
+   "yields": {
+    "production": 2
+   },
+   "tech": "MASS_PRODUCTION",
+   "requires_building": "LIGHTHOUSE",
+   "specialist_slots": 1
+  },
+  {
+   "id": "SEAPORT",
+   "name": "Морской порт",
+   "district": "HARBOR",
+   "cost": 580,
+   "maintenance": 3,
+   "yields": {
+    "food": 2,
+    "gold": 2
+   },
+   "tech": "ELECTRICITY",
+   "requires_building": "SHIPYARD",
+   "housing": 1,
+   "specialist_slots": 1
+  },
+  {
+   "id": "MARKET",
+   "name": "Рынок",
+   "district": "COMMERCIAL_HUB",
+   "cost": 120,
+   "maintenance": 1,
+   "yields": {
+    "gold": 3
+   },
+   "tech": "CURRENCY",
+   "specialist_slots": 1
+  },
+  {
+   "id": "BANK",
+   "name": "Банк",
+   "district": "COMMERCIAL_HUB",
+   "cost": 290,
+   "maintenance": 2,
+   "yields": {
+    "gold": 5
+   },
+   "tech": "BANKING",
+   "requires_building": "MARKET",
+   "specialist_slots": 1
+  },
+  {
+   "id": "STOCK_EXCHANGE",
+   "name": "Биржа",
+   "district": "COMMERCIAL_HUB",
+   "cost": 390,
+   "maintenance": 3,
+   "yields": {
+    "gold": 7
+   },
+   "tech": "ECONOMICS",
+   "requires_building": "BANK",
+   "specialist_slots": 1
+  },
+  {
+   "id": "AMPHITHEATER",
+   "name": "Амфитеатр",
+   "district": "THEATER_SQUARE",
+   "cost": 150,
+   "maintenance": 1,
+   "yields": {
+    "culture": 2
+   },
+   "civic": "DRAMA_POETRY",
+   "specialist_slots": 1
+  },
+  {
+   "id": "ART_MUSEUM",
+   "name": "Художественный музей",
+   "district": "THEATER_SQUARE",
+   "cost": 290,
+   "maintenance": 2,
+   "yields": {
+    "culture": 2
+   },
+   "requires_building": "AMPHITHEATER",
+   "civic": "HUMANISM",
+   "exclusive_group": "MUSEUM",
+   "specialist_slots": 1
+  },
+  {
+   "id": "ARCHAEOLOGICAL_MUSEUM",
+   "name": "Археологический музей",
+   "district": "THEATER_SQUARE",
+   "cost": 290,
+   "maintenance": 2,
+   "yields": {
+    "culture": 2
+   },
+   "requires_building": "AMPHITHEATER",
+   "civic": "HUMANISM",
+   "exclusive_group": "MUSEUM",
+   "specialist_slots": 1
+  },
+  {
+   "id": "BROADCAST_CENTER",
+   "name": "Радиовещательный центр",
+   "district": "THEATER_SQUARE",
+   "cost": 580,
+   "maintenance": 3,
+   "yields": {
+    "culture": 4
+   },
+   "tech": "RADIO",
+   "requires_building": "MUSEUM",
+   "specialist_slots": 1
+  },
+  {
+   "id": "WORKSHOP",
+   "name": "Мастерская",
+   "district": "INDUSTRIAL_ZONE",
+   "cost": 195,
+   "maintenance": 1,
+   "yields": {
+    "production": 3
+   },
+   "tech": "APPRENTICESHIP",
+   "specialist_slots": 1
+  },
+  {
+   "id": "FACTORY",
+   "name": "Фабрика",
+   "district": "INDUSTRIAL_ZONE",
+   "cost": 390,
+   "maintenance": 2,
+   "yields": {
+    "production": 3
+   },
+   "tech": "INDUSTRIALIZATION",
+   "requires_building": "WORKSHOP",
+   "regional": {
+    "production": 3
+   },
+   "radius": 6,
+   "specialist_slots": 1
+  },
+  {
+   "id": "ARENA",
+   "name": "Арена",
+   "district": "ENTERTAINMENT_COMPLEX",
+   "cost": 150,
+   "maintenance": 1,
+   "yields": {
+    "culture": 1
+   },
+   "civic": "GAMES_RECREATION",
+   "amenities": 1,
+   "specialist_slots": 1
+  },
+  {
+   "id": "ZOO",
+   "name": "Зоопарк",
+   "district": "ENTERTAINMENT_COMPLEX",
+   "cost": 445,
+   "maintenance": 2,
+   "yields": {},
+   "requires_building": "ARENA",
+   "civic": "NATURAL_HISTORY",
+   "regional_amenities": 1,
+   "radius": 6,
+   "specialist_slots": 1
+  },
+  {
+   "id": "STADIUM",
+   "name": "Стадион",
+   "district": "ENTERTAINMENT_COMPLEX",
+   "cost": 660,
+   "maintenance": 3,
+   "yields": {},
+   "requires_building": "ZOO",
+   "civic": "PROFESSIONAL_SPORTS",
+   "regional_amenities": 2,
+   "radius": 6,
+   "specialist_slots": 1
+  },
+  {
+   "id": "FERRIS_WHEEL",
+   "name": "Колесо обозрения",
+   "district": "WATER_PARK",
+   "cost": 290,
+   "maintenance": 1,
+   "yields": {
+    "culture": 1
+   },
+   "civic": "NATURAL_HISTORY",
+   "amenities": 1,
+   "specialist_slots": 1
+  },
+  {
+   "id": "AQUARIUM",
+   "name": "Аквариум",
+   "district": "WATER_PARK",
+   "cost": 445,
+   "maintenance": 2,
+   "yields": {},
+   "requires_building": "FERRIS_WHEEL",
+   "civic": "NATURAL_HISTORY",
+   "regional_amenities": 1,
+   "radius": 6,
+   "specialist_slots": 1
+  }
+ ]
 }

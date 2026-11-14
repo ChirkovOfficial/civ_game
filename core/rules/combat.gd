@@ -517,6 +517,13 @@ static func capture_city(game: Game, u: Unit, city: City, events: Array) -> void
 	city.queue = []
 	city.progress = {}
 	city.locked_tiles = []
+	city.doctrine = ""
+	city.doctrine_turns = 0
+	# Недостроенные районы при захвате пропадают.
+	for d in city.districts.duplicate():
+		if not d["complete"]:
+			game.state.map.district[int(d["tile"])] = ""
+			city.districts.erase(d)
 	var was_capital := city.is_capital
 	city.is_capital = false
 	for bid in city.buildings.duplicate():
@@ -540,6 +547,7 @@ static func _destroy_city(game: Game, city: City, events: Array) -> void:
 	for t in map.grid.tiles_in_radius(city.tile, int(k(game, "city_border_radius", 5))):
 		if map.owner_city[t] == city.id:
 			map.owner_city[t] = -1
+			map.district[t] = ""
 	var owner := city.owner
 	game.state.cities.erase(city.id)
 	events.append({"type": "city_destroyed", "city": city.id, "owner": owner, "tile": city.tile})
