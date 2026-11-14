@@ -556,7 +556,7 @@ static func _check_elimination(game: Game, pid: int, events: Array) -> void:
 			if game.data.unit_def(u.type).get("abilities", []).has("FOUND_CITY"):
 				has_settler = true
 		# Держава без городов выбывает, если ей уже нечем основать новый.
-		if not has_settler and game.state.turn > 1:
+		if not has_settler:
 			p.alive = false
 			for u in game.state.units_of(pid):
 				game.state.remove_unit(u.id)

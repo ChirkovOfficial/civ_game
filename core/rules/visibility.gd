@@ -81,4 +81,23 @@ static func recompute(game: Game, player_id: int) -> bool:
 			if p.revealed[t] == Player.FOG_UNEXPLORED:
 				p.revealed[t] = Player.FOG_REVEALED
 				newly = true
+	# Встречи держав (ГДД 17.1): увидели чужой юнит или город.
+	if not p.is_barbarian:
+		for id in game.state.units:
+			var u: Unit = game.state.units[id]
+			if u.owner != player_id and p.is_visible(u.tile):
+				_meet(game, player_id, u.owner)
+		for cid in game.state.cities:
+			var c: City = game.state.cities[cid]
+			if c.owner != player_id and p.is_visible(c.tile):
+				_meet(game, player_id, c.owner)
 	return newly
+
+
+static func _meet(game: Game, a: int, b: int) -> void:
+	var pa := game.state.player(a)
+	var pb := game.state.player(b)
+	if pb.is_barbarian or pa.met.has(b):
+		return
+	pa.met[b] = true
+	pb.met[a] = true

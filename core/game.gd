@@ -54,8 +54,11 @@ static func new_game(game_data: GameData, settings: Dictionary) -> Game:
 		p.init_fog(s.map.size())
 		s.players.append(p)
 		game._spawn_start_units(pid, s.start_positions[pid])
+	for u in s.units.values():
+		UnitRules.note_strength(game, u.owner, u.type)
 	for p in s.players:
 		Visibility.recompute(game, p.id)
+	Barbarians.setup(game)
 	s.current_player = 0
 	game._begin_player_turn(0, [])
 	return game
@@ -127,6 +130,107 @@ func apply_action(action: Dictionary) -> Array:
 			_act_buy_tile(action, events)
 		"set_research":
 			_act_set_research(action, events)
+		"attack":
+			var u := _own_unit(action, events)
+			if u != null:
+				var tile := int(action.get("target", -1))
+				var err := Combat.attack_error(self, u, tile) if state.map.grid.is_valid_index(tile) else "Нет цели"
+				if err != "":
+					events.append(_error(err))
+				else:
+					Combat.attack(self, u, tile, events)
+					_after_combat(events)
+		"city_attack":
+			var c := _own_city(action, events)
+			if c != null:
+				var tile := int(action.get("target", -1))
+				var err := Combat.city_attack_error(self, c, tile) if state.map.grid.is_valid_index(tile) else "Нет цели"
+				if err != "":
+					events.append(_error(err))
+				else:
+					Combat.city_attack(self, c, tile, events)
+		"fortify":
+			var u := _own_unit(action, events)
+			if u != null:
+				var err := UnitRules.fortify_error(self, u)
+				if err != "":
+					events.append(_error(err))
+				else:
+					u.orders = {"type": "fortify"}
+					events.append({"type": "unit_updated", "unit": u.id})
+		"promote":
+			var u := _own_unit(action, events)
+			if u != null:
+				var promo := str(action.get("promotion", ""))
+				var err := UnitRules.promote_error(self, u, promo)
+				if err != "":
+					events.append(_error(err))
+				else:
+					UnitRules.promote(self, u, promo, events)
+		"upgrade_unit":
+			var u := _own_unit(action, events)
+			if u != null:
+				var err := UnitRules.upgrade_error(self, u)
+				if err != "":
+					events.append(_error(err))
+				else:
+					UnitRules.upgrade(self, u, events)
+		"pillage":
+			var u := _own_unit(action, events)
+			if u != null:
+				var err := UnitRules.pillage_error(self, u)
+				if err != "":
+					events.append(_error(err))
+				else:
+					UnitRules.pillage(self, u, events)
+		"repair":
+			var u := _own_unit(action, events)
+			if u != null:
+				var err := UnitRules.repair_error(self, u)
+				if err != "":
+					events.append(_error(err))
+				else:
+					state.map.pillaged[u.tile] = 0
+					u.moves_left = 0.0
+					u.acted = true
+					var oc := state.city_owning(u.tile)
+					CityRules.assign_citizens(self, oc)
+					events.append({"type": "improvement_built", "tile": u.tile, "improvement": state.map.improvement[u.tile]})
+		"build_road":
+			var u := _own_unit(action, events)
+			if u != null:
+				var err := UnitRules.build_road_error(self, u)
+				if err != "":
+					events.append(_error(err))
+				else:
+					UnitRules.build_road(self, u, events)
+		"build_fort":
+			var u := _own_unit(action, events)
+			if u != null:
+				var err := UnitRules.build_fort_error(self, u)
+				if err != "":
+					events.append(_error(err))
+				else:
+					UnitRules.build_fort(self, u, events)
+		"declare_war":
+			var target := int(action.get("target", -1))
+			var err := UnitRules.declare_war_error(self, state.current_player, target)
+			if err != "":
+				events.append(_error(err))
+			else:
+				state.set_war(state.current_player, target, true)
+				for u in state.units_of(target):
+					if u.orders.get("type", "") == "sleep":
+						u.orders = {}
+				events.append({"type": "war_declared", "player": state.current_player, "target": target})
+		"make_peace":
+			var target := int(action.get("target", -1))
+			var err := UnitRules.make_peace_error(self, state.current_player, target)
+			if err != "":
+				events.append(_error(err))
+			else:
+				state.set_war(state.current_player, target, false)
+				events.append({"type": "peace_made", "player": state.current_player, "target": target})
 		"end_turn":
 			var blocking := EmpireRules.blocking_decisions(self, state.current_player)
 			if not blocking.is_empty() and not action.get("force", false):
@@ -269,6 +373,18 @@ func _act_set_research(action: Dictionary, events: Array) -> void:
 	events.append({"type": "research_changed", "player": state.current_player, "kind": kind})
 
 
+func _after_combat(events: Array) -> void:
+	for e in events:
+		if e["type"] == "city_captured" or e["type"] == "city_destroyed":
+			Visibility.recompute(self, state.current_player)
+			return
+
+
+## Юнит вошёл в клетку: лагерь варваров, племенное поселение.
+func on_unit_entered(u: Unit, events: Array) -> void:
+	Barbarians.on_enter(self, u, events)
+
+
 func _act_skip_unit(action: Dictionary, events: Array) -> void:
 	var u := _own_unit(action, events)
 	if u == null:
@@ -321,6 +437,7 @@ func _continue_move(u: Unit, events: Array) -> void:
 		u.acted = true
 		u.fortify_turns = 0
 		events.append({"type": "unit_moved", "unit": u.id, "from": from, "to": u.tile})
+		on_unit_entered(u, events)
 		if Visibility.recompute(self, u.owner):
 			events.append({"type": "fog_changed", "player": u.owner})
 	if u.tile == target:
@@ -332,6 +449,7 @@ func _act_end_turn(events: Array) -> void:
 	events.append({"type": "turn_ended", "player": finished})
 	var next := _next_alive_player(finished)
 	if next <= finished:
+		_barbarian_phase(events)
 		state.turn += 1
 		events.append({"type": "new_round", "turn": state.turn})
 	state.current_player = next
@@ -352,6 +470,7 @@ func _act_end_turn(events: Array) -> void:
 		events.append({"type": "turn_ended", "player": ai_id})
 		var n2 := _next_alive_player(ai_id)
 		if n2 <= ai_id:
+			_barbarian_phase(events)
 			state.turn += 1
 			events.append({"type": "new_round", "turn": state.turn})
 			if not has_humans:
@@ -362,11 +481,22 @@ func _act_end_turn(events: Array) -> void:
 		_begin_player_turn(n2, events)
 
 
+## Ход варваров — после всех держав, раз в круг (ГДД 2).
+func _barbarian_phase(events: Array) -> void:
+	var barb := state.barbarian_id()
+	if barb < 0:
+		return
+	var saved := state.current_player
+	state.current_player = barb
+	Barbarians.take_turn(self, events)
+	state.current_player = saved
+
+
 func _next_alive_player(from: int) -> int:
 	var n := state.players.size()
 	for k in range(1, n + 1):
 		var cand := (from + k) % n
-		if state.players[cand].alive:
+		if state.players[cand].alive and not state.players[cand].is_barbarian:
 			return cand
 	return from
 
@@ -375,6 +505,7 @@ func _next_alive_player(from: int) -> int:
 ## восстановление ОД, исполнение постоянных приказов, пересчёт видимости.
 func _begin_player_turn(pid: int, events: Array) -> void:
 	EmpireRules.process_turn_start(self, pid, events)
+	UnitRules.process_units_turn_start(self, pid, events)
 	for u in state.units_of(pid):
 		u.moves_left = Movement.max_moves(self, u)
 		u.acted = false

@@ -372,8 +372,14 @@ static func build_error(game: Game, city: City, item: Dictionary) -> String:
 			return "Нужен аэродром"
 		if int(def.get("pop_cost", 0)) > 0 and city.population <= int(def["pop_cost"]):
 			return "Нужно население не меньше %d" % (int(def["pop_cost"]) + 1)
-		if def.has("resource"):
-			return "Нужны стратегические ресурсы (веха M10)"
+		var stock: Dictionary = p.stockpile
+		var res: Dictionary = def.get("resource", {})
+		for r in res:
+			if float(stock.get(r, 0.0)) < float(res[r]):
+				return "Нужно %d ед. ресурса «%s»" % [int(res[r]), game.data.resources[r]["name"]]
+		for r in def.get("resource_per_turn", {}):
+			if float(stock.get(r, 0.0)) <= 0.0:
+				return "Нужен запас ресурса «%s»" % game.data.resources[r]["name"]
 		return ""
 	if kind == "building":
 		var b: Dictionary = game.data.buildings.get(id, {})
@@ -433,7 +439,13 @@ static func complete_item(game: Game, city: City, item: Dictionary, events: Arra
 		var def := game.data.unit_def(item["id"])
 		u.moves_left = Movement.max_moves(game, u)
 		u.charges = int(def.get("charges", 0))
+		if u.charges == 0 and Abilities.has(game, u, "BUILD_FORT"):
+			u.charges = 1
 		var p := game.state.player(city.owner)
+		var res: Dictionary = def.get("resource", {})
+		for r in res:
+			p.stockpile[r] = float(p.stockpile.get(r, 0.0)) - float(res[r])
+		UnitRules.note_strength(game, city.owner, item["id"])
 		p.produced[item["id"]] = int(p.produced.get(item["id"], 0)) + 1
 		var pop_cost := int(def.get("pop_cost", 0))
 		if pop_cost > 0:

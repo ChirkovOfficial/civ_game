@@ -39,6 +39,8 @@ static func build_error(game: Game, u: Unit, imp_id: String) -> String:
 	var def: Dictionary = game.data.improvements.get(imp_id, {})
 	if def.is_empty():
 		return "Неизвестное улучшение"
+	if def.get("special", false):
+		return "Строитель это не строит"
 	var tile := u.tile
 	var map := game.state.map
 	var p := game.state.player(u.owner)

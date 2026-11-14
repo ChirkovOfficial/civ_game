@@ -33,13 +33,24 @@ func unit(id: int) -> Unit:
 	return units.get(id)
 
 
-## Юниты в клетке (в порядке id — детерминированно).
+var _tile_index := {}
+var _tile_index_version := -1
+
+
+## Юниты в клетке (в порядке id — детерминированно). Индекс пересобирается при перемещениях.
 func units_at(tile: int) -> Array[Unit]:
+	if _tile_index_version != Unit.change_counter:
+		_tile_index.clear()
+		for id in _sorted_unit_ids():
+			var u: Unit = units[id]
+			if not _tile_index.has(u.tile):
+				var arr: Array[Unit] = []
+				_tile_index[u.tile] = arr
+			_tile_index[u.tile].append(u)
+		_tile_index_version = Unit.change_counter
 	var result: Array[Unit] = []
-	for id in _sorted_unit_ids():
-		var u: Unit = units[id]
-		if u.tile == tile:
-			result.append(u)
+	if _tile_index.has(tile):
+		result.assign(_tile_index[tile])
 	return result
 
 
@@ -131,11 +142,13 @@ func add_unit(owner: int, type: String, tile: int) -> Unit:
 	u.type = type
 	u.tile = tile
 	units[u.id] = u
+	Unit.change_counter += 1
 	return u
 
 
 func remove_unit(id: int) -> void:
 	units.erase(id)
+	Unit.change_counter += 1
 
 
 # --- Сериализация --------------------------------------------------------------

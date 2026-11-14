@@ -69,6 +69,8 @@ func test_start_positions() -> void:
 func test_start_units() -> void:
 	var g := small_game(4)
 	for p in g.state.players:
+		if p.is_barbarian:
+			continue
 		var units := g.state.units_of(p.id)
 		check_eq(units.size(), 2)
 		var types := units.map(func(u): return u.type)

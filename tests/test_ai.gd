@@ -15,6 +15,8 @@ func _autoplay(seed_value: int, turns: int) -> Game:
 func test_ai_expands() -> void:
 	var g := _autoplay(31, 80)
 	for p in g.state.players:
+		if p.is_barbarian:
+			continue
 		var cities := g.state.cities_of(p.id)
 		check(cities.size() >= 2, "у %s городов: %d" % [p.name, cities.size()])
 		check(p.known_techs.size() >= 3, "у %s технологий: %d" % [p.name, p.known_techs.size()])

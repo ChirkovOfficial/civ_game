@@ -152,7 +152,18 @@ static func process_turn_start(game: Game, pid: int, events: Array) -> void:
 	# Пусть результат текущего исследования (если оно завершилось) сразу засчитается.
 	if p.treasury < 0.0:
 		_bankruptcy(game, pid, events)
-	# 2. Города: рост, границы, производство (доходы — по состоянию на начало хода).
+	UnitRules.process_stockpile(game, pid)
+	# 2. Города: лечение и стены, рост, границы, производство.
+	var hp_max := int(game.data.const_value("city_hp", 200))
+	for city in cities:
+		city.has_attacked = false
+		if city.last_attacked_turn < game.state.turn - 1:
+			city.hp = mini(hp_max, city.hp + int(game.data.const_value("city_heal", 20)))
+		var wall_max := 0
+		for bid in city.buildings:
+			wall_max = maxi(wall_max, int(game.data.buildings.get(bid, {}).get("wall_hp", 0)))
+		if city.wall_hp < wall_max and game.state.turn - city.last_attacked_turn >= int(game.data.const_value("wall_regen_delay", 3)):
+			city.wall_hp = mini(wall_max, city.wall_hp + int(game.data.const_value("wall_regen", 25)))
 	for city in cities:
 		var cy := CityRules.city_yields(game, city, lux)
 		CityRules.process_growth(game, city, lux, events)

@@ -11,6 +11,7 @@ const EXPLORE_RADIUS := 8
 
 static func take_turn(game: Game, pid: int) -> void:
 	_choose_research(game, pid)
+	_tactical(game, pid)
 	for u in game.state.units_of(pid):
 		if game.state.unit(u.id) == null:
 			continue
@@ -103,6 +104,9 @@ static func settle_score(game: Game, pid: int, tile: int) -> float:
 			+ (float(y.get("science", 0)) + float(y.get("culture", 0)) + float(y.get("faith", 0))) * 0.7) * w
 		if map.owner_city[t] >= 0:
 			score -= 1.5
+		for other in game.state.units_at(t):
+			if game.state.at_war(pid, other.owner) and Movement.layer(game, other.type) == "COMBAT":
+				score -= 15.0
 		var rid := map.resource[t]
 		if rid != "" and Yields.resource_visible(game.data, rid, p) and game.data.resources[rid]["class"] != "bonus":
 			score += 3.0
@@ -124,6 +128,12 @@ static func settle_score(game: Game, pid: int, tile: int) -> float:
 static func _handle_settler(game: Game, u: Unit) -> void:
 	if u.moves_left <= 0.0:
 		return
+	# Рядом враг — отступить к ближайшему своему городу.
+	if not _enemies_near(game, u.owner, u.tile, 2).is_empty():
+		var home := _nearest_own_city(game, u.owner, u.tile)
+		if home != null and home.tile != u.tile:
+			game.apply_action({"type": "move_unit", "unit": u.id, "target": home.tile})
+			return
 	var map := game.state.map
 	var here := settle_score(game, u.owner, u.tile)
 	var best := u.tile
@@ -251,7 +261,11 @@ static func _choose_production(game: Game, city: City) -> void:
 		if Movement.layer(game, u.type) == "COMBAT":
 			garrisoned = true
 	var combat := _best_combat_unit(game, city)
-	if military < cities.size() and not garrisoned and combat != "":
+	var threatened := not _enemies_near(game, pid, city.tile, 5).is_empty()
+	if threatened and combat != "":
+		candidates.append({"kind": "unit", "id": combat})
+		candidates.append({"kind": "building", "id": "ANCIENT_WALLS"})
+	if (military < cities.size() + 1 or not garrisoned) and combat != "":
 		candidates.append({"kind": "unit", "id": combat})
 	if cities.size() + settlers < target_cities and settlers < 1:
 		candidates.append({"kind": "unit", "id": "SETTLER"})
@@ -298,6 +312,7 @@ static func _handle_military(game: Game, pid: int) -> void:
 			game.apply_action({"type": "move_unit", "unit": best.id, "target": city.tile})
 			if game.state.unit(best.id) != null and best.tile == city.tile:
 				game.apply_action({"type": "sleep_unit", "unit": best.id})
+	_clear_camps(game, pid)
 	for u in game.state.units_of(pid):
 		if u.moves_left <= 0.0 or not u.orders.is_empty():
 			continue
@@ -330,3 +345,158 @@ static func _explore_target(game: Game, u: Unit) -> int:
 			best_score = score
 			best = t
 	return best
+
+
+# --- Тактика (ГДД 23.10, упрощённо) ----------------------------------------------------------------
+
+static func _enemies_near(game: Game, pid: int, tile: int, radius: int) -> Array[Unit]:
+	var result: Array[Unit] = []
+	var p := game.state.player(pid)
+	var grid := game.state.map.grid
+	for id in game.state.units:
+		var e: Unit = game.state.units[id]
+		if e.owner != pid and game.state.at_war(pid, e.owner) and p.is_visible(e.tile) \
+				and Movement.layer(game, e.type) == "COMBAT" and grid.distance(e.tile, tile) <= radius:
+			result.append(e)
+	return result
+
+
+static func _nearest_own_city(game: Game, pid: int, tile: int) -> City:
+	var best: City = null
+	var best_d := 999
+	for c in game.state.cities_of(pid):
+		var d := game.state.map.grid.distance(c.tile, tile)
+		if d < best_d:
+			best_d = d
+			best = c
+	return best
+
+
+static func _tactical(game: Game, pid: int) -> void:
+	var s := game.state
+	# Обстрел из городов.
+	for city in s.cities_of(pid):
+		if not Combat.city_can_strike(game, city):
+			continue
+		var best := -1
+		var best_hp := 999
+		for t in s.map.grid.tiles_in_radius(city.tile, int(game.data.const_value("city_ranged_range", 2))):
+			if Combat.city_attack_error(game, city, t) == "":
+				var hp: int = Combat.target_at(game, pid, t)["unit"].hp
+				if hp < best_hp:
+					best_hp = hp
+					best = t
+		if best >= 0:
+			game.apply_action({"type": "city_attack", "city": city.id, "target": best})
+	# Повышения.
+	for u in s.units_of(pid):
+		var promos := Combat.available_promotions(game, u)
+		if not promos.is_empty() and u.moves_left > 0.0 and _enemies_near(game, pid, u.tile, 2).is_empty():
+			game.apply_action({"type": "promote", "unit": u.id, "promotion": promos[0]})
+	# Атаки: сначала дальнобойные, затем ближний бой.
+	var attackers: Array[Unit] = []
+	for u in s.units_of(pid):
+		if Combat.can_attack(game, u) and u.moves_left > 0.0:
+			attackers.append(u)
+	attackers.sort_custom(func(a: Unit, b: Unit) -> bool:
+		return int(Combat.is_ranged(game, a)) > int(Combat.is_ranged(game, b)) or \
+			(Combat.is_ranged(game, a) == Combat.is_ranged(game, b) and a.id < b.id))
+	for u in attackers:
+		if s.unit(u.id) == null or u.moves_left <= 0.0:
+			continue
+		var reach := Combat.attack_range(game, u) if Combat.is_ranged(game, u) else 1
+		var best_t := -1
+		var best_score := 0.0
+		for t in s.map.grid.tiles_in_radius(u.tile, reach):
+			if t == u.tile or Combat.attack_error(game, u, t) != "":
+				continue
+			var pv := Combat.preview(game, u, t)
+			var tgt := Combat.target_at(game, pid, t)
+			var score := float(pv["dmg_to_def"]) - float(pv["dmg_to_att"]) * 1.2
+			if tgt["kind"] == "unit" and int(pv["dmg_to_def"]) >= tgt["unit"].hp:
+				score += 40.0
+			if tgt["kind"] == "civilian":
+				score += 50.0
+			if tgt["kind"] == "city":
+				if Combat.is_ranged(game, u):
+					score *= 0.7
+				elif tgt["city"].hp > int(pv["dmg_to_def"]):
+					score = -1.0
+				else:
+					score += 100.0
+			if not Combat.is_ranged(game, u) and u.hp - int(pv["dmg_to_att"]) < 25:
+				score = -1.0
+			if score > best_score:
+				best_score = score
+				best_t = t
+		if best_t >= 0:
+			game.apply_action({"type": "attack", "unit": u.id, "target": best_t})
+	# Раненые отходят; остальные идут навстречу врагу у своих городов.
+	for u in s.units_of(pid):
+		if s.unit(u.id) == null or u.moves_left <= 0.0 or Movement.layer(game, u.type) != "COMBAT":
+			continue
+		var near := _enemies_near(game, pid, u.tile, 3)
+		if u.hp < 40 and not near.is_empty():
+			var home := _nearest_own_city(game, pid, u.tile)
+			if home != null and home.tile != u.tile:
+				game.apply_action({"type": "move_unit", "unit": u.id, "target": home.tile})
+			if s.unit(u.id) != null:
+				game.apply_action({"type": "fortify", "unit": u.id})
+			continue
+		for city in s.cities_of(pid):
+			var threats := _enemies_near(game, pid, city.tile, 4)
+			if threats.is_empty() or s.map.grid.distance(u.tile, city.tile) > 6 or s.city_at(u.tile) != null:
+				continue
+			var e: Unit = threats[0]
+			var spot := _adjacent_free(game, u, e.tile)
+			if spot >= 0:
+				game.apply_action({"type": "cancel_orders", "unit": u.id})
+				game.apply_action({"type": "move_unit", "unit": u.id, "target": spot})
+			break
+
+
+static func _adjacent_free(game: Game, u: Unit, tile: int) -> int:
+	var best := -1
+	var best_d := 999
+	for t in game.state.map.grid.neighbors(tile):
+		if not Movement.can_stand(game, u, t) or not Movement.occupancy_allows(game, u, t, true):
+			continue
+		var d := game.state.map.grid.distance(u.tile, t)
+		if d < best_d:
+			best_d = d
+			best = t
+	return best
+
+
+## Зачистка лагерей варваров в 8 клетках от своих городов: двумя свободными юнитами.
+static func _clear_camps(game: Game, pid: int) -> void:
+	var s := game.state
+	var p := s.player(pid)
+	for tile in s.camps:
+		var ct := int(tile)
+		if not p.is_revealed(ct):
+			continue
+		var home := _nearest_own_city(game, pid, ct)
+		if home == null or s.map.grid.distance(home.tile, ct) > 8:
+			continue
+		var free: Array[Unit] = []
+		for u in s.units_of(pid):
+			if Combat.can_attack(game, u) and u.moves_left > 0.0 and s.city_at(u.tile) == null \
+					and u.orders.get("type", "") != "sleep" and u.hp >= 60:
+				free.append(u)
+		if free.size() < 2:
+			return
+		for u in free.slice(0, 2):
+			if s.map.grid.distance(u.tile, ct) == 1:
+				var has_guard := false
+				for e in s.units_at(ct):
+					if e.owner != pid:
+						has_guard = true
+				if not has_guard:
+					game.apply_action({"type": "move_unit", "unit": u.id, "target": ct})
+				continue
+			var spot := _adjacent_free(game, u, ct)
+			if spot >= 0:
+				game.apply_action({"type": "cancel_orders", "unit": u.id})
+				game.apply_action({"type": "move_unit", "unit": u.id, "target": spot})
+		return

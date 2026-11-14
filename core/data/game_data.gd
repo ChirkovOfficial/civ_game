@@ -18,6 +18,8 @@ var civics: Dictionary = {}
 var buildings: Dictionary = {}
 var improvements: Dictionary = {}
 var harvest: Dictionary = {}
+## Прочие разделы improvements.json (например, "pillage").
+var improvements_extra: Dictionary = {}
 var civs: Dictionary = {}
 var abilities: Dictionary = {}
 var promotions: Dictionary = {}
@@ -70,6 +72,7 @@ func load_all(dir: String = DATA_DIR) -> void:
 	for x in imp_list:
 		improvement_ids.append(x["id"])
 	harvest = imp.get("harvest", {})
+	improvements_extra = imp
 	abilities = _index(_read(dir + "abilities.json").get("abilities", []))
 	var promo_list: Array = _read(dir + "promotions.json").get("promotions", [])
 	promotions = _index(promo_list)

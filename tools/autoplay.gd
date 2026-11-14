@@ -18,6 +18,9 @@ func _init() -> void:
 	var dt := Time.get_ticks_msec() - t0
 	print("Ходов: %d, время: %d мс (%.1f мс/ход)" % [turns, dt, float(dt) / turns])
 	for p in g.state.players:
+		if p.is_barbarian:
+			print("Варвары: лагерей %d, юнитов %d" % [g.state.camps.size(), g.state.units_of(p.id).size()])
+			continue
 		var cities := g.state.cities_of(p.id)
 		var pop := 0
 		var buildings := 0

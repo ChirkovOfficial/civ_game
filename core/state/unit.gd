@@ -2,10 +2,17 @@ class_name Unit
 extends RefCounted
 ## Юнит на карте (ГДД 9.1, 25.2).
 
+## Счётчик изменений положения/состава юнитов (для кэша в GameState.units_at).
+static var change_counter := 0
+
 var id: int
 var owner: int
 var type: String
-var tile: int
+## Клетка. Любое изменение сбрасывает индекс «клетка → юниты» в GameState.
+var tile: int:
+	set(v):
+		tile = v
+		Unit.change_counter += 1
 var hp: int = 100
 var moves_left: float = 0.0
 var xp: int = 0
