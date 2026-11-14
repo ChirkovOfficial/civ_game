@@ -132,7 +132,7 @@ func _ready() -> void:
 	_root.add_child(_message)
 
 	var help := Label.new()
-	help.text = "ЛКМ — юнит/город · ПКМ — идти · WASD, колесо, СКМ — камера · Tab — следующий юнит · B — основать город · F — спать"
+	help.text = "ЛКМ — юнит/город · ПКМ — идти · WASD, колесо, СКМ — камера · Tab — следующий юнит · B — город · F — укрепиться/спать · R — дорога"
 	help.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	help.position = Vector2(-420, -28)
 	help.modulate = Color(1, 1, 1, 0.65)
@@ -251,6 +251,14 @@ func refresh_top() -> void:
 	var has_cities := not game.state.cities_of(pid).is_empty()
 	_research_button("science", "tech", p.current_tech, float(y["science"]), has_cities)
 	_research_button("culture", "civic", p.current_civic, float(y["culture"]), has_cities)
+	var wars := 0
+	for other in game.state.players:
+		if other.id != pid and not other.is_barbarian and game.state.at_war(pid, other.id):
+			wars += 1
+	var db := Button.new()
+	db.text = "Державы" + (" (войн: %d)" % wars if wars > 0 else "")
+	db.pressed.connect(open_diplomacy)
+	_top_box.add_child(db)
 
 
 func _research_button(icon: String, kind: String, current: String, per_turn: float, enabled: bool) -> void:
@@ -288,6 +296,9 @@ func close_research() -> void:
 func refresh_research() -> void:
 	if not _research_panel.visible:
 		return
+	if _research_kind == "diplomacy":
+		open_diplomacy()
+		return
 	_clear(_research_box)
 	var pid := game.state.current_player
 	var p := game.state.player(pid)
@@ -317,6 +328,46 @@ func refresh_research() -> void:
 		_label(_research_box, "Нет доступных исследований")
 
 
+func open_diplomacy() -> void:
+	_research_kind = "diplomacy"
+	_research_panel.visible = true
+	_clear(_research_box)
+	var pid := game.state.current_player
+	var me := game.state.player(pid)
+	var head := HBoxContainer.new()
+	_research_box.add_child(head)
+	var title := _label(head, "Державы", 20)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_button(head, "✕", close_research)
+	var any := false
+	for other in game.state.players:
+		if other.id == pid or other.is_barbarian or not me.met.has(other.id):
+			continue
+		any = true
+		var row := HBoxContainer.new()
+		_research_box.add_child(row)
+		var sw := ColorRect.new()
+		sw.color = other.color
+		sw.custom_minimum_size = Vector2(14, 14)
+		row.add_child(sw)
+		var war := game.state.at_war(pid, other.id)
+		var st := "выбыла" if not other.alive else ("ВОЙНА" if war else "мир")
+		var l := _label(row, "%s — %s · городов: %d" % [other.name, st, game.state.cities_of(other.id).size()])
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if not other.alive:
+			continue
+		var oid := other.id
+		if war:
+			var e := UnitRules.make_peace_error(game, pid, oid)
+			_button(row, "Заключить мир", func(): act.call({"type": "make_peace", "target": oid}); open_diplomacy(), e != "", e)
+		else:
+			var e2 := UnitRules.declare_war_error(game, pid, oid)
+			_button(row, "Объявить войну", func(): act.call({"type": "declare_war", "target": oid}); open_diplomacy(), e2 != "", e2)
+	if not any:
+		_label(_research_box, "Вы ещё ни с кем не встретились.")
+	_label(_research_box, "Дипломатия появится на этапе M6; пока доступны только война и мир. С варварами всегда война.", 12, Color(0.75, 0.78, 0.85), true)
+
+
 func _choose_research(id: String) -> void:
 	act.call({"type": "set_research", "kind": _research_kind, "id": id})
 	close_research()
@@ -341,11 +392,23 @@ func show_unit(u: Unit) -> void:
 	if def.has("charges"):
 		lines.append("Заряды: %d" % u.charges)
 	lines.append("Здоровье: %d" % u.hp)
+	if Combat.can_attack(game, u):
+		lines.append("Опыт: %d / %d (уровень %d)" % [u.xp, Combat.xp_for_level(u.level + 1), u.level])
+	if not u.promotions.is_empty():
+		var names := []
+		for pid in u.promotions:
+			names.append(game.data.promotions[pid]["name"])
+		lines.append("Повышения: " + ", ".join(names))
+	for a in Abilities.of(game, u.owner, u.type):
+		if game.data.abilities.has(a):
+			lines.append("◆ %s" % game.data.abilities[a]["name"])
 	match u.orders.get("type", ""):
 		"move":
 			lines.append("Идёт к цели…")
 		"sleep":
 			lines.append("Спит")
+		"fortify":
+			lines.append("Укреплён (+%d)" % mini(u.fortify_turns * 3, 6))
 	_label(_unit_box, "\n".join(lines))
 	if u.owner != game.state.current_player:
 		return
@@ -370,10 +433,32 @@ func show_unit(u: Unit) -> void:
 			var what := "Собрать ресурс" if hv["what"] == "resource" else "Вырубить/осушить"
 			_button(_unit_box, "%s (%s в город)" % [what, ", ".join(parts)],
 				func(): act.call({"type": "harvest", "unit": u.id}), u.moves_left <= 0.0)
+	for pid in Combat.available_promotions(game, u):
+		var pr: Dictionary = game.data.promotions[pid]
+		_button(_unit_box, "★ Повышение: %s — %s" % [pr["name"], pr["text"]],
+			func(): act.call({"type": "promote", "unit": u.id, "promotion": pid}))
+	var target := UnitRules.upgrade_target(game, u)
+	if target != "":
+		var uerr := UnitRules.upgrade_error(game, u)
+		_button(_unit_box, "Модернизировать в «%s» (%d золота)" % [Abilities.unit_name(game, u.owner, target), UnitRules.upgrade_cost(game, u, target)],
+			func(): act.call({"type": "upgrade_unit", "unit": u.id}), uerr != "", uerr)
+	if Abilities.has(game, u, "ROAD_INSTEAD_OF_MOVE") or Abilities.has(game, u, "BUILD_ROAD"):
+		var rerr := UnitRules.build_road_error(game, u)
+		_button(_unit_box, "Проложить дорогу (R)", func(): act.call({"type": "build_road", "unit": u.id}), rerr != "", rerr)
+	if Abilities.has(game, u, "BUILD_FORT") and u.charges > 0:
+		var ferr := UnitRules.build_fort_error(game, u)
+		_button(_unit_box, "Построить форт", func(): act.call({"type": "build_fort", "unit": u.id}), ferr != "", ferr)
+	if UnitRules.pillage_error(game, u) == "":
+		_button(_unit_box, "Разграбить улучшение", func(): act.call({"type": "pillage", "unit": u.id}))
+	if UnitRules.repair_error(game, u) == "":
+		_button(_unit_box, "Починить улучшение", func(): act.call({"type": "repair", "unit": u.id}))
 	var row := HBoxContainer.new()
 	_unit_box.add_child(row)
+	if Movement.layer(game, u.type) == "COMBAT":
+		_button(row, "Укрепиться (F)", func(): act.call({"type": "fortify", "unit": u.id}))
 	_button(row, "Пропустить (Пробел)", func(): act.call({"type": "skip_unit", "unit": u.id}))
-	_button(row, "Спать (F)", func(): act.call({"type": "sleep_unit", "unit": u.id}))
+	if Movement.layer(game, u.type) != "COMBAT":
+		_button(row, "Спать (F)", func(): act.call({"type": "sleep_unit", "unit": u.id}))
 	if not u.orders.is_empty():
 		_button(row, "Отменить приказ", func(): act.call({"type": "cancel_orders", "unit": u.id}))
 
@@ -418,6 +503,15 @@ func refresh_city() -> void:
 		city.population, _fmt(snappedf(city.food_stored, 0.1)), thr,
 		("через %d х." % ttg) if ttg > 0 else ("голод" if food_net < 0 else "застой"),
 		food_net, _fmt(CityRules.housing(game, city)), int(am["have"]), int(am["need"]), str(st.get("name", ""))])
+	_label(_city_box, "Прочность: %d/%d%s" % [city.hp, int(game.data.const_value("city_hp", 200)),
+		(" · стены %d" % city.wall_hp) if city.wall_hp > 0 else ""])
+	if city.owner == game.state.current_player and Combat.city_can_strike(game, city):
+		for t in game.state.map.grid.tiles_in_radius(city.tile, int(game.data.const_value("city_ranged_range", 2))):
+			if Combat.city_attack_error(game, city, t) == "":
+				var tu: Unit = Combat.target_at(game, city.owner, t)["unit"]
+				var tt := t
+				_button(_city_box, "🏹 Обстрелять: %s (%d ♥)" % [Abilities.unit_name(game, tu.owner, tu.type), tu.hp],
+					func(): act.call({"type": "city_attack", "city": city.id, "target": tt}))
 	if not city.buildings.is_empty():
 		var names := []
 		for bid in city.buildings:
@@ -497,6 +591,19 @@ func show_tile(viewer: Player, tile: int, reveal_all: bool) -> void:
 		lines.append("Непроходима")
 	elif map.is_land(tile):
 		lines.append("Стоимость входа: %s ОД" % _fmt(Movement.terrain_cost(game, tile)))
+	_tile_label.text = "\n".join(lines)
+
+
+func show_combat_preview(pv: Dictionary, err: String) -> void:
+	_tile_panel.visible = true
+	var lines := [_tile_label.text, "", "⚔ Прогноз боя: %d против %d" % [int(pv["att"]), int(pv["def"])]]
+	for m in pv["att_mods"]:
+		lines.append("  наш: %s %+d" % [m[0], int(m[1])])
+	for m in pv["def_mods"]:
+		lines.append("  их: %s %+d" % [m[0], int(m[1])])
+	lines.append("Урон врагу ≈ %d, нам ≈ %d" % [int(pv["dmg_to_def"]), int(pv["dmg_to_att"])])
+	if err != "":
+		lines.append("(%s)" % err)
 	_tile_label.text = "\n".join(lines)
 
 

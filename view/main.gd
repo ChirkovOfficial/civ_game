@@ -28,6 +28,13 @@ const GEOMETRY_EVENTS := {
 	"border_grew": ["borders"],
 	"improvement_built": ["improvements"],
 	"harvested": ["terrain", "improvements"],
+	"road_built": ["roads"],
+	"pillaged": ["improvements"],
+	"camp_spawned": ["improvements"],
+	"camp_cleared": ["improvements"],
+	"village_reward": ["improvements"],
+	"city_captured": ["borders"],
+	"city_destroyed": ["borders", "improvements"],
 }
 
 
@@ -112,7 +119,7 @@ func act(action: Dictionary) -> Array:
 	var events := game.apply_action(action)
 	_after_action()
 	var t: String = action.get("type", "")
-	if t in ["found_city", "build_improvement", "harvest", "skip_unit", "sleep_unit"] and \
+	if t in ["found_city", "build_improvement", "harvest", "skip_unit", "sleep_unit", "fortify", "build_road", "attack", "promote", "upgrade_unit", "build_fort", "pillage"] and \
 			(selected == null or game.state.unit(selected.id) == null or selected.moves_left <= 0.0 or not selected.orders.is_empty()):
 		_select_next_unit()
 	if t == "found_city":
@@ -160,6 +167,31 @@ func _on_events(events: Array) -> void:
 			hud.show_message("Изучено: %s" % game.data.techs[e["tech"]]["name"], 3.0)
 		elif t == "civic_completed" and e["player"] == game.state.current_player:
 			hud.show_message("Принят институт: %s" % game.data.civics[e["civic"]]["name"], 3.0)
+		elif t == "village_reward" and e["player"] == game.state.current_player:
+			hud.show_message("Племенное поселение: %s" % e["text"], 3.0)
+		elif t == "camp_cleared" and e["player"] == game.state.current_player:
+			hud.show_message("Лагерь варваров уничтожен: +%d золота" % int(e["gold"]), 3.0)
+		elif t == "city_captured":
+			hud.show_message("Город %s захвачен: %s" % [game.state.city(e["city"]).name, game.state.player(e["by"]).name], 3.5)
+		elif t == "city_destroyed":
+			hud.show_message("Город разорён варварами", 3.5)
+		elif t == "war_declared":
+			hud.show_message("%s объявляет войну: %s" % [game.state.player(e["player"]).name, game.state.player(e["target"]).name], 3.5)
+		elif t == "peace_made":
+			hud.show_message("Заключён мир", 3.0)
+		elif t == "barbarian_raid":
+			var c := game.state.city(e["target"])
+			if c != null and c.owner == game.state.current_player:
+				hud.show_message("Варвары готовят набег на %s!" % c.name, 4.0)
+		elif t == "combat" and (e.has("attacker") or e.has("city_attacker")):
+			var me := game.state.current_player
+			var au := game.state.unit(e.get("attacker", -1))
+			if au != null and au.owner == me:
+				hud.show_message("Урон врагу: %d · ваши потери: %d" % [int(e["dmg_to_def"]), int(e.get("dmg_to_att", 0))], 2.5)
+		elif t == "unit_killed" and e["owner"] == game.state.current_player:
+			hud.show_message("Юнит погиб", 2.5)
+		elif t == "player_eliminated":
+			hud.show_message("%s выбывает из игры" % game.state.player(e["player"]).name, 4.0)
 
 
 func _process(_delta: float) -> void:
@@ -180,6 +212,10 @@ func _update_hover() -> void:
 	if tile != hover_tile:
 		hover_tile = tile
 		hud.show_tile(_viewer(), tile, map_view.reveal_all)
+		if selected != null and tile >= 0 and game.state.unit(selected.id) != null and Combat.can_attack(game, selected):
+			var tgt := Combat.target_at(game, selected.owner, tile)
+			if tgt["kind"] == "unit" or tgt["kind"] == "city":
+				hud.show_combat_preview(Combat.preview(game, selected, tile), Combat.attack_error(game, selected, tile))
 	overlay.show_hover(tile, camera_rig.position.x)
 	var path_target := tile if selected != null else -1
 	if path_target != _hover_path_target:
@@ -206,10 +242,14 @@ func _unhandled_input(event: InputEvent) -> void:
 					act({"type": "skip_unit", "unit": selected.id})
 			KEY_F:
 				if selected != null:
-					act({"type": "sleep_unit", "unit": selected.id})
+					var kind := "fortify" if Movement.layer(game, selected.type) == "COMBAT" else "sleep_unit"
+					act({"type": kind, "unit": selected.id})
 			KEY_B:
 				if selected != null:
 					act({"type": "found_city", "unit": selected.id})
+			KEY_R:
+				if selected != null:
+					act({"type": "build_road", "unit": selected.id})
 			KEY_TAB:
 				_select_next_unit(true)
 			KEY_F2:
@@ -279,6 +319,14 @@ func _select_next_unit(cycle: bool = false) -> void:
 func _move_selected(tile: int) -> void:
 	if game.state.unit(selected.id) == null:
 		_select(null)
+		return
+	var tgt := Combat.target_at(game, selected.owner, tile)
+	if tgt["kind"] != "" and tgt["kind"] != "camp" and Combat.can_attack(game, selected):
+		var err := Combat.attack_error(game, selected, tile)
+		if err == "":
+			act({"type": "attack", "unit": selected.id, "target": tile})
+		else:
+			hud.show_message(err)
 		return
 	act({"type": "move_unit", "unit": selected.id, "target": tile})
 	if selected != null and selected.moves_left <= 0.0:

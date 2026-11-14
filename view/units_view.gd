@@ -104,6 +104,15 @@ func _make_unit_node(u: Unit) -> Node3D:
 		pack.material_override = _mat(Color("a0784e"))
 		pack.position = Vector3(0, 0.26, 0.1)
 		root.add_child(pack)
+	var info := Label3D.new()
+	info.name = "Info"
+	info.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	info.font_size = 40
+	info.pixel_size = 0.004
+	info.outline_size = 10
+	info.no_depth_test = true
+	info.position = Vector3(0, 0.75, 0)
+	root.add_child(info)
 	root.scale = Vector3.ONE * 1.3
 	add_child(root)
 	return root
@@ -122,6 +131,14 @@ func refresh(viewer: Player, cam_x: float) -> void:
 		node.visible = visible_now
 		if visible_now:
 			node.position = _unit_pos(u, cam_x)
+			var info: Label3D = node.get_node("Info")
+			var txt := ""
+			if u.hp < 100:
+				txt = "♥%d" % u.hp
+			if u.owner == viewer.id and Combat.can_promote(u) and Combat.can_attack(game, u):
+				txt += " ★"
+			info.text = txt
+			info.modulate = Color(1.0, 0.45, 0.4) if u.hp < 40 else Color(1, 1, 1)
 	for id in _nodes.keys():
 		if not alive.has(id):
 			_nodes[id].queue_free()

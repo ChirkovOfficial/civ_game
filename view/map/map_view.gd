@@ -77,6 +77,8 @@ func refresh_geometry(parts: Dictionary = {}) -> void:
 		refresh_improvements()
 	if all or parts.has("borders"):
 		refresh_borders()
+	if all or parts.has("roads"):
+		refresh_roads()
 	if viewer != null and (all or parts.has("terrain")):
 		refresh_resources(viewer)
 
@@ -241,7 +243,10 @@ func refresh_improvements() -> void:
 			for local in part["transforms"]:
 				var t: Transform3D = local
 				var world := Transform3D(rot * t.basis, base + rot * t.origin + Vector3(-0.1, 0, -0.05))
-				per_part[key].append([world, part["color"], _custom(i)])
+				var col: Color = part["color"]
+				if map.pillaged[i] == 1:
+					col = col.darkened(0.6)   # разграблено
+				per_part[key].append([world, col, _custom(i)])
 	for imp in _improvement_meshes:
 		var parts: Array = _improvement_meshes[imp]
 		for k in parts.size():
@@ -250,6 +255,52 @@ func refresh_improvements() -> void:
 			var mm := _new_multimesh(parts[k]["mesh"], items.size())
 			_fill(mm, items)
 			_set_layer("imp_" + key, mm, _feature_mat)
+
+
+## Дороги: полосы между центрами соседних клеток с дорогой (и «пятачок» в клетке).
+func refresh_roads() -> void:
+	var map := game.state.map
+	var grid := map.grid
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var count := 0
+	var col := Color("9c8463")
+	for i in map.size():
+		if map.road[i] == 0:
+			continue
+		var c2 := grid.world_position(i, MapStyle.HEX_SIZE)
+		var h := MapStyle.tile_height(map, i) + 0.02
+		var uv := TerrainMeshBuilder.tile_uv(grid, i)
+		var lvl_col := col.lightened(0.08 * map.road[i])
+		var links := 0
+		for d in 6:
+			var nb := grid.neighbor(i, d)
+			if nb < 0 or map.road[nb] == 0:
+				continue
+			links += 1
+			# Половина отрезка до середины ребра — вторую половину нарисует сосед.
+			var mid := c2 + (HexGrid.corner_offset(d, MapStyle.HEX_SIZE) + HexGrid.corner_offset((d + 1) % 6, MapStyle.HEX_SIZE)) * 0.5
+			var along := (mid - c2).normalized()
+			var across := Vector2(-along.y, along.x) * 0.07
+			var pts := [Vector3(c2.x + across.x, h, c2.y + across.y), Vector3(mid.x + across.x, h, mid.y + across.y),
+				Vector3(mid.x - across.x, h, mid.y - across.y), Vector3(c2.x - across.x, h, c2.y - across.y)]
+			for idx in [0, 1, 2, 0, 2, 3]:
+				st.set_color(lvl_col)
+				st.set_uv2(uv)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(pts[idx])
+			count += 1
+		# Пятачок в центре клетки.
+		for kk in 6:
+			var a := c2 + HexGrid.corner_offset(kk, 0.12)
+			var b := c2 + HexGrid.corner_offset((kk + 1) % 6, 0.12)
+			for p in [Vector3(c2.x, h, c2.y), Vector3(a.x, h, a.y), Vector3(b.x, h, b.y)]:
+				st.set_color(lvl_col)
+				st.set_uv2(uv)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p)
+		count += 1
+	_set_layer("roads", st.commit() if count > 0 else null, _river_mat)
 
 
 ## Границы держав: цветная полоса вдоль рёбер, где сосед не принадлежит той же державе.

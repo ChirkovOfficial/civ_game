@@ -78,4 +78,21 @@ static func build_all() -> Dictionary:
 		 "transforms": [Transform3D(Basis(Vector3.FORWARD, PI / 2), Vector3(0.2, 0.05, 0.16))]},
 	]
 	d["OIL_WELL"] = [{"mesh": _cyl(0.02, 0.08, 0.4, 4), "color": Color("2a2a2e"), "transforms": [_at(0, 0.2, 0)]}]
+	# Форт: частокол по кругу.
+	var stakes: Array = []
+	for k in 16:
+		var a := TAU * k / 16.0
+		stakes.append(_at(cos(a) * 0.42 + 0.1, 0.09, sin(a) * 0.42 + 0.05))
+	d["FORT"] = [{"mesh": _cyl(0.03, 0.035, 0.18, 4), "color": Color("8a6440"), "transforms": stakes}]
+	# Лагерь варваров: тёмные шатры и шест с флагом.
+	d["BARBARIAN_CAMP"] = [
+		{"mesh": _cyl(0.0, 0.17, 0.3, 5), "color": Color("5a2a24"), "transforms": [_at(0, 0.15, 0), _at(0.28, 0.12, 0.15, 0, Vector3.ONE * 0.8), _at(-0.2, 0.12, 0.22, 0, Vector3.ONE * 0.75)]},
+		{"mesh": _box(Vector3(0.02, 0.5, 0.02)), "color": Color("3a2a1a"), "transforms": [_at(0.12, 0.25, -0.2)]},
+		{"mesh": _box(Vector3(0.18, 0.1, 0.01)), "color": Color("b8241c"), "transforms": [_at(0.21, 0.44, -0.2)]},
+	]
+	# Племенное поселение: круглые хижины.
+	d["TRIBAL_VILLAGE"] = [
+		{"mesh": _sphere(0.11, 7), "color": Color("b59a6a"), "transforms": [_at(0, 0.05, 0, 0, Vector3(1, 0.8, 1)), _at(0.24, 0.05, 0.12, 0, Vector3(1, 0.8, 1)), _at(-0.15, 0.05, 0.22, 0, Vector3(0.9, 0.7, 0.9))]},
+		{"mesh": _cyl(0.0, 0.13, 0.12, 7), "color": Color("8a6a3a"), "transforms": [_at(0, 0.16, 0), _at(0.24, 0.16, 0.12), _at(-0.15, 0.14, 0.22, 0, Vector3.ONE * 0.9)]},
+	]
 	return d

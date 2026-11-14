@@ -82,6 +82,9 @@ func _build_city_node(city: City, viewer: Player) -> Node3D:
 	var label := Label3D.new()
 	var star := "★ " if city.is_capital else ""
 	var text := "%s%d  %s" % [star, city.population, city.name]
+	var hp_max := int(game.data.const_value("city_hp", 200))
+	if city.hp < hp_max or city.wall_hp > 0:
+		text += "\n♥%d%s" % [city.hp, ("  ▣%d" % city.wall_hp) if city.wall_hp > 0 else ""]
 	if city.owner == viewer.id:
 		var item := city.current_item()
 		if item.is_empty():
@@ -108,7 +111,7 @@ func refresh(viewer: Player, cam_x: float) -> void:
 	for cid in game.state.cities:
 		var city: City = game.state.cities[cid]
 		alive[cid] = true
-		var sig := "%d|%d|%s|%s|%d" % [city.population, city.owner, str(city.queue), str(city.progress), viewer.id]
+		var sig := "%d|%d|%s|%s|%d|%d|%d" % [city.population, city.owner, str(city.queue), str(city.progress), viewer.id, city.hp, city.wall_hp]
 		if _signature.get(cid, "") != sig and _nodes.has(cid):
 			_nodes[cid].queue_free()
 			_nodes.erase(cid)
