@@ -622,7 +622,7 @@ func refresh_city() -> void:
 		if it.has("tile") and g != "district":
 			g = "in_district"
 		groups[g].append(it)
-	var titles := {"unit": "Юниты", "building": "Здания в центре", "district": "Районы", "in_district": "Здания и улучшения районов"}
+	var titles := {"unit": "Юниты", "building": "Здания в центре", "district": "Районы", "in_district": "Улучшение районов"}
 	for g in ["unit", "building", "district", "in_district"]:
 		if groups[g].is_empty():
 			continue

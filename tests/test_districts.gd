@@ -60,19 +60,19 @@ func test_place_and_complete() -> void:
 	check_near(float(CityRules.city_yields(g, city).get("science", 0)), sci0 + 2.0, 1e-4, "Атенеум +2 🔬")
 	check_eq(DistrictRules.specialist_slots(g, e), 1)
 	check_near(DistrictRules.maintenance(g, e), 1.0)
-	# Здания остались у Священного места: Святилище, затем Храм.
+	# Зданий в районах нет: Священная роща сама даёт +2 веры, уровень II — ещё +4.
 	city.population = 4
 	p.known_techs["ASTROLOGY"] = true
 	var hs_tile: int = _ring1(grid, city.tile)[3]
-	_build(g, city, "HOLY_SITE", hs_tile)
-	var shrine := {"kind": "building", "id": "SHRINE", "tile": hs_tile}
-	check_eq(CityRules.build_error(g, city, shrine), "")
-	check(CityRules.build_error(g, city, {"kind": "building", "id": "SHRINE"}) != "", "без клетки района — нельзя")
+	var hs := _build(g, city, "HOLY_SITE", hs_tile)
+	check_eq(float(DistrictRules.output(g, city, hs)["yields"].get("faith", 0)), 2.0)
+	check(g.data.buildings.get("SHRINE", {}).is_empty(), "отдельных зданий районов нет")
+	var up := {"kind": "district_upgrade", "id": "HOLY_SITE", "tile": hs_tile}
+	check(CityRules.build_error(g, city, up) != "", "Храмовый холм — после Теологии")
 	p.known_civics["THEOLOGY"] = true
-	check(CityRules.build_error(g, city, {"kind": "building", "id": "TEMPLE", "tile": hs_tile}) != "", "Храм — после Святилища")
-	CityRules.complete_item(g, city, shrine, [])
-	check(CityRules.build_error(g, city, shrine) != "", "второй раз не строится")
-	check_eq(CityRules.build_error(g, city, {"kind": "building", "id": "TEMPLE", "tile": hs_tile}), "")
+	check_eq(CityRules.build_error(g, city, up), "")
+	CityRules.complete_item(g, city, up, [])
+	check_eq(float(DistrictRules.output(g, city, hs)["yields"].get("faith", 0)), 6.0)
 	# Районы за золото не покупаются.
 	p.treasury = 10000.0
 	var ev2 := g.apply_action({"type": "purchase", "city": city.id, "kind": "district", "id": "CAMPUS", "tile": _ring1(grid, city.tile)[2]})
