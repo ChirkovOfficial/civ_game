@@ -167,8 +167,12 @@ static func placement_error(game: Game, city: City, type: String, tile: int) -> 
 					ok2 = true
 				elif r.begins_with("BUILDING:") and not a.is_empty() and a[1]["buildings"].has(r.substr(9)):
 					ok2 = true
+				elif r.begins_with("DISTRICT_TIER:") and not a.is_empty():
+					var parts := r.split(":")
+					if a[1]["type"] == parts[1] and a[1].get("complete", false) and int(a[1].get("tier", 1)) >= int(parts[2]):
+						ok2 = true
 		if not ok2:
-			return "Нужно соседство с центром города или районом с Банком"
+			return "Нужно соседство с центром города или Банком (Коммерческий центр II уровня)"
 	# Дистанция между однотипными (акведуки, плотины) или правило скоплений.
 	if pl.has("min_same_distance"):
 		for c in game.state.cities_of(city.owner):
@@ -459,12 +463,13 @@ static func output(game: Game, city: City, entry: Dictionary) -> Dictionary:
 	out["amenities"] = int(def.get("amenities", 0))
 	out["sanitation"] = float(def.get("sanitation", 0))
 	out["order"] = float(def.get("order", 0))
-	for t in range(2, tier + 1):
+	for t in range(1, tier + 1):
 		var td := tier_def(game, type, t)
 		Yields.add_into(y, td.get("yields", {}))
 		out["housing"] += float(td.get("housing", 0))
 		out["amenities"] += int(td.get("amenities", 0))
 		out["sanitation"] += float(td.get("sanitation", 0))
+		out["specialist_slots"] += int(td.get("specialist_slots", 0))
 		mult = float(td.get("adjacency_mult", mult))
 	var adj := adjacency(game, city.owner, type, int(entry["tile"]), mult)
 	Yields.add_into(y, adj)
@@ -493,6 +498,29 @@ static func output(game: Game, city: City, entry: Dictionary) -> Dictionary:
 	return out
 
 
+## Места специалистов в районе: от уровней и зданий.
+static func specialist_slots(game: Game, entry: Dictionary) -> int:
+	if not entry.get("complete", false):
+		return 0
+	var n := 0
+	for t in range(1, int(entry["tier"]) + 1):
+		n += int(tier_def(game, entry["type"], t).get("specialist_slots", 0))
+	for bid in entry["buildings"]:
+		n += int(game.data.buildings.get(bid, {}).get("specialist_slots", 0))
+	return n
+
+
+## Содержание района: тип, пройденные уровни, здания.
+static func maintenance(game: Game, entry: Dictionary) -> float:
+	var m := float(ddef(game, entry["type"]).get("maintenance", 0))
+	if entry.get("complete", false):
+		for t in range(1, int(entry["tier"]) + 1):
+			m += float(tier_def(game, entry["type"], t).get("maintenance", 0))
+	for bid in entry["buildings"]:
+		m += float(game.data.buildings.get(bid, {}).get("maintenance", 0))
+	return m
+
+
 ## Сумма выходов всех районов города + региональные эффекты зданий соседних городов.
 static func city_totals(game: Game, city: City) -> Dictionary:
 	var tot := {"yields": {}, "housing": 0.0, "amenities": 0, "sanitation": 0.0, "order": 0.0, "specialist_slots": 0}
@@ -507,6 +535,11 @@ static func city_totals(game: Game, city: City) -> Dictionary:
 		for d in c.districts:
 			if not d.get("complete", false):
 				continue
+			# Региональный эффект уровня района (Фабрика — Промышленная зона II).
+			for t in range(1, int(d["tier"]) + 1):
+				var td := tier_def(game, d["type"], t)
+				if td.has("radius") and game.state.map.grid.distance(int(d["tile"]), city.tile) <= int(td["radius"]):
+					best_regional["%s:%d" % [d["type"], t]] = td
 			for bid in d["buildings"]:
 				var b: Dictionary = game.data.buildings.get(bid, {})
 				if not b.has("radius") or game.state.map.grid.distance(int(d["tile"]), city.tile) > int(b["radius"]):

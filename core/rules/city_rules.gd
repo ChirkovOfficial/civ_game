@@ -318,9 +318,7 @@ static func assign_citizens(game: Game, city: City) -> void:
 		if not d["complete"]:
 			continue
 		var spec: Dictionary = DistrictRules.ddef(game, d["type"]).get("specialist", {})
-		var n := 0
-		for bid in d["buildings"]:
-			n += int(game.data.buildings.get(bid, {}).get("specialist_slots", 0))
+		var n := DistrictRules.specialist_slots(game, d)
 		if n > 0 and not spec.is_empty():
 			slots[str(d["tile"])] = [n, spec]
 	var placed := city.worked_tiles.size()

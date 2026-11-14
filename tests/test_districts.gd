@@ -52,18 +52,27 @@ func test_place_and_complete() -> void:
 	var frac := maxf(float(p.known_techs.size()) / g.data.techs.size(), float(p.known_civics.size()) / g.data.civics.size())
 	check_near(float(e["cost"]), roundf(54.0 * (1.0 + 9.0 * frac)), 0.01)
 	check_eq(CityRules.item_cost(g, city, city.queue[0]), float(e["cost"]))
+	var sci0 := float(CityRules.city_yields(g, city).get("science", 0))
 	city.progress[City.item_key(city.queue[0])] = float(e["cost"]) - 0.5
 	CityRules.process_production(g, city, 1.0, [])
 	check(e["complete"], "район достроен")
-	# Здание района.
-	var lib := {"kind": "building", "id": "LIBRARY", "tile": tile}
-	check_eq(CityRules.build_error(g, city, lib), "")
-	check(CityRules.build_error(g, city, {"kind": "building", "id": "LIBRARY"}) != "", "без клетки района — нельзя")
-	check(CityRules.build_error(g, city, {"kind": "building", "id": "UNIVERSITY", "tile": tile}) != "")
-	var sci0 := float(CityRules.city_yields(g, city).get("science", 0))
-	CityRules.complete_item(g, city, lib, [])
-	check_near(float(CityRules.city_yields(g, city).get("science", 0)), sci0 + 2.0, 1e-4, "Библиотека +2 🔬")
-	check(CityRules.build_error(g, city, lib) != "", "второй раз не строится")
+	# Атенеум сам даёт +2 🔬 (бывшая Библиотека) и место учёного.
+	check_near(float(CityRules.city_yields(g, city).get("science", 0)), sci0 + 2.0, 1e-4, "Атенеум +2 🔬")
+	check_eq(DistrictRules.specialist_slots(g, e), 1)
+	check_near(DistrictRules.maintenance(g, e), 1.0)
+	# Здания остались у Священного места: Святилище, затем Храм.
+	city.population = 4
+	p.known_techs["ASTROLOGY"] = true
+	var hs_tile: int = _ring1(grid, city.tile)[3]
+	_build(g, city, "HOLY_SITE", hs_tile)
+	var shrine := {"kind": "building", "id": "SHRINE", "tile": hs_tile}
+	check_eq(CityRules.build_error(g, city, shrine), "")
+	check(CityRules.build_error(g, city, {"kind": "building", "id": "SHRINE"}) != "", "без клетки района — нельзя")
+	p.known_civics["THEOLOGY"] = true
+	check(CityRules.build_error(g, city, {"kind": "building", "id": "TEMPLE", "tile": hs_tile}) != "", "Храм — после Святилища")
+	CityRules.complete_item(g, city, shrine, [])
+	check(CityRules.build_error(g, city, shrine) != "", "второй раз не строится")
+	check_eq(CityRules.build_error(g, city, {"kind": "building", "id": "TEMPLE", "tile": hs_tile}), "")
 	# Районы за золото не покупаются.
 	p.treasury = 10000.0
 	var ev2 := g.apply_action({"type": "purchase", "city": city.id, "kind": "district", "id": "CAMPUS", "tile": _ring1(grid, city.tile)[2]})
@@ -219,7 +228,8 @@ func test_upgrade_and_roman_names() -> void:
 	CityRules.complete_item(g, city, up, [])
 	check_eq(int(e["tier"]), 2)
 	check_eq(DistrictRules.display_name(g, 0, "CAMPUS", 2), "Библиотека")
-	check_eq(float(DistrictRules.output(g, city, e)["yields"].get("science", 0)), 1.0, "уровень II: +1 🔬, соседство центра 0.5 × 1.25 → 0")
+	check_eq(float(DistrictRules.output(g, city, e)["yields"].get("science", 0)), 6.0, "Атенеум 2 + Библиотека 4, соседство центра 0.5 × 1.25 → 0")
+	check_eq(DistrictRules.specialist_slots(g, e), 2)
 	# Командир строится только при Военном лагере II уровня (у Рима — «Военная академия»).
 	var cmd := {"kind": "unit", "id": "COMMANDER"}
 	check_eq(CityRules.build_error(g, city, cmd), "Нужен район «Военная академия»")
@@ -290,14 +300,13 @@ func test_specialists() -> void:
 			g.state.map.owner_city[t] = -1
 	var tile: int = _ring1(grid, city.tile)[0]
 	_build(g, city, "CAMPUS", tile)
-	CityRules.complete_item(g, city, {"kind": "building", "id": "LIBRARY", "tile": tile}, [])
 	city.population = 7
 	CityRules.assign_citizens(g, city)
 	check_eq(city.worked_tiles.size(), 5)
-	check_eq(int(city.specialists.get(str(tile), 0)), 1, "одно место специалиста — у Библиотеки")
+	check_eq(int(city.specialists.get(str(tile), 0)), 1, "одно место специалиста — у Атенеума")
 	var e := DistrictRules.entry_at(city, tile)
 	check_eq(float(DistrictRules.output(g, city, e)["yields"].get("science", 0)), 2.0 + 2.0 + 0.0,
-		"Библиотека 2 + специалист 2 (соседство центра 0.5 → 0)")
+		"Атенеум 2 + специалист 2 (соседство центра 0.5 → 0)")
 
 
 func test_city_life() -> void:
@@ -367,7 +376,6 @@ func test_district_save_roundtrip() -> void:
 	var grid: HexGrid = r[2]
 	var ring := _ring1(grid, city.tile)
 	_build(g, city, "CAMPUS", ring[0])
-	CityRules.complete_item(g, city, {"kind": "building", "id": "LIBRARY", "tile": ring[0]}, [])
 	city.population = 4
 	g.apply_action({"type": "set_production", "city": city.id, "kind": "district", "id": "BATHS", "tile": ring[3]})
 	city.specialists = {str(ring[0]): 1}

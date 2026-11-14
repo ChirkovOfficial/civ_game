@@ -1,5 +1,5 @@
 {
- "_doc": "Районы (ГДД 6, docs/CITIES.md). adjacency: source — mountain | feature(id) | district (любой соседний район, включая центр) | district_type(id) | city_center | river (once) | sea_resource | strategic_resource | improvement(id) | wonder; value — бонус к main_yield (или к yield). placement: water, flat, not_adjacent_city_center, one_per_civ, needs_fresh_or_mountain, feature, river_edges, min_same_distance (вместо правила скоплений), requires_adjacent_any. tiers — уровни района: название, технология/институт, доп. доходы, множитель соседства, доп. жильё/довольство/санитария. specialized — занимает лимит района по населению. residential — жилой. Названия уровней у цивилизаций — civs.json → district_names. color/look — временный вид на карте (цвет площадки и форма постройки) до моделей художника.",
+ "_doc": "Районы (ГДД 6, docs/CITIES.md). adjacency: source — mountain | feature(id) | district (любой соседний район, включая центр) | district_type(id) | city_center | river (once) | sea_resource | strategic_resource | improvement(id) | wonder; value — бонус к main_yield (или к yield). placement: water, flat, not_adjacent_city_center, one_per_civ, needs_fresh_or_mountain, feature, river_edges, min_same_distance (вместо правила скоплений), requires_adjacent_any. tiers — уровни района: название, технология/институт, доп. доходы, множитель соседства, доп. жильё/довольство/санитария. specialized — занимает лимит района по населению. residential — жилой. Названия уровней у цивилизаций — civs.json → district_names. color/look — временный вид на карте (цвет площадки и форма постройки) до моделей художника. Уровни Кампуса, Коммерческого центра, Театральной площади, Промышленной зоны и Военного лагеря сами дают эффекты бывших зданий (решение владельца 14.11.2026): yields, housing, specialist_slots, maintenance, regional+radius.",
  "districts": [
   {
    "id": "CAMPUS",
@@ -34,24 +34,33 @@
    "tiers": [
     {
      "name": "Кампус",
-     "yields": {},
-     "adjacency_mult": 1.0
-    },
-    {
-     "name": "Кампус II",
-     "tech": "EDUCATION",
-     "yields": {
-      "science": 1
-     },
-     "adjacency_mult": 1.25
-    },
-    {
-     "name": "Кампус III",
-     "tech": "CHEMISTRY",
+     "adjacency_mult": 1.0,
      "yields": {
       "science": 2
      },
-     "adjacency_mult": 1.5
+     "specialist_slots": 1,
+     "maintenance": 1
+    },
+    {
+     "name": "Кампус II",
+     "adjacency_mult": 1.25,
+     "tech": "EDUCATION",
+     "yields": {
+      "science": 4
+     },
+     "housing": 1,
+     "specialist_slots": 1,
+     "maintenance": 2
+    },
+    {
+     "name": "Кампус III",
+     "adjacency_mult": 1.5,
+     "tech": "CHEMISTRY",
+     "yields": {
+      "science": 5
+     },
+     "specialist_slots": 1,
+     "maintenance": 3
     }
    ],
    "tech": "WRITING",
@@ -124,24 +133,34 @@
    "tiers": [
     {
      "name": "Военный лагерь",
-     "yields": {},
-     "adjacency_mult": 1.0
-    },
-    {
-     "name": "Военный лагерь II",
-     "tech": "CASTLES",
+     "adjacency_mult": 1.0,
      "yields": {
       "production": 1
      },
-     "adjacency_mult": 1.0
+     "housing": 1,
+     "specialist_slots": 1,
+     "maintenance": 1
+    },
+    {
+     "name": "Военный лагерь II",
+     "adjacency_mult": 1.0,
+     "tech": "CASTLES",
+     "yields": {
+      "production": 3
+     },
+     "housing": 1,
+     "specialist_slots": 1,
+     "maintenance": 2
     },
     {
      "name": "Военный лагерь III",
+     "adjacency_mult": 1.0,
      "tech": "MILITARY_SCIENCE",
      "yields": {
       "production": 2
      },
-     "adjacency_mult": 1.0
+     "specialist_slots": 1,
+     "maintenance": 3
     }
    ],
    "tech": "BRONZE_WORKING",
@@ -229,24 +248,32 @@
    "tiers": [
     {
      "name": "Коммерческий центр",
-     "yields": {},
-     "adjacency_mult": 1.0
-    },
-    {
-     "name": "Коммерческий центр II",
-     "tech": "BANKING",
-     "yields": {
-      "gold": 2
-     },
-     "adjacency_mult": 1.25
-    },
-    {
-     "name": "Коммерческий центр III",
-     "tech": "ECONOMICS",
+     "adjacency_mult": 1.0,
      "yields": {
       "gold": 3
      },
-     "adjacency_mult": 1.5
+     "specialist_slots": 1,
+     "maintenance": 1
+    },
+    {
+     "name": "Коммерческий центр II",
+     "adjacency_mult": 1.25,
+     "tech": "BANKING",
+     "yields": {
+      "gold": 5
+     },
+     "specialist_slots": 1,
+     "maintenance": 2
+    },
+    {
+     "name": "Коммерческий центр III",
+     "adjacency_mult": 1.5,
+     "tech": "ECONOMICS",
+     "yields": {
+      "gold": 7
+     },
+     "specialist_slots": 1,
+     "maintenance": 3
     }
    ],
    "tech": "CURRENCY",
@@ -285,24 +312,32 @@
    "tiers": [
     {
      "name": "Театральная площадь",
-     "yields": {},
-     "adjacency_mult": 1.0
-    },
-    {
-     "name": "Театральная площадь II",
-     "tech": "ENGINEERING",
-     "yields": {
-      "culture": 1
-     },
-     "adjacency_mult": 1.25
-    },
-    {
-     "name": "Театральная площадь III",
-     "tech": "PRINTING",
+     "adjacency_mult": 1.0,
      "yields": {
       "culture": 2
      },
-     "adjacency_mult": 1.5
+     "specialist_slots": 1,
+     "maintenance": 1
+    },
+    {
+     "name": "Театральная площадь II",
+     "adjacency_mult": 1.25,
+     "civic": "HUMANISM",
+     "yields": {
+      "culture": 2
+     },
+     "specialist_slots": 1,
+     "maintenance": 2
+    },
+    {
+     "name": "Театральная площадь III",
+     "adjacency_mult": 1.5,
+     "tech": "PRINTING",
+     "yields": {
+      "culture": 4
+     },
+     "specialist_slots": 1,
+     "maintenance": 3
     }
    ],
    "civic": "DRAMA_POETRY",
@@ -356,24 +391,36 @@
    "tiers": [
     {
      "name": "Промышленная зона",
-     "yields": {},
-     "adjacency_mult": 1.0
+     "adjacency_mult": 1.0,
+     "yields": {
+      "production": 3
+     },
+     "specialist_slots": 1,
+     "maintenance": 1
     },
     {
      "name": "Промышленная зона II",
+     "adjacency_mult": 1.25,
      "tech": "MASS_PRODUCTION",
      "yields": {
-      "production": 1
+      "production": 3
      },
-     "adjacency_mult": 1.25
+     "regional": {
+      "production": 3
+     },
+     "radius": 6,
+     "specialist_slots": 1,
+     "maintenance": 2
     },
     {
      "name": "Промышленная зона III",
+     "adjacency_mult": 1.5,
      "tech": "INDUSTRIALIZATION",
      "yields": {
-      "production": 2
+      "production": 3
      },
-     "adjacency_mult": 1.5
+     "specialist_slots": 1,
+     "maintenance": 3
     }
    ],
    "tech": "APPRENTICESHIP",
@@ -653,7 +700,7 @@
    "placement": {
     "requires_adjacent_any": [
      "CITY_CENTER",
-     "BUILDING:BANK",
+     "DISTRICT_TIER:COMMERCIAL_HUB:2",
      "WONDER"
     ]
    },

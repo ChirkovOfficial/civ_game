@@ -53,9 +53,7 @@ static func maintenance(game: Game, pid: int) -> float:
 		for bid in city.buildings:
 			m += float(game.data.buildings.get(bid, {}).get("maintenance", 0))
 		for d in city.districts:
-			m += float(DistrictRules.ddef(game, d["type"]).get("maintenance", 0))
-			for bid in d["buildings"]:
-				m += float(game.data.buildings.get(bid, {}).get("maintenance", 0))
+			m += DistrictRules.maintenance(game, d)
 		m += float(CityLife.doctrine_upkeep(game, city)["gold"])
 	return m
 
