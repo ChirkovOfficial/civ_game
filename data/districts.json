@@ -528,7 +528,7 @@
   },
   {
    "id": "DAM",
-   "name": "Плотина",
+   "name": "Дамба",
    "main_yield": "",
    "adjacency": [],
    "placement": {
@@ -538,7 +538,7 @@
    },
    "tiers": [
     {
-     "name": "Плотина",
+     "name": "Дамба",
      "yields": {},
      "adjacency_mult": 1.0
     }
@@ -552,25 +552,25 @@
   },
   {
    "id": "RESIDENTIAL_DENSE",
-   "name": "Плотная застройка",
+   "name": "Рабочий квартал",
    "main_yield": "",
    "adjacency": [],
    "placement": {},
    "tiers": [
     {
-     "name": "Плотная застройка",
+     "name": "Рабочий квартал",
      "yields": {},
      "adjacency_mult": 1.0
     },
     {
-     "name": "Плотная застройка II",
+     "name": "Рабочий квартал II",
      "tech": "ENGINEERING",
      "yields": {},
      "adjacency_mult": 1.0,
      "housing": 1
     },
     {
-     "name": "Плотная застройка III",
+     "name": "Рабочий квартал III",
      "tech": "SANITATION",
      "yields": {},
      "adjacency_mult": 1.0,
@@ -588,7 +588,7 @@
   },
   {
    "id": "RESIDENTIAL_URBAN",
-   "name": "Городская застройка",
+   "name": "Городской квартал",
    "main_yield": "",
    "adjacency": [
     {
@@ -613,19 +613,19 @@
    "placement": {},
    "tiers": [
     {
-     "name": "Городская застройка",
+     "name": "Городской квартал",
      "yields": {},
      "adjacency_mult": 1.0
     },
     {
-     "name": "Городская застройка II",
+     "name": "Городской квартал II",
      "tech": "ENGINEERING",
      "yields": {},
      "adjacency_mult": 1.0,
      "housing": 1
     },
     {
-     "name": "Городская застройка III",
+     "name": "Городской квартал III",
      "tech": "SANITATION",
      "yields": {},
      "adjacency_mult": 1.0,
@@ -641,7 +641,7 @@
   },
   {
    "id": "RESIDENTIAL_RICH",
-   "name": "Богатая застройка",
+   "name": "Богатый квартал",
    "main_yield": "gold",
    "adjacency": [
     {
@@ -659,12 +659,12 @@
    },
    "tiers": [
     {
-     "name": "Богатая застройка",
+     "name": "Богатый квартал",
      "yields": {},
      "adjacency_mult": 1.0
     },
     {
-     "name": "Богатая застройка II",
+     "name": "Богатый квартал II",
      "tech": "BANKING",
      "yields": {
       "gold": 2
@@ -673,7 +673,7 @@
      "housing": 1
     },
     {
-     "name": "Богатая застройка III",
+     "name": "Богатый квартал III",
      "tech": "ECONOMICS",
      "yields": {
       "gold": 3

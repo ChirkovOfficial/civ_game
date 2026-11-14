@@ -426,6 +426,14 @@ static func build_error(game: Game, city: City, item: Dictionary) -> String:
 			return "Город не у моря"
 		if def.get("domain", "LAND") == "AIR":
 			return "Нужен аэродром"
+		var rd: Dictionary = def.get("requires_district", {})
+		if not rd.is_empty():
+			var ok := false
+			for d in DistrictRules.of_type(city, rd["type"], true):
+				if int(d["tier"]) >= int(rd.get("tier", 1)):
+					ok = true
+			if not ok:
+				return "Нужен район «%s»" % DistrictRules.display_name(game, city.owner, rd["type"], int(rd.get("tier", 1)))
 		if int(def.get("pop_cost", 0)) > 0 and city.population <= int(def["pop_cost"]):
 			return "Нужно население не меньше %d" % (int(def["pop_cost"]) + 1)
 		var stock: Dictionary = p.stockpile

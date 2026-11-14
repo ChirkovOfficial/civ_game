@@ -823,6 +823,10 @@
     "ATOMIC": "Командарм",
     "INFORMATION": "Командарм",
     "FUTURE": "Командарм"
+   },
+   "requires_district": {
+    "type": "ENCAMPMENT",
+    "tier": 2
    }
   }
  ]

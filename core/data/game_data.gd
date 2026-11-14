@@ -185,6 +185,8 @@ func validate() -> PackedStringArray:
 			errors.append("Юнит %s: нет технологии %s" % [uid, u["tech"]])
 		if u.has("civic") and not civics.has(u["civic"]):
 			errors.append("Юнит %s: нет института %s" % [uid, u["civic"]])
+		if u.has("requires_district") and not districts.has(u["requires_district"].get("type", "")):
+			errors.append("Юнит %s: нет района %s" % [uid, u["requires_district"].get("type", "")])
 		if u.has("upgrades_to"):
 			var up: String = u["upgrades_to"]
 			if not units.has(up):

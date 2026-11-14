@@ -214,12 +214,33 @@ func test_upgrade_and_roman_names() -> void:
 	check(CityRules.build_error(g, city, up) != "", "без технологии — нельзя")
 	g.state.player(0).known_techs["EDUCATION"] = true
 	check_eq(CityRules.build_error(g, city, up), "")
-	check_eq(CityRules.item_name(g, up, 0), "Атенеум → Студиум")
+	check_eq(CityRules.item_name(g, up, 0), "Атенеум → Библиотека")
 	check_near(CityRules.item_cost(g, city, up), roundf(float(e["cost"]) * 0.5), 0.01)
 	CityRules.complete_item(g, city, up, [])
 	check_eq(int(e["tier"]), 2)
-	check_eq(DistrictRules.display_name(g, 0, "CAMPUS", 2), "Студиум")
+	check_eq(DistrictRules.display_name(g, 0, "CAMPUS", 2), "Библиотека")
 	check_eq(float(DistrictRules.output(g, city, e)["yields"].get("science", 0)), 1.0, "уровень II: +1 🔬, соседство центра 0.5 × 1.25 → 0")
+	# Командир строится только при Военном лагере II уровня (у Рима — «Военная академия»).
+	var cmd := {"kind": "unit", "id": "COMMANDER"}
+	check_eq(CityRules.build_error(g, city, cmd), "Нужен район «Военная академия»")
+	g.state.player(0).known_techs["BRONZE_WORKING"] = true
+	g.state.player(0).known_techs["CASTLES"] = true
+	city.population = 4
+	var camp_tile := -1
+	for t in DistrictRules.valid_tiles(g, city, "ENCAMPMENT"):
+		camp_tile = t
+		break
+	var camp := _build(g, city, "ENCAMPMENT", camp_tile)
+	check(CityRules.build_error(g, city, cmd) != "", "лагерь I уровня — мало")
+	CityRules.complete_item(g, city, {"kind": "district_upgrade", "id": "ENCAMPMENT", "tile": camp_tile}, [])
+	check_eq(int(camp["tier"]), 2)
+	check_eq(CityRules.build_error(g, city, cmd), "")
+	check_eq(DistrictRules.display_name(g, 0, "ENCAMPMENT", 3), "Плацдарм")
+	check_eq(DistrictRules.display_name(g, 0, "DAM", 1), "Дамба")
+	check_eq(DistrictRules.display_name(g, 0, "AQUEDUCT", 1), "Римский акведук")
+	check_eq(DistrictRules.display_name(g, 1, "AQUEDUCT", 1), "Акведук")
+	check_eq(DistrictRules.display_name(g, 1, "RESIDENTIAL_DENSE", 1), "Рабочий квартал")
+	check_eq(DistrictRules.display_name(g, 0, "CITY_CENTER", 1), "Центр города")
 	# У чужой (не римской) державы — нейтральные названия.
 	check_eq(DistrictRules.display_name(g, 1, "CAMPUS", 2), "Кампус II")
 
