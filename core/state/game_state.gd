@@ -19,6 +19,10 @@ var next_city_id: int = 1
 var start_positions: PackedInt32Array
 ## Пары держав в состоянии войны: "меньшийId,большийId" -> true. Дипломатия — веха M6.
 var wars: Dictionary = {}
+## Ход последнего объявления войны или мира в паре: "a,b" -> ход.
+var war_changed: Dictionary = {}
+## Лагеря варваров: клетка -> {"spawned", "timer", "target", "scout"}.
+var camps: Dictionary = {}
 
 
 func player(id: int) -> Player:
@@ -93,7 +97,18 @@ static func _war_key(a: int, b: int) -> String:
 
 
 func at_war(a: int, b: int) -> bool:
-	return a != b and wars.has(_war_key(a, b))
+	if a == b:
+		return false
+	if (a >= 0 and a < players.size() and players[a].is_barbarian) or (b >= 0 and b < players.size() and players[b].is_barbarian):
+		return true
+	return wars.has(_war_key(a, b))
+
+
+func barbarian_id() -> int:
+	for p in players:
+		if p.is_barbarian:
+			return p.id
+	return -1
 
 
 func set_war(a: int, b: int, value: bool) -> void:
@@ -101,6 +116,11 @@ func set_war(a: int, b: int, value: bool) -> void:
 		wars[_war_key(a, b)] = true
 	else:
 		wars.erase(_war_key(a, b))
+	war_changed[_war_key(a, b)] = turn
+
+
+func turns_since_war_change(a: int, b: int) -> int:
+	return turn - int(war_changed.get(_war_key(a, b), -1000))
 
 
 func add_unit(owner: int, type: String, tile: int) -> Unit:
@@ -135,6 +155,8 @@ func to_dict() -> Dictionary:
 		"next_unit_id": next_unit_id, "start_positions": Array(start_positions),
 		"wars": wars.keys(),
 		"cities": _sorted_city_ids().map(func(id): return cities[id].to_dict()),
+		"war_changed": war_changed.duplicate(),
+		"camps": _camps_list(),
 		"next_city_id": next_city_id,
 	}
 
@@ -159,7 +181,21 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 		var c := City.from_dict(cd)
 		s.cities[c.id] = c
 	s.next_city_id = int(d.get("next_city_id", 1))
+	for k in d.get("war_changed", {}):
+		s.war_changed[k] = int(d["war_changed"][k])
+	for c in d.get("camps", []):
+		var camp := Unit._ints_in_dict(c)
+		s.camps[int(camp["tile"])] = camp
 	return s
+
+
+func _camps_list() -> Array:
+	var keys := camps.keys()
+	keys.sort()
+	var out := []
+	for k in keys:
+		out.append(camps[k].duplicate())
+	return out
 
 
 func to_json() -> String:

@@ -11,6 +11,13 @@ var color: Color
 var civ_trait_id: String = ""
 var is_ai: bool = false
 var alive: bool = true
+var is_barbarian: bool = false
+## Встреченные державы: id -> true (ГДД 17.1).
+var met: Dictionary = {}
+## Запасы стратегических ресурсов (ГДД 3.6): id -> количество.
+var stockpile: Dictionary = {}
+## Сила сильнейшего когда-либо построенного юнита: "melee"/"ranged" (оборона города, ГДД 5.7).
+var best_strength: Dictionary = {}
 var treasury: float = 0.0
 var faith: float = 0.0
 var known_techs: Dictionary = {}   # id -> true
@@ -63,6 +70,8 @@ func to_dict() -> Dictionary:
 		"current_tech": current_tech, "tech_progress": tech_progress.duplicate(),
 		"current_civic": current_civic, "civic_progress": civic_progress.duplicate(),
 		"produced": produced.duplicate(), "city_names_used": city_names_used,
+		"is_barbarian": is_barbarian, "met": _sorted_keys(met), "stockpile": stockpile.duplicate(),
+		"best_strength": best_strength.duplicate(),
 	}
 
 
@@ -96,5 +105,12 @@ static func from_dict(d: Dictionary) -> Player:
 	for k in d.get("produced", {}):
 		p.produced[k] = int(d["produced"][k])
 	p.city_names_used = int(d.get("city_names_used", 0))
+	p.is_barbarian = bool(d.get("is_barbarian", false))
+	for m in d.get("met", []):
+		p.met[int(m)] = true
+	for k in d.get("stockpile", {}):
+		p.stockpile[k] = float(d["stockpile"][k])
+	for k in d.get("best_strength", {}):
+		p.best_strength[k] = int(d["best_strength"][k])
 	p.visible_count.resize(p.revealed.size())
 	return p

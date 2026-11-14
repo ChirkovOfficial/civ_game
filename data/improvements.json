@@ -1,26 +1,181 @@
 {
-  "_doc": "Улучшения клеток (ГДД 8.2). На клетке с ресурсом можно строить улучшение, указанное у ресурса (resources.json → improvement). placements — где можно строить без ресурса (формат как у ресурсов; civic/tech — дополнительное требование для варианта). resource_only — только на подходящем ресурсе. housing — жильё городу. Бонусы от поздних технологий появятся вместе с системой модификаторов (M5).",
-  "improvements": [
-    {"id": "FARM", "name": "Ферма", "yields": {"food": 1}, "housing": 0.5,
-     "placements": [{"terrain": ["GRASS", "PLAINS"]}, {"feature": ["FLOODPLAINS"]},
-                    {"terrain": ["GRASS", "PLAINS"], "relief": "HILLS", "civic": "CIVIL_ENGINEERING"}]},
-    {"id": "MINE", "name": "Рудник", "tech": "MINING", "yields": {"production": 1}, "appeal": -1,
-     "placements": [{"terrain": ["GRASS", "PLAINS", "DESERT", "TUNDRA", "SNOW"], "relief": "HILLS"}]},
-    {"id": "QUARRY", "name": "Каменоломня", "tech": "MINING", "yields": {"production": 1}, "appeal": -1, "resource_only": true},
-    {"id": "PLANTATION", "name": "Плантация", "tech": "IRRIGATION", "yields": {"gold": 2}, "housing": 0.5, "resource_only": true},
-    {"id": "CAMP", "name": "Лагерь", "tech": "ANIMAL_HUSBANDRY", "yields": {"gold": 2}, "housing": 0.5, "resource_only": true},
-    {"id": "PASTURE", "name": "Пастбище", "tech": "ANIMAL_HUSBANDRY", "yields": {"production": 1}, "housing": 0.5, "resource_only": true},
-    {"id": "FISHING_BOATS", "name": "Рыбацкие лодки", "tech": "SAILING", "yields": {"food": 1}, "housing": 0.5, "resource_only": true},
-    {"id": "LUMBER_MILL", "name": "Лесопилка", "tech": "CONSTRUCTION", "yields": {"production": 2},
-     "placements": [{"feature": ["WOODS"], "relief": "ANY"}]},
-    {"id": "OIL_WELL", "name": "Нефтяная скважина", "tech": "REFINING", "yields": {"production": 2}, "appeal": -1, "resource_only": true}
-  ],
-  "harvest": {
-    "_doc": "Вырубка/осушение/сбор бонусного ресурса строителем: разовый доход в ближайший свой город. Сумма = base × (1 + per_known × число изученных технологий и институтов).",
-    "base": 20,
-    "per_known": 0.05,
-    "features": {"WOODS": {"production": 1}, "RAINFOREST": {"food": 0.5, "production": 0.5}, "MARSH": {"food": 1}},
-    "resource_class": "bonus",
-    "resource_yield": {"food": "food", "production": "production", "gold": "gold"}
+ "_doc": "Улучшения клеток (ГДД 8.2). На клетке с ресурсом можно строить улучшение, указанное у ресурса (resources.json → improvement). placements — где можно строить без ресурса (формат как у ресурсов; civic/tech — дополнительное требование для варианта). resource_only — только на подходящем ресурсе. housing — жильё городу. Бонусы от поздних технологий появятся вместе с системой модификаторов (M5). special — не строится строителями (форт — инженерами и легионерами, лагеря и поселения — генератором).",
+ "improvements": [
+  {
+   "id": "FARM",
+   "name": "Ферма",
+   "yields": {
+    "food": 1
+   },
+   "housing": 0.5,
+   "placements": [
+    {
+     "terrain": [
+      "GRASS",
+      "PLAINS"
+     ]
+    },
+    {
+     "feature": [
+      "FLOODPLAINS"
+     ]
+    },
+    {
+     "terrain": [
+      "GRASS",
+      "PLAINS"
+     ],
+     "relief": "HILLS",
+     "civic": "CIVIL_ENGINEERING"
+    }
+   ]
+  },
+  {
+   "id": "MINE",
+   "name": "Рудник",
+   "tech": "MINING",
+   "yields": {
+    "production": 1
+   },
+   "appeal": -1,
+   "placements": [
+    {
+     "terrain": [
+      "GRASS",
+      "PLAINS",
+      "DESERT",
+      "TUNDRA",
+      "SNOW"
+     ],
+     "relief": "HILLS"
+    }
+   ]
+  },
+  {
+   "id": "QUARRY",
+   "name": "Каменоломня",
+   "tech": "MINING",
+   "yields": {
+    "production": 1
+   },
+   "appeal": -1,
+   "resource_only": true
+  },
+  {
+   "id": "PLANTATION",
+   "name": "Плантация",
+   "tech": "IRRIGATION",
+   "yields": {
+    "gold": 2
+   },
+   "housing": 0.5,
+   "resource_only": true
+  },
+  {
+   "id": "CAMP",
+   "name": "Лагерь",
+   "tech": "ANIMAL_HUSBANDRY",
+   "yields": {
+    "gold": 2
+   },
+   "housing": 0.5,
+   "resource_only": true
+  },
+  {
+   "id": "PASTURE",
+   "name": "Пастбище",
+   "tech": "ANIMAL_HUSBANDRY",
+   "yields": {
+    "production": 1
+   },
+   "housing": 0.5,
+   "resource_only": true
+  },
+  {
+   "id": "FISHING_BOATS",
+   "name": "Рыбацкие лодки",
+   "tech": "SAILING",
+   "yields": {
+    "food": 1
+   },
+   "housing": 0.5,
+   "resource_only": true
+  },
+  {
+   "id": "LUMBER_MILL",
+   "name": "Лесопилка",
+   "tech": "CONSTRUCTION",
+   "yields": {
+    "production": 2
+   },
+   "placements": [
+    {
+     "feature": [
+      "WOODS"
+     ],
+     "relief": "ANY"
+    }
+   ]
+  },
+  {
+   "id": "OIL_WELL",
+   "name": "Нефтяная скважина",
+   "tech": "REFINING",
+   "yields": {
+    "production": 2
+   },
+   "appeal": -1,
+   "resource_only": true
+  },
+  {
+   "id": "FORT",
+   "name": "Форт",
+   "special": true,
+   "defense": 4,
+   "auto_fortify": true,
+   "yields": {}
+  },
+  {
+   "id": "BARBARIAN_CAMP",
+   "name": "Лагерь варваров",
+   "special": true,
+   "yields": {},
+   "appeal": -1
+  },
+  {
+   "id": "TRIBAL_VILLAGE",
+   "name": "Племенное поселение",
+   "special": true,
+   "yields": {}
   }
+ ],
+ "harvest": {
+  "_doc": "Вырубка/осушение/сбор бонусного ресурса строителем: разовый доход в ближайший свой город. Сумма = base × (1 + per_known × число изученных технологий и институтов).",
+  "base": 20,
+  "per_known": 0.05,
+  "features": {
+   "WOODS": {
+    "production": 1
+   },
+   "RAINFOREST": {
+    "food": 0.5,
+    "production": 0.5
+   },
+   "MARSH": {
+    "food": 1
+   }
+  },
+  "resource_class": "bonus",
+  "resource_yield": {
+   "food": "food",
+   "production": "production",
+   "gold": "gold"
+  }
+ },
+ "pillage": {
+  "_doc": "Грабёж улучшения боевым юнитом (ГДД 8.2): золото и лечение.",
+  "gold": 25,
+  "heal": 50,
+  "move_cost": 3
+ }
 }

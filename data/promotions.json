@@ -1,0 +1,1137 @@
+{
+ "_doc": "Повышения (ГДД 9.6). Дерево у класса: уровни I–IV по 2/2/2/1. mods — числовые эффекты: stat (combat|ranged|moves|range|sight), value, when — условия: role (attack|defense), vs_class, vs_ranged (по юниту стреляют), vs_district (бой за город), vs_units, vs_domain, in_district (юнит в городе/форте), terrain (клетка юнита), vs_wounded, vs_fortified. flags — особые правила.",
+ "promotions": [
+  {
+   "id": "BATTLECRY",
+   "class": "MELEE",
+   "tier": 1,
+   "name": "Боевой клич",
+   "text": "+7 при атаке ближних и дальнобойных",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "role": "attack",
+      "vs_class": [
+       "MELEE",
+       "RANGED"
+      ]
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "TORTOISE",
+   "class": "MELEE",
+   "tier": 1,
+   "name": "Черепаха",
+   "text": "+10 к обороне от дальнего боя",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 10,
+     "when": {
+      "role": "defense",
+      "vs_ranged": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "COMMANDO",
+   "class": "MELEE",
+   "tier": 2,
+   "name": "Коммандо",
+   "text": "+1 ОД",
+   "mods": [
+    {
+     "stat": "moves",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "AMPHIBIOUS",
+   "class": "MELEE",
+   "tier": 2,
+   "name": "Амфибия",
+   "text": "Нет штрафа за атаку через реку",
+   "mods": [],
+   "flags": [
+    "ignore_river_penalty"
+   ]
+  },
+  {
+   "id": "ZWEIHANDER",
+   "class": "MELEE",
+   "tier": 3,
+   "name": "Двуручник",
+   "text": "+7 против противокавалерийских",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "vs_class": [
+       "ANTI_CAVALRY"
+      ]
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "URBAN_WARFARE",
+   "class": "MELEE",
+   "tier": 3,
+   "name": "Городской бой",
+   "text": "+10 при бое в городе",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 10,
+     "when": {
+      "vs_district": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "ELITE_GUARD",
+   "class": "MELEE",
+   "tier": 4,
+   "name": "Элитная гвардия",
+   "text": "Движение после атаки",
+   "mods": [],
+   "flags": [
+    "move_after_attack"
+   ]
+  },
+  {
+   "id": "VOLLEY",
+   "class": "RANGED",
+   "tier": 1,
+   "name": "Залп",
+   "text": "+5 при атаке наземных",
+   "mods": [
+    {
+     "stat": "ranged",
+     "value": 5,
+     "when": {
+      "role": "attack"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "GARRISON",
+   "class": "RANGED",
+   "tier": 1,
+   "name": "Гарнизон",
+   "text": "+10 к обороне в городе или форте",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 10,
+     "when": {
+      "role": "defense",
+      "in_district": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "ARROW_STORM",
+   "class": "RANGED",
+   "tier": 2,
+   "name": "Град стрел",
+   "text": "+7 при атаке",
+   "mods": [
+    {
+     "stat": "ranged",
+     "value": 7,
+     "when": {
+      "role": "attack"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "INCENDIARIES",
+   "class": "RANGED",
+   "tier": 2,
+   "name": "Зажигательные",
+   "text": "+7 против городов",
+   "mods": [
+    {
+     "stat": "ranged",
+     "value": 7,
+     "when": {
+      "vs_district": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "SUPPRESSION",
+   "class": "RANGED",
+   "tier": 3,
+   "name": "Подавление",
+   "text": "Создаёт зону контроля",
+   "mods": [],
+   "flags": [
+    "exerts_zoc"
+   ]
+  },
+  {
+   "id": "EMPLACEMENT",
+   "class": "RANGED",
+   "tier": 3,
+   "name": "Огневая позиция",
+   "text": "+10 к обороне",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 10,
+     "when": {
+      "role": "defense"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "EXPERT_MARKSMAN",
+   "class": "RANGED",
+   "tier": 4,
+   "name": "Меткий стрелок",
+   "text": "+1 к дальности",
+   "mods": [
+    {
+     "stat": "range",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "ECHELON",
+   "class": "ANTI_CAVALRY",
+   "tier": 1,
+   "name": "Эшелон",
+   "text": "+5 против кавалерии",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 5,
+     "when": {
+      "vs_class": [
+       "LIGHT_CAVALRY",
+       "HEAVY_CAVALRY"
+      ]
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "THRUST",
+   "class": "ANTI_CAVALRY",
+   "tier": 1,
+   "name": "Выпад",
+   "text": "+10 при атаке ближних",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 10,
+     "when": {
+      "role": "attack",
+      "vs_class": [
+       "MELEE"
+      ]
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "SQUARE",
+   "class": "ANTI_CAVALRY",
+   "tier": 2,
+   "name": "Каре",
+   "text": "+6 к обороне",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 6,
+     "when": {
+      "role": "defense"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "SCHILTRON",
+   "class": "ANTI_CAVALRY",
+   "tier": 2,
+   "name": "Шилтрон",
+   "text": "+10 к обороне от ближних",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 10,
+     "when": {
+      "role": "defense",
+      "vs_class": [
+       "MELEE"
+      ]
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "REDEPLOY",
+   "class": "ANTI_CAVALRY",
+   "tier": 3,
+   "name": "Передислокация",
+   "text": "+1 ОД",
+   "mods": [
+    {
+     "stat": "moves",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "CHOKE_POINTS",
+   "class": "ANTI_CAVALRY",
+   "tier": 3,
+   "name": "Узкие проходы",
+   "text": "+7 к обороне в лесу, на холмах и в болоте",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "role": "defense",
+      "terrain": [
+       "WOODS",
+       "RAINFOREST",
+       "HILLS",
+       "MARSH"
+      ]
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "HOLD_THE_LINE",
+   "class": "ANTI_CAVALRY",
+   "tier": 4,
+   "name": "Держать строй",
+   "text": "+10 к обороне",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 10,
+     "when": {
+      "role": "defense"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "CAPARISON",
+   "class": "LIGHT_CAVALRY",
+   "tier": 1,
+   "name": "Попона",
+   "text": "+5 против противокавалерийских",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 5,
+     "when": {
+      "vs_class": [
+       "ANTI_CAVALRY"
+      ]
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "CORESSION",
+   "class": "LIGHT_CAVALRY",
+   "tier": 1,
+   "name": "Скакуны",
+   "text": "+5 против дальних и осадных",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 5,
+     "when": {
+      "vs_class": [
+       "RANGED",
+       "SIEGE"
+      ]
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "DEPREDATION",
+   "class": "LIGHT_CAVALRY",
+   "tier": 2,
+   "name": "Разорение",
+   "text": "Грабёж за 1 ОД",
+   "mods": [],
+   "flags": [
+    "cheap_pillage"
+   ]
+  },
+  {
+   "id": "DOUBLE_ENVELOPMENT",
+   "class": "LIGHT_CAVALRY",
+   "tier": 2,
+   "name": "Двойной охват",
+   "text": "+4 при атаке",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 4,
+     "when": {
+      "role": "attack"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "SPIKING_THE_GUNS",
+   "class": "LIGHT_CAVALRY",
+   "tier": 3,
+   "name": "Заклёпка орудий",
+   "text": "+7 против осадных",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "vs_class": [
+       "SIEGE"
+      ]
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "PURSUIT",
+   "class": "LIGHT_CAVALRY",
+   "tier": 3,
+   "name": "Преследование",
+   "text": "+1 ОД",
+   "mods": [
+    {
+     "stat": "moves",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "ESCORT_MOBILITY",
+   "class": "LIGHT_CAVALRY",
+   "tier": 4,
+   "name": "Мобильное сопровождение",
+   "text": "+5 к силе",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 5,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "CHARGE",
+   "class": "HEAVY_CAVALRY",
+   "tier": 1,
+   "name": "Натиск",
+   "text": "+10 против укреплённых",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 10,
+     "when": {
+      "role": "attack",
+      "vs_fortified": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "BARDING",
+   "class": "HEAVY_CAVALRY",
+   "tier": 1,
+   "name": "Доспех",
+   "text": "+7 к обороне от дальнего боя",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "role": "defense",
+      "vs_ranged": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "MARAUDING",
+   "class": "HEAVY_CAVALRY",
+   "tier": 2,
+   "name": "Мародёрство",
+   "text": "+7 в бою за город",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "vs_district": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "ROUT",
+   "class": "HEAVY_CAVALRY",
+   "tier": 2,
+   "name": "Разгром",
+   "text": "+5 против раненых",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 5,
+     "when": {
+      "role": "attack",
+      "vs_wounded": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "ARMOR_PIERCING",
+   "class": "HEAVY_CAVALRY",
+   "tier": 3,
+   "name": "Бронебойные",
+   "text": "+7 против тяжёлой конницы",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "vs_class": [
+       "HEAVY_CAVALRY"
+      ]
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "REACTIVE_ARMOR",
+   "class": "HEAVY_CAVALRY",
+   "tier": 3,
+   "name": "Активная броня",
+   "text": "+7 к обороне от конницы и противокавалерийских",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "role": "defense",
+      "vs_class": [
+       "HEAVY_CAVALRY",
+       "ANTI_CAVALRY"
+      ]
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "BREAKTHROUGH",
+   "class": "HEAVY_CAVALRY",
+   "tier": 4,
+   "name": "Прорыв",
+   "text": "Движение после атаки",
+   "mods": [],
+   "flags": [
+    "move_after_attack"
+   ]
+  },
+  {
+   "id": "GRAPE_SHOT",
+   "class": "SIEGE",
+   "tier": 1,
+   "name": "Картечь",
+   "text": "+7 против наземных",
+   "mods": [
+    {
+     "stat": "ranged",
+     "value": 7,
+     "when": {
+      "vs_units": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "CREW_WEAPONS",
+   "class": "SIEGE",
+   "tier": 1,
+   "name": "Расчёт",
+   "text": "+7 к обороне",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "role": "defense"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "SHRAPNEL",
+   "class": "SIEGE",
+   "tier": 2,
+   "name": "Шрапнель",
+   "text": "+10 против наземных",
+   "mods": [
+    {
+     "stat": "ranged",
+     "value": 10,
+     "when": {
+      "vs_units": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "SHELLS",
+   "class": "SIEGE",
+   "tier": 2,
+   "name": "Снаряды",
+   "text": "+7 против городов",
+   "mods": [
+    {
+     "stat": "ranged",
+     "value": 7,
+     "when": {
+      "vs_district": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "ADVANCED_RANGEFINDING",
+   "class": "SIEGE",
+   "tier": 3,
+   "name": "Дальномер",
+   "text": "+10 против кораблей",
+   "mods": [
+    {
+     "stat": "ranged",
+     "value": 10,
+     "when": {
+      "vs_domain": "SEA"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "EXPERT_CREW",
+   "class": "SIEGE",
+   "tier": 3,
+   "name": "Опытный расчёт",
+   "text": "Может стрелять после движения",
+   "mods": [],
+   "flags": [
+    "attack_after_move"
+   ]
+  },
+  {
+   "id": "FORWARD_OBSERVERS",
+   "class": "SIEGE",
+   "tier": 4,
+   "name": "Передовые наблюдатели",
+   "text": "+1 к дальности",
+   "mods": [
+    {
+     "stat": "range",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "RANGER_PROMO",
+   "class": "RECON",
+   "tier": 1,
+   "name": "Следопыт",
+   "text": "Лес и джунгли стоят 1 ОД",
+   "mods": [],
+   "flags": [
+    "woods_cost_1"
+   ]
+  },
+  {
+   "id": "ALPINE",
+   "class": "RECON",
+   "tier": 1,
+   "name": "Альпинист",
+   "text": "Холмы стоят 1 ОД",
+   "mods": [],
+   "flags": [
+    "hills_cost_1"
+   ]
+  },
+  {
+   "id": "SENTRY",
+   "class": "RECON",
+   "tier": 2,
+   "name": "Дозор",
+   "text": "+1 обзор",
+   "mods": [
+    {
+     "stat": "sight",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "GUERRILLA",
+   "class": "RECON",
+   "tier": 2,
+   "name": "Партизан",
+   "text": "Движение после атаки",
+   "mods": [],
+   "flags": [
+    "move_after_attack"
+   ]
+  },
+  {
+   "id": "SPYGLASS",
+   "class": "RECON",
+   "tier": 3,
+   "name": "Подзорная труба",
+   "text": "+1 обзор",
+   "mods": [
+    {
+     "stat": "sight",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "AMBUSH",
+   "class": "RECON",
+   "tier": 3,
+   "name": "Засада",
+   "text": "+20 к силе",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 20,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "CAMOUFLAGE",
+   "class": "RECON",
+   "tier": 4,
+   "name": "Камуфляж",
+   "text": "+10 к обороне",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 10,
+     "when": {
+      "role": "defense"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "HELMSMAN",
+   "class": "NAVAL_MELEE",
+   "tier": 1,
+   "name": "Рулевой",
+   "text": "+1 ОД",
+   "mods": [
+    {
+     "stat": "moves",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "EMBOLON",
+   "class": "NAVAL_MELEE",
+   "tier": 1,
+   "name": "Таран",
+   "text": "+7 против кораблей",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "vs_domain": "SEA"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "POINTE",
+   "class": "NAVAL_MELEE",
+   "tier": 2,
+   "name": "Лоция",
+   "text": "+1 обзор",
+   "mods": [
+    {
+     "stat": "sight",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "REINFORCED_HULL",
+   "class": "NAVAL_MELEE",
+   "tier": 2,
+   "name": "Усиленный корпус",
+   "text": "+10 к обороне от дальнего боя",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 10,
+     "when": {
+      "role": "defense",
+      "vs_ranged": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "CONVOY",
+   "class": "NAVAL_MELEE",
+   "tier": 3,
+   "name": "Конвой",
+   "text": "+10 к обороне",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 10,
+     "when": {
+      "role": "defense"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "AUXILIARY_SHIPS",
+   "class": "NAVAL_MELEE",
+   "tier": 3,
+   "name": "Вспомогательные суда",
+   "text": "Лечение вне своей территории",
+   "mods": [],
+   "flags": [
+    "heal_anywhere"
+   ]
+  },
+  {
+   "id": "CREEPING_ATTACK",
+   "class": "NAVAL_MELEE",
+   "tier": 4,
+   "name": "Крадущаяся атака",
+   "text": "+14 против рейдеров",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 14,
+     "when": {
+      "vs_class": [
+       "NAVAL_RAIDER"
+      ]
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "LINE_OF_BATTLE",
+   "class": "NAVAL_RANGED",
+   "tier": 1,
+   "name": "Линия баталии",
+   "text": "+7 против кораблей",
+   "mods": [
+    {
+     "stat": "ranged",
+     "value": 7,
+     "when": {
+      "vs_domain": "SEA"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "BOMBARDMENT",
+   "class": "NAVAL_RANGED",
+   "tier": 1,
+   "name": "Бомбардировка",
+   "text": "+7 против городов",
+   "mods": [
+    {
+     "stat": "ranged",
+     "value": 7,
+     "when": {
+      "vs_district": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "PREPARATORY_FIRE",
+   "class": "NAVAL_RANGED",
+   "tier": 2,
+   "name": "Огневая подготовка",
+   "text": "+7 против наземных",
+   "mods": [
+    {
+     "stat": "ranged",
+     "value": 7,
+     "when": {
+      "vs_domain": "LAND"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "ROLLING_BARRAGE",
+   "class": "NAVAL_RANGED",
+   "tier": 2,
+   "name": "Огневой вал",
+   "text": "+10 против городов",
+   "mods": [
+    {
+     "stat": "ranged",
+     "value": 10,
+     "when": {
+      "vs_district": true
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "SUPPLY_FLEET",
+   "class": "NAVAL_RANGED",
+   "tier": 3,
+   "name": "Флот снабжения",
+   "text": "Лечение вне своей территории",
+   "mods": [],
+   "flags": [
+    "heal_anywhere"
+   ]
+  },
+  {
+   "id": "PROXIMITY_FUSES",
+   "class": "NAVAL_RANGED",
+   "tier": 3,
+   "name": "Радиовзрыватели",
+   "text": "+7 к обороне",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "role": "defense"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "COINCIDENCE_RANGEFINDING",
+   "class": "NAVAL_RANGED",
+   "tier": 4,
+   "name": "Дальномер совмещения",
+   "text": "+1 к дальности",
+   "mods": [
+    {
+     "stat": "range",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "LOOT",
+   "class": "NAVAL_RAIDER",
+   "tier": 1,
+   "name": "Добыча",
+   "text": "+50% золота за грабёж",
+   "mods": [],
+   "flags": [
+    "loot"
+   ]
+  },
+  {
+   "id": "BOARDING",
+   "class": "NAVAL_RAIDER",
+   "tier": 1,
+   "name": "Абордаж",
+   "text": "+7 против кораблей",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "vs_domain": "SEA"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "SWIFT_KEEL",
+   "class": "NAVAL_RAIDER",
+   "tier": 2,
+   "name": "Быстрый киль",
+   "text": "+1 ОД",
+   "mods": [
+    {
+     "stat": "moves",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "HOMING_TORPEDOES",
+   "class": "NAVAL_RAIDER",
+   "tier": 2,
+   "name": "Самонаводящиеся торпеды",
+   "text": "+10 против кораблей",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 10,
+     "when": {
+      "vs_domain": "SEA"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "OBSERVATION",
+   "class": "NAVAL_RAIDER",
+   "tier": 3,
+   "name": "Наблюдение",
+   "text": "+1 обзор",
+   "mods": [
+    {
+     "stat": "sight",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "SILENT_RUNNING",
+   "class": "NAVAL_RAIDER",
+   "tier": 3,
+   "name": "Молчаливый ход",
+   "text": "+5 к обороне",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 5,
+     "when": {
+      "role": "defense"
+     }
+    }
+   ],
+   "flags": []
+  },
+  {
+   "id": "WOLFPACK",
+   "class": "NAVAL_RAIDER",
+   "tier": 4,
+   "name": "Волчья стая",
+   "text": "+7 при атаке",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 7,
+     "when": {
+      "role": "attack"
+     }
+    }
+   ],
+   "flags": []
+  }
+ ]
+}

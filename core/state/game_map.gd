@@ -16,6 +16,8 @@ var improvement: PackedStringArray    # "" — нет улучшения
 var river_edges: PackedByteArray      # битовая маска по направлениям 0..5
 var continent: PackedInt32Array       # -1 для воды
 var owner_city: PackedInt32Array      # -1 — ничья клетка
+var road: PackedByteArray             # 0 — нет дороги, иначе уровень (constants.road_levels, с 1)
+var pillaged: PackedByteArray         # 1 — улучшение разграблено
 
 var _data: GameData
 
@@ -35,6 +37,8 @@ func _init(w: int, h: int, data: GameData) -> void:
 	continent.fill(-1)
 	owner_city.resize(n)
 	owner_city.fill(-1)
+	road.resize(n)
+	pillaged.resize(n)
 
 
 var width: int:
@@ -119,6 +123,7 @@ func to_dict() -> Dictionary:
 		"feature": Array(feature), "resource": Array(resource),
 		"improvement": Array(improvement), "river_edges": Array(river_edges),
 		"continent": Array(continent), "owner_city": Array(owner_city),
+		"road": Array(road), "pillaged": Array(pillaged),
 	}
 
 
@@ -132,4 +137,7 @@ static func from_dict(d: Dictionary, data: GameData) -> GameMap:
 	m.river_edges = PackedByteArray(d["river_edges"])
 	m.continent = PackedInt32Array(d["continent"])
 	m.owner_city = PackedInt32Array(d["owner_city"])
+	if d.has("road"):
+		m.road = PackedByteArray(d["road"])
+		m.pillaged = PackedByteArray(d["pillaged"])
 	return m

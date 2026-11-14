@@ -1,143 +1,274 @@
 {
-  "_doc": "Константы баланса (ГДД 24). Всё, что можно настраивать без правки кода.",
-  "eras": [
-    "ANCIENT",
-    "CLASSICAL",
-    "MEDIEVAL",
-    "RENAISSANCE",
-    "INDUSTRIAL",
-    "MODERN",
-    "ATOMIC",
-    "INFORMATION",
-    "FUTURE"
-  ],
-  "yield_types": [
-    "food",
-    "production",
-    "gold",
-    "science",
-    "culture",
-    "faith"
-  ],
-  "unit_hp": 100,
-  "unit_default_sight": 2,
-  "unit_maintenance_by_era": {
-    "START": 0,
-    "ANCIENT": 1,
-    "CLASSICAL": 2,
-    "MEDIEVAL": 3,
-    "RENAISSANCE": 4,
-    "INDUSTRIAL": 5,
-    "MODERN": 6,
-    "ATOMIC": 7,
-    "INFORMATION": 8,
-    "FUTURE": 8
+ "_doc": "Константы баланса (ГДД 24). Всё, что можно настраивать без правки кода.",
+ "eras": [
+  "ANCIENT",
+  "CLASSICAL",
+  "MEDIEVAL",
+  "RENAISSANCE",
+  "INDUSTRIAL",
+  "MODERN",
+  "ATOMIC",
+  "INFORMATION",
+  "FUTURE"
+ ],
+ "yield_types": [
+  "food",
+  "production",
+  "gold",
+  "science",
+  "culture",
+  "faith"
+ ],
+ "unit_hp": 100,
+ "unit_default_sight": 2,
+ "unit_maintenance_by_era": {
+  "START": 0,
+  "ANCIENT": 1,
+  "CLASSICAL": 2,
+  "MEDIEVAL": 3,
+  "RENAISSANCE": 4,
+  "INDUSTRIAL": 5,
+  "MODERN": 6,
+  "ATOMIC": 7,
+  "INFORMATION": 8,
+  "FUTURE": 8
+ },
+ "start_units": [
+  "SETTLER",
+  "WARRIOR"
+ ],
+ "start_min_capital_distance": 9,
+ "city_min_distance": 4,
+ "city_work_radius": 3,
+ "city_border_radius": 5,
+ "food_per_citizen": 2,
+ "combat_base_damage": 30,
+ "combat_exp_factor": 0.04,
+ "combat_rand_min": 0.8,
+ "combat_rand_max": 1.2,
+ "river_attack_penalty": 5,
+ "boost_fraction": 0.4,
+ "fin_unlock_tech": "BANKING",
+ "fin_base": 250,
+ "fin_per_civ": 50,
+ "fin_k": 1.5,
+ "fin_turns": 10,
+ "fin_include_deals": false,
+ "city_sight": 3,
+ "city_center_min_yields": {
+  "food": 2,
+  "production": 1
+ },
+ "growth_base": 15,
+ "growth_linear": 8,
+ "growth_exp": 1.5,
+ "science_per_pop": 0.5,
+ "culture_per_pop": 0.3,
+ "housing_base_fresh_water": 5,
+ "housing_base_coast": 3,
+ "housing_base_dry": 2,
+ "_housing_growth_doc": "Множитель роста по жилью H (ГДД 4.7): население ≤ H−2 → 1; = H−1 → 0.5; от H до H+4 → 0.25; ≥ H+5 → 0",
+ "housing_growth_full_below": 2,
+ "housing_growth_half": 0.5,
+ "housing_growth_over": 0.25,
+ "housing_growth_stop_above": 5,
+ "_amenity_doc": "Состояния довольства (ГДД 5.4): min — нижняя граница баланса; growth — множитель к излишку пищи (null = рост остановлен); yields — множитель доходов кроме пищи",
+ "amenity_states": [
+  {
+   "id": "ECSTATIC",
+   "name": "Экстаз",
+   "min": 5,
+   "growth": 1.2,
+   "yields": 1.2
   },
-  "start_units": [
-    "SETTLER",
-    "WARRIOR"
-  ],
-  "start_min_capital_distance": 9,
-  "city_min_distance": 4,
-  "city_work_radius": 3,
-  "city_border_radius": 5,
-  "food_per_citizen": 2,
-  "combat_base_damage": 30,
-  "combat_exp_factor": 0.04,
-  "combat_rand_min": 0.8,
-  "combat_rand_max": 1.2,
-  "river_attack_penalty": 5,
-  "boost_fraction": 0.4,
-  "fin_unlock_tech": "BANKING",
-  "fin_base": 250,
-  "fin_per_civ": 50,
-  "fin_k": 1.5,
-  "fin_turns": 10,
-  "fin_include_deals": false,
-  "city_sight": 3,
-  "city_center_min_yields": {
-    "food": 2,
-    "production": 1
+  {
+   "id": "HAPPY",
+   "name": "Счастье",
+   "min": 3,
+   "growth": 1.1,
+   "yields": 1.1
   },
-  "growth_base": 15,
-  "growth_linear": 8,
-  "growth_exp": 1.5,
-  "science_per_pop": 0.5,
-  "culture_per_pop": 0.3,
-  "housing_base_fresh_water": 5,
-  "housing_base_coast": 3,
-  "housing_base_dry": 2,
-  "_housing_growth_doc": "Множитель роста по жилью H (ГДД 4.7): население ≤ H−2 → 1; = H−1 → 0.5; от H до H+4 → 0.25; ≥ H+5 → 0",
-  "housing_growth_full_below": 2,
-  "housing_growth_half": 0.5,
-  "housing_growth_over": 0.25,
-  "housing_growth_stop_above": 5,
-  "_amenity_doc": "Состояния довольства (ГДД 5.4): min — нижняя граница баланса; growth — множитель к излишку пищи (null = рост остановлен); yields — множитель доходов кроме пищи",
-  "amenity_states": [
-    {
-      "id": "ECSTATIC",
-      "name": "Экстаз",
-      "min": 5,
-      "growth": 1.2,
-      "yields": 1.2
-    },
-    {
-      "id": "HAPPY",
-      "name": "Счастье",
-      "min": 3,
-      "growth": 1.1,
-      "yields": 1.1
-    },
-    {
-      "id": "CONTENT",
-      "name": "Удовлетворение",
-      "min": 0,
-      "growth": 1.0,
-      "yields": 1.0
-    },
-    {
-      "id": "DISPLEASED",
-      "name": "Недовольство",
-      "min": -2,
-      "growth": 0.85,
-      "yields": 0.9
-    },
-    {
-      "id": "UNHAPPY",
-      "name": "Несчастье",
-      "min": -4,
-      "growth": 0.7,
-      "yields": 0.8
-    },
-    {
-      "id": "UNREST",
-      "name": "Волнения",
-      "min": -6,
-      "growth": 0.0,
-      "yields": 0.7
-    },
-    {
-      "id": "REVOLT",
-      "name": "Бунт",
-      "min": -999,
-      "growth": 0.0,
-      "yields": 0.4
-    }
-  ],
-  "luxury_amenity_cities": 4,
-  "border_cost_base": 10,
-  "border_cost_mult": 6,
-  "border_cost_exp": 1.3,
-  "tile_buy_base": 50,
-  "tile_buy_per_distance": 0.5,
-  "tile_buy_per_known": 0.02,
-  "gold_purchase_mult": 4,
-  "faith_purchase_mult": 2,
-  "starting_treasury": 10,
-  "_fresh_city_doc": "Город на месте леса/джунглей/болота убирает их (ГДД 5.1)",
-  "city_removes_features": [
-    "WOODS",
-    "RAINFOREST",
-    "MARSH"
-  ]
+  {
+   "id": "CONTENT",
+   "name": "Удовлетворение",
+   "min": 0,
+   "growth": 1.0,
+   "yields": 1.0
+  },
+  {
+   "id": "DISPLEASED",
+   "name": "Недовольство",
+   "min": -2,
+   "growth": 0.85,
+   "yields": 0.9
+  },
+  {
+   "id": "UNHAPPY",
+   "name": "Несчастье",
+   "min": -4,
+   "growth": 0.7,
+   "yields": 0.8
+  },
+  {
+   "id": "UNREST",
+   "name": "Волнения",
+   "min": -6,
+   "growth": 0.0,
+   "yields": 0.7
+  },
+  {
+   "id": "REVOLT",
+   "name": "Бунт",
+   "min": -999,
+   "growth": 0.0,
+   "yields": 0.4
+  }
+ ],
+ "luxury_amenity_cities": 4,
+ "border_cost_base": 10,
+ "border_cost_mult": 6,
+ "border_cost_exp": 1.3,
+ "tile_buy_base": 50,
+ "tile_buy_per_distance": 0.5,
+ "tile_buy_per_known": 0.02,
+ "gold_purchase_mult": 4,
+ "faith_purchase_mult": 2,
+ "starting_treasury": 10,
+ "_fresh_city_doc": "Город на месте леса/джунглей/болота убирает их (ГДД 5.1)",
+ "city_removes_features": [
+  "WOODS",
+  "RAINFOREST",
+  "MARSH"
+ ],
+ "terrain_defense": {
+  "HILLS": 3,
+  "WOODS": 3,
+  "RAINFOREST": 3,
+  "MARSH": -2,
+  "FLOODPLAINS": -2
+ },
+ "wound_penalty_per_10hp": 1,
+ "wound_penalty_max": 10,
+ "fortify_per_turn": 3,
+ "fortify_max": 6,
+ "flanking_bonus": 2,
+ "support_bonus": 2,
+ "flanking_civic": "MILITARY_TRADITION",
+ "embark_attack_penalty": 10,
+ "xp_attack": 5,
+ "xp_attack_city": 3,
+ "xp_defense": 2,
+ "xp_kill_mult": 2,
+ "xp_barbarian_cap_level": 1,
+ "promotion_heal": 50,
+ "heal_own": 15,
+ "heal_city": 20,
+ "heal_neutral": 10,
+ "heal_enemy": 5,
+ "city_hp": 200,
+ "city_heal": 20,
+ "city_strength_offset": -10,
+ "city_capital_bonus": 3,
+ "city_hills_bonus": 3,
+ "city_ranged_range": 2,
+ "wall_melee_hp_factor": 0.15,
+ "wall_ranged_hp_factor": 0.5,
+ "wall_regen": 25,
+ "wall_regen_delay": 3,
+ "capture_pop_loss": 0.25,
+ "upgrade_cost_mult": 2,
+ "upgrade_cost_add": 10,
+ "war_min_turns": 10,
+ "peace_min_turns": 10,
+ "_roads_doc": "Дороги (ГДД 3.8): уровень → стоимость входа; bridge — с какого уровня мост через реку.",
+ "road_levels": [
+  {
+   "id": "ANCIENT",
+   "name": "Античная дорога",
+   "cost": 1.0
+  },
+  {
+   "id": "CLASSICAL",
+   "name": "Классическая дорога",
+   "cost": 1.0
+  },
+  {
+   "id": "INDUSTRIAL",
+   "name": "Индустриальная дорога",
+   "cost": 0.75
+  },
+  {
+   "id": "MODERN",
+   "name": "Современная дорога",
+   "cost": 0.5
+  },
+  {
+   "id": "RAILROAD",
+   "name": "Железная дорога",
+   "cost": 0.25
+  }
+ ],
+ "road_bridge_level": 2,
+ "road_level_by_era": {
+  "ANCIENT": 1,
+  "CLASSICAL": 2,
+  "MEDIEVAL": 2,
+  "RENAISSANCE": 2,
+  "INDUSTRIAL": 3,
+  "MODERN": 4,
+  "ATOMIC": 4,
+  "INFORMATION": 4,
+  "FUTURE": 4
+ },
+ "strategic_per_source": 2,
+ "strategic_cap": 50,
+ "barbarian_camps_start_per_civ": 1,
+ "barbarian_camp_min_dist_city": 7,
+ "barbarian_new_camp_every": 12,
+ "barbarian_raid_units": 3,
+ "barbarian_spawn_every": 3,
+ "barbarian_camp_gold": 50,
+ "tribal_villages_per_land": 45,
+ "tribal_rewards": [
+  {
+   "type": "gold",
+   "amount": 40,
+   "weight": 4
+  },
+  {
+   "type": "faith",
+   "amount": 20,
+   "weight": 2
+  },
+  {
+   "type": "science",
+   "fraction": 0.4,
+   "weight": 2
+  },
+  {
+   "type": "culture",
+   "fraction": 0.4,
+   "weight": 2
+  },
+  {
+   "type": "unit",
+   "unit": "SCOUT",
+   "weight": 1
+  },
+  {
+   "type": "unit",
+   "unit": "BUILDER",
+   "weight": 1
+  },
+  {
+   "type": "xp",
+   "amount": 15,
+   "weight": 1
+  },
+  {
+   "type": "population",
+   "amount": 1,
+   "weight": 1
+  }
+ ]
 }

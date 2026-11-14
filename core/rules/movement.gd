@@ -14,7 +14,7 @@ const ALL_MOVES := -2.0
 
 
 static func max_moves(game: Game, unit: Unit) -> float:
-	return float(game.data.unit_def(unit.type).get("moves", 1))
+	return float(game.data.unit_def(unit.type).get("moves", 1)) + Combat.promo_stat(game, unit, "moves", {})
 
 
 static func domain(game: Game, unit: Unit) -> String:
@@ -68,16 +68,33 @@ static func step_cost(game: Game, unit: Unit, from: int, to: int, known: bool = 
 	var dir := map.grid.direction_to(from, to)
 	if dom_is_land(game, unit) and map.has_river_edge(from, dir) and not _has_bridge(game, from, to):
 		return ALL_MOVES
-	return terrain_cost(game, to)
+	if dom_is_land(game, unit) and map.road[from] > 0 and map.road[to] > 0:
+		return road_cost(game, mini(map.road[from], map.road[to]))
+	var cost := terrain_cost(game, to)
+	# Повышения разведчиков: лес/холмы стоят 1 ОД.
+	if unit.promotions.size() > 0:
+		if (map.feature[to] == "WOODS" or map.feature[to] == "RAINFOREST") and Combat.has_flag(game, unit, "woods_cost_1"):
+			cost = 1.0 + (1.0 if map.is_hills(to) and not Combat.has_flag(game, unit, "hills_cost_1") else 0.0)
+		elif map.is_hills(to) and Combat.has_flag(game, unit, "hills_cost_1"):
+			cost = maxf(1.0, cost - 1.0)
+	return cost
+
+
+static func road_cost(game: Game, level: int) -> float:
+	var levels: Array = game.data.const_value("road_levels", [])
+	if level <= 0 or levels.is_empty():
+		return 1.0
+	return float(levels[mini(level, levels.size()) - 1].get("cost", 1.0))
 
 
 static func dom_is_land(game: Game, unit: Unit) -> bool:
 	return domain(game, unit) == "LAND"
 
 
-static func _has_bridge(_game: Game, _from: int, _to: int) -> bool:
-	# Мосты появятся вместе с дорогами классической эры (ГДД 3.8).
-	return false
+## Мост — дороги классического уровня и выше по обе стороны реки (ГДД 3.4, 3.8).
+static func _has_bridge(game: Game, from: int, to: int) -> bool:
+	var need: int = int(game.data.const_value("road_bridge_level", 2))
+	return game.state.map.road[from] >= need and game.state.map.road[to] >= need
 
 
 ## Находится ли клетка в зоне контроля врага для этого юнита (ГДД 3.5).

@@ -20,6 +20,8 @@ var improvements: Dictionary = {}
 var harvest: Dictionary = {}
 var civs: Dictionary = {}
 var abilities: Dictionary = {}
+var promotions: Dictionary = {}
+var promotion_ids: Array[String] = []
 var placeholder_city_names: Array = []
 var setup: Dictionary = {}
 
@@ -69,6 +71,10 @@ func load_all(dir: String = DATA_DIR) -> void:
 		improvement_ids.append(x["id"])
 	harvest = imp.get("harvest", {})
 	abilities = _index(_read(dir + "abilities.json").get("abilities", []))
+	var promo_list: Array = _read(dir + "promotions.json").get("promotions", [])
+	promotions = _index(promo_list)
+	for x in promo_list:
+		promotion_ids.append(x["id"])
 	var civ_file := _read(dir + "civs.json")
 	civs = _index(civ_file.get("civs", []))
 	placeholder_city_names = civ_file.get("placeholder", {}).get("city_names", [])

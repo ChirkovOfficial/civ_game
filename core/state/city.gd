@@ -29,6 +29,9 @@ var border_tiles_acquired: int = 0
 var focus: String = ""
 var hp: int = 200
 var wall_hp: int = 0
+## Ход последнего нападения на город (лечение, починка стен) и обстрел в этот ход.
+var last_attacked_turn: int = -100
+var has_attacked: bool = false
 
 
 static func item_key(item: Dictionary) -> String:
@@ -53,6 +56,7 @@ func to_dict() -> Dictionary:
 		"progress": progress.duplicate(), "overflow": overflow,
 		"culture_stored": culture_stored, "border_tiles_acquired": border_tiles_acquired,
 		"focus": focus, "hp": hp, "wall_hp": wall_hp,
+		"last_attacked_turn": last_attacked_turn, "has_attacked": has_attacked,
 	}
 
 
@@ -81,4 +85,6 @@ static func from_dict(d: Dictionary) -> City:
 	c.focus = d["focus"]
 	c.hp = int(d["hp"])
 	c.wall_hp = int(d["wall_hp"])
+	c.last_attacked_turn = int(d.get("last_attacked_turn", -100))
+	c.has_attacked = bool(d.get("has_attacked", false))
 	return c
