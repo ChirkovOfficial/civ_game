@@ -1,0 +1,489 @@
+{
+ "_doc": "Снаряжение юнитов (docs/ARMY.md). loadouts — какие слоты у каких классов в каких эпохах (эпоха = эпоха открывающей технологии юнита). options — варианты: mods (формат как у повышений; условия vs_regular / vs_irregular / role / vs_ranged / climate), weight — тяжесть (≥2 → +1 ОД на холмах, в лесу и джунглях), gold и resource — цена смены. Новые юниты получают варианты по умолчанию бесплатно.",
+ "climate": {
+  "COLD": [
+   "TUNDRA",
+   "SNOW"
+  ],
+  "HOT": [
+   "DESERT"
+  ],
+  "HOT_FEATURES": [
+   "RAINFOREST"
+  ],
+  "EXTREME_COLD": [
+   "SNOW"
+  ],
+  "extreme_cold_hp_loss": 10,
+  "extreme_cold_min_hp": 10
+ },
+ "heavy_weight_threshold": 2,
+ "gold_era_mult": 0.5,
+ "slots": {
+  "weapon": {
+   "name": "Оружие",
+   "options": [
+    "SPEAR",
+    "SHORT_SWORD"
+   ],
+   "default": "SPEAR"
+  },
+  "shield": {
+   "name": "Щит",
+   "options": [
+    "HEAVY_SHIELD",
+    "LIGHT_SHIELD"
+   ],
+   "default": "LIGHT_SHIELD"
+  },
+  "armor": {
+   "name": "Доспех",
+   "options": [
+    "HEAVY_ARMOR",
+    "LIGHT_ARMOR"
+   ],
+   "default": "LIGHT_ARMOR"
+  },
+  "barding": {
+   "name": "Конская броня",
+   "options": [
+    "HEAVY_BARDING",
+    "LIGHT_BARDING"
+   ],
+   "default": "LIGHT_BARDING"
+  },
+  "tactics": {
+   "name": "Тактика",
+   "options": [
+    "LINE_DRILL",
+    "SKIRMISH_DRILL"
+   ],
+   "default": "LINE_DRILL"
+  },
+  "kit": {
+   "name": "Комплект",
+   "options": [
+    "ASSAULT_KIT",
+    "PATROL_KIT"
+   ],
+   "default": "ASSAULT_KIT"
+  },
+  "plating": {
+   "name": "Бронирование",
+   "options": [
+    "HEAVY_PLATING",
+    "LIGHT_PLATING"
+   ],
+   "default": "LIGHT_PLATING"
+  },
+  "clothing": {
+   "name": "Одежда",
+   "options": [
+    "WINTER",
+    "STANDARD",
+    "DESERT_GEAR"
+   ],
+   "default": "STANDARD"
+  }
+ },
+ "options": {
+  "SPEAR": {
+   "name": "Копья",
+   "text": "+5 против регулярных армий",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 5,
+     "when": {
+      "vs_regular": true
+     }
+    }
+   ],
+   "gold": 10
+  },
+  "SHORT_SWORD": {
+   "name": "Короткие мечи",
+   "text": "+5 против варваров",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 5,
+     "when": {
+      "vs_irregular": true
+     }
+    }
+   ],
+   "gold": 10
+  },
+  "HEAVY_SHIELD": {
+   "name": "Тяжёлые щиты",
+   "text": "+4 к обороне против регулярных армий, +3 против стрел; тяжёлое",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 4,
+     "when": {
+      "role": "defense",
+      "vs_regular": true
+     }
+    },
+    {
+     "stat": "combat",
+     "value": 3,
+     "when": {
+      "role": "defense",
+      "vs_ranged": true
+     }
+    }
+   ],
+   "weight": 1,
+   "gold": 15
+  },
+  "LIGHT_SHIELD": {
+   "name": "Малые щиты",
+   "text": "+3 к обороне против варваров",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 3,
+     "when": {
+      "role": "defense",
+      "vs_irregular": true
+     }
+    }
+   ],
+   "gold": 8
+  },
+  "HEAVY_ARMOR": {
+   "name": "Тяжёлая броня",
+   "text": "+4 к обороне; тяжёлое; нужно железо",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 4,
+     "when": {
+      "role": "defense"
+     }
+    }
+   ],
+   "weight": 1,
+   "gold": 20,
+   "resource": {
+    "IRON": 5
+   }
+  },
+  "LIGHT_ARMOR": {
+   "name": "Лёгкая кираса",
+   "text": "+2 к атаке против варваров",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 2,
+     "when": {
+      "role": "attack",
+      "vs_irregular": true
+     }
+    }
+   ],
+   "gold": 8
+  },
+  "HEAVY_BARDING": {
+   "name": "Тяжёлая конская броня",
+   "text": "+5 к обороне; тяжёлое (×2); нужно железо",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 5,
+     "when": {
+      "role": "defense"
+     }
+    }
+   ],
+   "weight": 2,
+   "gold": 25,
+   "resource": {
+    "IRON": 5
+   }
+  },
+  "LIGHT_BARDING": {
+   "name": "Лёгкая сбруя",
+   "text": "+3 против варваров",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 3,
+     "when": {
+      "vs_irregular": true
+     }
+    }
+   ],
+   "gold": 10
+  },
+  "LINE_DRILL": {
+   "name": "Линейный строй",
+   "text": "+5 против регулярных армий",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 5,
+     "when": {
+      "vs_regular": true
+     }
+    }
+   ],
+   "gold": 20
+  },
+  "SKIRMISH_DRILL": {
+   "name": "Рассыпной строй",
+   "text": "+5 против варваров, +3 к обороне в лесу и на холмах",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 5,
+     "when": {
+      "vs_irregular": true
+     }
+    },
+    {
+     "stat": "combat",
+     "value": 3,
+     "when": {
+      "role": "defense",
+      "terrain": [
+       "WOODS",
+       "RAINFOREST",
+       "HILLS"
+      ]
+     }
+    }
+   ],
+   "gold": 20
+  },
+  "ASSAULT_KIT": {
+   "name": "Штурмовой комплект",
+   "text": "+6 против регулярных армий; тяжёлое",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 6,
+     "when": {
+      "vs_regular": true
+     }
+    }
+   ],
+   "weight": 1,
+   "gold": 30
+  },
+  "PATROL_KIT": {
+   "name": "Патрульный комплект",
+   "text": "+6 против варваров и в бою вне своей территории",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 6,
+     "when": {
+      "vs_irregular": true
+     }
+    }
+   ],
+   "gold": 25
+  },
+  "HEAVY_PLATING": {
+   "name": "Тяжёлое бронирование",
+   "text": "+6 к обороне; тяжёлое (×2); нужна сталь — железо",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": 6,
+     "when": {
+      "role": "defense"
+     }
+    }
+   ],
+   "weight": 2,
+   "gold": 40,
+   "resource": {
+    "IRON": 5
+   }
+  },
+  "LIGHT_PLATING": {
+   "name": "Лёгкое бронирование",
+   "text": "+1 ОД",
+   "mods": [
+    {
+     "stat": "moves",
+     "value": 1,
+     "when": {}
+    }
+   ],
+   "gold": 30
+  },
+  "WINTER": {
+   "name": "Зимняя одежда",
+   "text": "Нет штрафа в холоде; −5 в жаре",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": -5,
+     "when": {
+      "climate": "HOT"
+     }
+    }
+   ],
+   "gold": 10
+  },
+  "STANDARD": {
+   "name": "Обычная форма",
+   "text": "−3 в холоде и в жаре; в снегах теряет здоровье",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": -3,
+     "when": {
+      "climate": "COLD"
+     }
+    },
+    {
+     "stat": "combat",
+     "value": -3,
+     "when": {
+      "climate": "HOT"
+     }
+    }
+   ],
+   "gold": 5
+  },
+  "DESERT_GEAR": {
+   "name": "Снаряжение для жары",
+   "text": "Нет штрафа в жаре; −5 в холоде; в снегах теряет здоровье",
+   "mods": [
+    {
+     "stat": "combat",
+     "value": -5,
+     "when": {
+      "climate": "COLD"
+     }
+    }
+   ],
+   "gold": 10
+  }
+ },
+ "loadouts": [
+  {
+   "classes": [
+    "MELEE",
+    "ANTI_CAVALRY"
+   ],
+   "eras": [
+    "START",
+    "ANCIENT",
+    "CLASSICAL",
+    "MEDIEVAL"
+   ],
+   "slots": [
+    "weapon",
+    "shield",
+    "armor",
+    "clothing"
+   ]
+  },
+  {
+   "classes": [
+    "RANGED",
+    "RECON"
+   ],
+   "eras": [
+    "START",
+    "ANCIENT",
+    "CLASSICAL",
+    "MEDIEVAL"
+   ],
+   "slots": [
+    "armor",
+    "clothing"
+   ]
+  },
+  {
+   "classes": [
+    "LIGHT_CAVALRY",
+    "HEAVY_CAVALRY"
+   ],
+   "eras": [
+    "START",
+    "ANCIENT",
+    "CLASSICAL",
+    "MEDIEVAL",
+    "RENAISSANCE"
+   ],
+   "slots": [
+    "weapon",
+    "barding",
+    "clothing"
+   ]
+  },
+  {
+   "classes": [
+    "MELEE",
+    "ANTI_CAVALRY",
+    "RANGED",
+    "RECON"
+   ],
+   "eras": [
+    "RENAISSANCE",
+    "INDUSTRIAL"
+   ],
+   "slots": [
+    "tactics",
+    "clothing"
+   ]
+  },
+  {
+   "classes": [
+    "LIGHT_CAVALRY"
+   ],
+   "eras": [
+    "INDUSTRIAL"
+   ],
+   "slots": [
+    "tactics",
+    "clothing"
+   ]
+  },
+  {
+   "classes": [
+    "MELEE",
+    "ANTI_CAVALRY",
+    "RANGED",
+    "RECON"
+   ],
+   "eras": [
+    "MODERN",
+    "ATOMIC",
+    "INFORMATION",
+    "FUTURE"
+   ],
+   "slots": [
+    "kit",
+    "clothing"
+   ]
+  },
+  {
+   "classes": [
+    "LIGHT_CAVALRY",
+    "HEAVY_CAVALRY",
+    "GDR"
+   ],
+   "eras": [
+    "INDUSTRIAL",
+    "MODERN",
+    "ATOMIC",
+    "INFORMATION",
+    "FUTURE"
+   ],
+   "slots": [
+    "plating",
+    "clothing"
+   ]
+  }
+ ]
+}

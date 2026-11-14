@@ -24,7 +24,9 @@ static func take_turn(game: Game, pid: int) -> void:
 		if city.queue.is_empty():
 			_choose_production(game, city)
 	_spend_gold(game, pid)
+	_handle_commanders(game, pid)
 	_handle_military(game, pid)
+	_equip_units(game, pid)
 
 
 ## Покупки (ГДД 23.3): держим резерв, излишек тратим на текущее производство города,
@@ -275,6 +277,10 @@ static func _choose_production(game: Game, city: City) -> void:
 		candidates.append({"kind": "building", "id": bid})
 	if combat != "" and military < cities.size() * 2:
 		candidates.append({"kind": "unit", "id": combat})
+	var commanders := _count_units(game, pid, func(u: Unit) -> bool: return Army.is_commander(game, u) or not u.commander.is_empty()) \
+		+ _queued(game, pid, "COMMANDER")
+	if military >= 4 and commanders < military / 4:
+		candidates.append({"kind": "unit", "id": "COMMANDER"})
 	candidates.append({"kind": "unit", "id": "SETTLER"})
 	candidates.append({"kind": "unit", "id": "BUILDER"})
 	if combat != "":
@@ -502,3 +508,62 @@ static func _clear_camps(game: Game, pid: int) -> void:
 				game.apply_action({"type": "cancel_orders", "unit": u.id})
 				game.apply_action({"type": "move_unit", "unit": u.id, "target": spot})
 		return
+
+
+# --- Командующие и снаряжение (docs/ARMY.md) -------------------------------------------------------
+
+## Свободный командующий идёт к сильнейшему боевому юниту без командующего и объединяется с ним.
+static func _handle_commanders(game: Game, pid: int) -> void:
+	var s := game.state
+	for cmd in s.units_of(pid):
+		if s.unit(cmd.id) == null or not Army.is_commander(game, cmd):
+			continue
+		var best: Unit = null
+		var best_score := -INF
+		for u in s.units_of(pid):
+			if not u.commander.is_empty() or not Combat.can_attack(game, u) or Movement.domain(game, u) != "LAND":
+				continue
+			var sc := Combat.melee_strength(game, u.type) - s.map.grid.distance(u.tile, cmd.tile) * 2.0
+			if sc > best_score:
+				best_score = sc
+				best = u
+		if best == null:
+			if cmd.orders.is_empty():
+				game.apply_action({"type": "sleep_unit", "unit": cmd.id})
+			continue
+		if best.tile != cmd.tile and cmd.moves_left > 0.0:
+			game.apply_action({"type": "cancel_orders", "unit": cmd.id})
+			game.apply_action({"type": "move_unit", "unit": cmd.id, "target": best.tile})
+		if s.unit(cmd.id) != null and Army.attach_error(game, cmd, best) == "":
+			game.apply_action({"type": "attach_commander", "unit": cmd.id, "target": best.id})
+
+
+## Простые правила: одежда по климату клетки, против варваров — лёгкое, против держав — тяжёлое.
+static func _equip_units(game: Game, pid: int) -> void:
+	var s := game.state
+	var p := s.player(pid)
+	var vs_major := false
+	for other in s.players:
+		if other.id != pid and not other.is_barbarian and s.at_war(pid, other.id):
+			vs_major = true
+	var reserve := 80.0
+	for u in s.units_of(pid):
+		if p.treasury < reserve:
+			return
+		var oc := s.city_owning(u.tile)
+		if oc == null or oc.owner != pid:
+			continue
+		var slots := Army.slots_for(game, u.type)
+		var want := {}
+		if slots.has("weapon"):
+			want["weapon"] = "SPEAR" if vs_major else "SHORT_SWORD"
+		if slots.has("tactics"):
+			want["tactics"] = "LINE_DRILL" if vs_major else "SKIRMISH_DRILL"
+		if slots.has("kit"):
+			want["kit"] = "ASSAULT_KIT" if vs_major else "PATROL_KIT"
+		if slots.has("clothing"):
+			var cl := Army.climate_of(game, u.tile)
+			want["clothing"] = "WINTER" if cl == "COLD" else ("DESERT_GEAR" if cl == "HOT" else "STANDARD")
+		for slot in want:
+			if Army.equip_error(game, u, slot, want[slot]) == "":
+				game.apply_action({"type": "equip", "unit": u.id, "slot": slot, "option": want[slot]})

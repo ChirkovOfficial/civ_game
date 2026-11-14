@@ -140,6 +140,7 @@ static func available_promotions(game: Game, u: Unit) -> Array[String]:
 
 
 static func add_xp(game: Game, u: Unit, amount: int, vs_barbarian: bool) -> void:
+	Army.add_commander_xp(game, u, amount)
 	u.xp += amount
 	if vs_barbarian:
 		var cap := xp_for_level(int(k(game, "xp_barbarian_cap_level", 1)))
@@ -215,6 +216,11 @@ static func unit_mods(game: Game, u: Unit, role: String, ctx: Dictionary) -> Arr
 					sup += 1
 			if sup > 0:
 				mods.append(["Поддержка", sup * int(k(game, "support_bonus", 2))])
+	for em in Army.equipment_mods(game, u, "combat", ctx.merged({"role": role})):
+		mods.append(em)
+	var cb := Army.commander_combat(game, u)
+	if cb > 0:
+		mods.append(["Командующий", cb])
 	var promo := promo_stat(game, u, "combat", ctx.merged({"role": role}))
 	if ctx.get("ranged_attack", false) and role == "attack":
 		promo += promo_stat(game, u, "ranged", ctx.merged({"role": role}))
@@ -337,7 +343,8 @@ static func preview(game: Game, u: Unit, tile: int) -> Dictionary:
 	var t := target_at(game, u.owner, tile)
 	var ranged := is_ranged(game, u)
 	var map := game.state.map
-	var ctx := {"ranged_attack": ranged, "target_tile": tile}
+	var barb := game.state.barbarian_id()
+	var ctx := {"ranged_attack": ranged, "target_tile": tile, "vs_irregular": false}
 	var att_base := ranged_strength(game, u.type) if ranged else melee_strength(game, u.type)
 	var def_base := 0
 	var def_mods: Array = []
@@ -348,13 +355,14 @@ static func preview(game: Game, u: Unit, tile: int) -> Dictionary:
 		def_mods = cs[1]
 	elif t["kind"] == "unit":
 		var d: Unit = t["unit"]
+		ctx["vs_irregular"] = d.owner == barb
 		ctx["vs_class"] = unit_class(game, d)
 		ctx["vs_domain"] = Movement.domain(game, d)
 		ctx["vs_wounded"] = d.hp < 100
 		ctx["vs_fortified"] = d.fortify_turns > 0
 		def_base = melee_strength(game, d.type)
 		def_mods = unit_mods(game, d, "defense", {"vs_class": unit_class(game, u), "vs_ranged": ranged,
-			"vs_domain": Movement.domain(game, u)})
+			"vs_domain": Movement.domain(game, u), "vs_irregular": u.owner == barb})
 	var att_mods := unit_mods(game, u, "attack", ctx)
 	if not ranged:
 		var dir := map.grid.direction_to(u.tile, tile)
@@ -398,9 +406,11 @@ static func attack(game: Game, u: Unit, tile: int, events: Array) -> void:
 				add_xp(game, d, int(k(game, "xp_defense", 2)), att_owner == barb)
 			if killed:
 				events.append({"type": "unit_killed", "unit": d.id, "owner": d.owner, "by": att_owner})
+				Army.on_unit_killed(game, d, events)
 				game.state.remove_unit(d.id)
 			if u.hp <= 0:
 				events.append({"type": "unit_killed", "unit": u.id, "owner": att_owner, "by": d.owner})
+				Army.on_unit_killed(game, u, events)
 				game.state.remove_unit(u.id)
 				return
 			if killed and not ranged:
@@ -438,6 +448,10 @@ static func _capture_civilians(game: Game, u: Unit, tile: int, units: Array, eve
 		var cu: Unit = c
 		var t := cu.type
 		var old_owner := cu.owner
+		if Army.is_commander(game, cu):
+			game.state.remove_unit(cu.id)
+			Army.retreat_commander(game, old_owner, cu.xp, cu.level, events)
+			continue
 		game.state.remove_unit(cu.id)
 		events.append({"type": "unit_captured", "unit": cu.id, "owner": old_owner, "by": u.owner})
 		if u.owner != barb and (t == "SETTLER" or t == "BUILDER"):
@@ -472,6 +486,7 @@ static func _attack_city(game: Game, u: Unit, city: City, delta: int, ranged: bo
 	add_xp(game, u, int(k(game, "xp_attack_city", 3)), false)
 	if u.hp <= 0:
 		events.append({"type": "unit_killed", "unit": u.id, "owner": u.owner, "by": city.owner})
+		Army.on_unit_killed(game, u, events)
 		game.state.remove_unit(u.id)
 		return
 	if not ranged and city.hp <= 0:
@@ -581,11 +596,13 @@ static func city_attack_error(game: Game, city: City, tile: int) -> String:
 static func city_attack(game: Game, city: City, tile: int, events: Array) -> void:
 	var t := target_at(game, city.owner, tile)
 	var d: Unit = t["unit"]
-	var def := melee_strength(game, d.type) + _sum(unit_mods(game, d, "defense", {"vs_ranged": true}))
+	var def := melee_strength(game, d.type) + _sum(unit_mods(game, d, "defense", {"vs_ranged": true,
+		"vs_irregular": game.state.player(city.owner).is_barbarian}))
 	var dmg := damage(game, city_ranged_strength(game, city) - def, _roll(game))
 	d.hp -= dmg
 	city.has_attacked = true
 	events.append({"type": "combat", "city_attacker": city.id, "defender": d.id, "tile": tile, "dmg_to_def": dmg, "ranged": true})
 	if d.hp <= 0:
 		events.append({"type": "unit_killed", "unit": d.id, "owner": d.owner, "by": city.owner})
+		Army.on_unit_killed(game, d, events)
 		game.state.remove_unit(d.id)

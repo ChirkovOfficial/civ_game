@@ -34,7 +34,10 @@ static func unit_era(game: Game, unit_type: String) -> String:
 
 
 static func unit_maintenance(game: Game, unit_type: String) -> float:
-	if game.data.unit_def(unit_type).get("class", "") == "CIVILIAN":
+	var def := game.data.unit_def(unit_type)
+	if def.has("maintenance_gold"):
+		return float(def["maintenance_gold"])
+	if def.get("class", "") == "CIVILIAN":
 		return 0.0
 	var table: Dictionary = game.data.const_value("unit_maintenance_by_era", {})
 	return float(table.get(unit_era(game, unit_type), 0))
@@ -44,6 +47,8 @@ static func maintenance(game: Game, pid: int) -> float:
 	var m := 0.0
 	for u in game.state.units_of(pid):
 		m += unit_maintenance(game, u.type)
+		if not u.commander.is_empty():
+			m += unit_maintenance(game, "COMMANDER")
 	for city in game.state.cities_of(pid):
 		for bid in city.buildings:
 			m += float(game.data.buildings.get(bid, {}).get("maintenance", 0))

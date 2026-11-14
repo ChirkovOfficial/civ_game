@@ -63,6 +63,13 @@ static func process_units_turn_start(game: Game, pid: int, events: Array) -> voi
 				if float(p.stockpile.get(res, 0.0)) <= 0.0:
 					amount = 0
 			u.hp = mini(100, u.hp + amount)
+		# Экстремальный холод без зимней одежды (docs/ARMY.md).
+		if Movement.domain(game, u) == "LAND" and Army.is_extreme_cold(game, u.tile):
+			var e := Army.equipment_of(game, u)
+			if e.has("clothing") and e["clothing"] != "WINTER":
+				var cl: Dictionary = game.data.equipment.get("climate", {})
+				u.hp = maxi(int(cl.get("extreme_cold_min_hp", 10)), u.hp - int(cl.get("extreme_cold_hp_loss", 10)))
+				events.append({"type": "unit_frostbite", "unit": u.id})
 		if u.orders.get("type", "") == "fortify":
 			u.fortify_turns = mini(u.fortify_turns + 1, 2)
 		elif game.state.map.improvement[u.tile] == "FORT" and Movement.layer(game, u.type) == "COMBAT":

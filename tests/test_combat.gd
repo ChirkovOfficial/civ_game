@@ -96,9 +96,9 @@ func test_class_bonus_and_river() -> void:
 	a.moves_left = 2.0
 	var d := g.state.add_unit(1, "HORSEMAN", grid.index_of(6, 6))
 	var pv := Combat.preview(g, a, d.tile)
-	check_eq(int(pv["att"]), 35, "копейщик 25 + 10 против конницы")
+	check_eq(int(pv["att"]), 40, "копейщик 25 + 10 против конницы + 5 копья против регулярной армии")
 	g.state.map.set_river_edge(a.tile, 0)
-	check_eq(int(Combat.preview(g, a, d.tile)["att"]), 30, "атака через реку −5")
+	check_eq(int(Combat.preview(g, a, d.tile)["att"]), 35, "атака через реку −5")
 
 
 func test_roman_formation_and_testudo() -> void:

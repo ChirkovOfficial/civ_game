@@ -64,6 +64,18 @@ func _process(_delta: float) -> bool:
 		var city3: City = g.state.cities_of(0)[0]
 		_main._select_city(city3)
 		_main.camera_rig.focus(_main.map_view.tile_world(city3.tile))
+	if _frames == 45:
+		# Командующий + войска → когорта; окно снаряжения.
+		_main._select_city(null)
+		for u in g.state.units_of(0):
+			if Combat.can_attack(g, u) and g.state.city_owning(u.tile) != null:
+				var cmd := g.state.add_unit(0, "COMMANDER", u.tile)
+				_main.act({"type": "attach_commander", "unit": cmd.id, "target": u.id})
+				_main._select(u)
+				_main.hud.open_equipment(u.id)
+				_main.camera_rig.focus(_main.map_view.tile_world(u.tile))
+				_main.camera_rig.target_distance = 9.0
+				break
 	if _frames == 42:
 		_main.save_game()
 	if _frames == 43:
@@ -71,7 +83,7 @@ func _process(_delta: float) -> bool:
 	if _frames == 44:
 		_main.load_game()
 		g = _main.game
-	if _frames == 46:
+	if _frames == 52:
 		root.get_viewport().get_texture().get_image().save_png("/tmp/smoke.png")
 		var h: Hud = _main.hud
 		for n in ["_city_panel", "_unit_panel", "_tile_panel", "_research_panel"]:

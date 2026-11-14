@@ -23,6 +23,8 @@ var improvements_extra: Dictionary = {}
 var civs: Dictionary = {}
 var abilities: Dictionary = {}
 var promotions: Dictionary = {}
+var equipment: Dictionary = {}
+var placeholder_detachment_name: String = "отряд"
 var promotion_ids: Array[String] = []
 var placeholder_city_names: Array = []
 var setup: Dictionary = {}
@@ -81,6 +83,8 @@ func load_all(dir: String = DATA_DIR) -> void:
 	var civ_file := _read(dir + "civs.json")
 	civs = _index(civ_file.get("civs", []))
 	placeholder_city_names = civ_file.get("placeholder", {}).get("city_names", [])
+	placeholder_detachment_name = civ_file.get("placeholder", {}).get("detachment_name", "отряд")
+	equipment = _read(dir + "equipment.json")
 	unit_classes = _read(dir + "unit_classes.json").get("classes", {})
 	var tech_list: Array = _read(dir + "techs.json").get("techs", [])
 	techs = _index(tech_list)
@@ -214,6 +218,17 @@ func validate() -> PackedStringArray:
 			for a in civ["units"][slot].get("abilities", []):
 				if not abilities.has(a):
 					errors.append("Цивилизация %s, юнит %s: нет особенности %s" % [cid, slot, a])
+	for slot in equipment.get("slots", {}):
+		var sd: Dictionary = equipment["slots"][slot]
+		for opt in sd.get("options", []):
+			if not equipment.get("options", {}).has(opt):
+				errors.append("Снаряжение %s: нет варианта %s" % [slot, opt])
+		if not sd.get("options", []).has(sd.get("default", "")):
+			errors.append("Снаряжение %s: вариант по умолчанию не из списка" % slot)
+	for lo in equipment.get("loadouts", []):
+		for slot in lo.get("slots", []):
+			if not equipment.get("slots", {}).has(slot):
+				errors.append("Снаряжение: нет слота %s" % slot)
 	for uid in constants.get("start_units", []):
 		if not units.has(uid):
 			errors.append("Стартовый юнит %s не существует" % uid)

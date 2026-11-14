@@ -90,8 +90,8 @@ func _ready() -> void:
 	_city_panel.visible = false
 
 	_research_panel = _panel(_root)
-	_research_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_research_panel.position = Vector2(10, 64)
+	_research_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_research_panel.position = Vector2(-230, 64)
 	_attach(_research_panel)
 	var rscroll := ScrollContainer.new()
 	rscroll.custom_minimum_size = Vector2(440, 520)
@@ -134,8 +134,8 @@ func _ready() -> void:
 	br.add_child(_end_turn_button)
 
 	_message = Label.new()
-	_message.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_message.position = Vector2(-250, 70)
+	_message.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_message.position = Vector2(-250, -80)
 	_message.custom_minimum_size = Vector2(500, 0)
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -144,9 +144,10 @@ func _ready() -> void:
 	_root.add_child(_message)
 
 	var help := Label.new()
-	help.text = "ЛКМ — юнит/город · ПКМ — идти · WASD, колесо, СКМ — камера · Tab — следующий юнит · B — город · F — укрепиться/спать · R — дорога"
+	help.text = "ЛКМ — выбрать · ПКМ — идти/атаковать · Tab — след. юнит · B — город · F — укрепиться · R — дорога · E — снаряжение"
 	help.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	help.position = Vector2(-420, -28)
+	help.position = Vector2(-300, -26)
+	help.add_theme_font_size_override("font_size", 13)
 	help.modulate = Color(1, 1, 1, 0.65)
 	_root.add_child(help)
 
@@ -311,6 +312,9 @@ func refresh_research() -> void:
 	if _research_kind == "diplomacy":
 		open_diplomacy()
 		return
+	if _research_kind.begins_with("equipment:"):
+		open_equipment(int(_research_kind.split(":")[1]))
+		return
 	_clear(_research_box)
 	var pid := game.state.current_player
 	var p := game.state.player(pid)
@@ -338,6 +342,38 @@ func refresh_research() -> void:
 		desc.custom_minimum_size = Vector2(400, 0)
 	if ids.is_empty():
 		_label(_research_box, "Нет доступных исследований")
+
+
+## Окно снаряжения юнита (docs/ARMY.md).
+func open_equipment(unit_id: int) -> void:
+	_research_kind = "equipment:%d" % unit_id
+	_research_panel.visible = true
+	_clear(_research_box)
+	var u := game.state.unit(unit_id)
+	if u == null:
+		close_research()
+		return
+	var head := HBoxContainer.new()
+	_research_box.add_child(head)
+	var title := _label(head, "Снаряжение: %s" % Abilities.unit_name(game, u.owner, u.type), 20)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_button(head, "✕", close_research)
+	var cur := Army.equipment_of(game, u)
+	var slots: Dictionary = game.data.equipment.get("slots", {})
+	for slot in cur:
+		_label(_research_box, slots[slot]["name"], 16, Color(1.0, 0.9, 0.6))
+		for opt in slots[slot]["options"]:
+			var od := Army.option_def(game, opt)
+			var on: bool = cur[slot] == opt
+			var price := "%d золота" % Army.change_cost(game, u, opt)
+			for r in od.get("resource", {}):
+				price += ", %d %s" % [int(od["resource"][r]), str(game.data.resources[r]["name"]).to_lower()]
+			var err := "" if on else Army.equip_error(game, u, slot, opt)
+			var s: String = slot
+			var o: String = opt
+			_button(_research_box, "%s%s — %s%s" % ["✓ " if on else "", od.get("name", opt), od.get("text", ""), "" if on else " (%s)" % price],
+				func(): act.call({"type": "equip", "unit": u.id, "slot": s, "option": o}); open_equipment(u.id), on or err != "", err)
+	_label(_research_box, "Регулярные армии — войска держав; иррегулярные — варвары. Сменить снаряжение можно только на своей территории.", 12, Color(0.75, 0.78, 0.85), true)
 
 
 func open_diplomacy() -> void:
@@ -394,7 +430,10 @@ func show_unit(u: Unit) -> void:
 		return
 	_unit_panel.visible = true
 	var def := game.data.unit_def(u.type)
-	_label(_unit_box, Abilities.unit_name(game, u.owner, u.type), 20)
+	var title := Abilities.unit_name(game, u.owner, u.type)
+	if not u.commander.is_empty():
+		title += " — " + Army.detachment_name(game, u.owner)
+	_label(_unit_box, title, 20)
 	var lines := ["Очки движения: %s / %s" % [_fmt(u.moves_left), _fmt(Movement.max_moves(game, u))]]
 	if def.has("combat"):
 		var s := "Сила: %d" % def["combat"]
@@ -414,6 +453,22 @@ func show_unit(u: Unit) -> void:
 	for a in Abilities.of(game, u.owner, u.type):
 		if game.data.abilities.has(a):
 			lines.append("◆ %s" % game.data.abilities[a]["name"])
+	if not u.commander.is_empty():
+		lines.append("Командующий: %s, уровень %d (+%d к силе, +1 ОД)" % [Army.commander_name(game, u.owner),
+			int(u.commander.get("level", 0)), Army.commander_combat(game, u)])
+	var e := Army.equipment_of(game, u)
+	if not e.is_empty():
+		var parts := []
+		for slot in e:
+			parts.append(Army.option_def(game, e[slot]).get("name", e[slot]))
+		lines.append("Снаряжение: " + ", ".join(parts))
+		var cl := Army.climate_of(game, u.tile)
+		if cl != "TEMPERATE":
+			var pen := 0
+			for m in Army.equipment_mods(game, u, "combat", {"role": "defense"}):
+				if m[0] == Army.option_def(game, e.get("clothing", "")).get("name", ""):
+					pen += int(m[1])
+			lines.append("Климат: %s%s" % ["холод" if cl == "COLD" else "жара", (" — штраф %d" % pen) if pen < 0 else " — одежда подходит"])
 	match u.orders.get("type", ""):
 		"move":
 			lines.append("Идёт к цели…")
@@ -464,6 +519,16 @@ func show_unit(u: Unit) -> void:
 		_button(_unit_box, "Разграбить улучшение", func(): act.call({"type": "pillage", "unit": u.id}))
 	if UnitRules.repair_error(game, u) == "":
 		_button(_unit_box, "Починить улучшение", func(): act.call({"type": "repair", "unit": u.id}))
+	if not Army.slots_for(game, u.type).is_empty():
+		_button(_unit_box, "Снаряжение… (E)", func(): open_equipment(u.id))
+	if not u.commander.is_empty():
+		_button(_unit_box, "Отделить командующего", func(): act.call({"type": "detach_commander", "unit": u.id}))
+	if Army.is_commander(game, u):
+		for other in game.state.units_at(u.tile):
+			if Army.attach_error(game, u, other) == "":
+				var oid := other.id
+				_button(_unit_box, "Объединить с «%s» в %s" % [Abilities.unit_name(game, other.owner, other.type), Army.detachment_name(game, u.owner)],
+					func(): act.call({"type": "attach_commander", "unit": u.id, "target": oid}))
 	var row := HBoxContainer.new()
 	_unit_box.add_child(row)
 	if Movement.layer(game, u.type) == "COMBAT":

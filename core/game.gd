@@ -212,6 +212,32 @@ func apply_action(action: Dictionary) -> Array:
 					events.append(_error(err))
 				else:
 					UnitRules.build_fort(self, u, events)
+		"equip":
+			var u := _own_unit(action, events)
+			if u != null:
+				var slot := str(action.get("slot", ""))
+				var opt := str(action.get("option", ""))
+				var err := Army.equip_error(self, u, slot, opt)
+				if err != "":
+					events.append(_error(err))
+				else:
+					Army.equip(self, u, slot, opt, events)
+		"attach_commander":
+			var u := _own_unit(action, events)
+			if u != null:
+				var target := state.unit(int(action.get("target", -1)))
+				var err := Army.attach_error(self, u, target)
+				if err != "":
+					events.append(_error(err))
+				else:
+					Army.attach(self, u, target, events)
+		"detach_commander":
+			var u := _own_unit(action, events)
+			if u != null:
+				if u.commander.is_empty():
+					events.append(_error("У юнита нет командующего"))
+				else:
+					Army.detach(self, u, events)
 		"declare_war":
 			var target := int(action.get("target", -1))
 			var err := UnitRules.declare_war_error(self, state.current_player, target)

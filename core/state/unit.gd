@@ -24,6 +24,10 @@ var fortify_turns: int = 0
 var orders: Dictionary = {}
 ## Сделал ли юнит что-либо в этот ход (для лечения и подсказок).
 var acted: bool = false
+## Снаряжение: слот -> вариант (docs/ARMY.md). Пустые слоты — по умолчанию.
+var equipment: Dictionary = {}
+## Объединённый командующий: {} или {"xp", "level"}.
+var commander: Dictionary = {}
 
 
 func to_dict() -> Dictionary:
@@ -32,6 +36,7 @@ func to_dict() -> Dictionary:
 		"moves_left": moves_left, "xp": xp, "level": level,
 		"promotions": promotions.duplicate(), "charges": charges,
 		"fortify_turns": fortify_turns, "orders": orders.duplicate(true), "acted": acted,
+		"equipment": equipment.duplicate(), "commander": commander.duplicate(),
 	}
 
 
@@ -50,6 +55,8 @@ static func from_dict(d: Dictionary) -> Unit:
 	u.fortify_turns = int(d["fortify_turns"])
 	u.orders = _ints_in_dict(d["orders"])
 	u.acted = bool(d["acted"])
+	u.equipment = d.get("equipment", {}).duplicate()
+	u.commander = _ints_in_dict(d.get("commander", {}))
 	return u
 
 

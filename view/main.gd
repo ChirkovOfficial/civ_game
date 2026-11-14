@@ -145,7 +145,7 @@ func act(action: Dictionary) -> Array:
 	var events := game.apply_action(action)
 	_after_action()
 	var t: String = action.get("type", "")
-	if t in ["found_city", "build_improvement", "harvest", "skip_unit", "sleep_unit", "fortify", "build_road", "attack", "promote", "upgrade_unit", "build_fort", "pillage"] and \
+	if t in ["found_city", "build_improvement", "harvest", "skip_unit", "sleep_unit", "fortify", "build_road", "attack", "promote", "upgrade_unit", "build_fort", "pillage", "attach_commander"] and \
 			(selected == null or game.state.unit(selected.id) == null or selected.moves_left <= 0.0 or not selected.orders.is_empty()):
 		_select_next_unit()
 	if t == "found_city":
@@ -276,6 +276,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_R:
 				if selected != null:
 					act({"type": "build_road", "unit": selected.id})
+			KEY_E:
+				if selected != null and not Army.slots_for(game, selected.type).is_empty():
+					hud.open_equipment(selected.id)
 			KEY_TAB:
 				_select_next_unit(true)
 			KEY_F2:

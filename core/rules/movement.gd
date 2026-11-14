@@ -14,7 +14,11 @@ const ALL_MOVES := -2.0
 
 
 static func max_moves(game: Game, unit: Unit) -> float:
-	return float(game.data.unit_def(unit.type).get("moves", 1)) + Combat.promo_stat(game, unit, "moves", {})
+	var m := float(game.data.unit_def(unit.type).get("moves", 1)) + Combat.promo_stat(game, unit, "moves", {})
+	m += Army.commander_moves(game, unit)
+	for mod in Army.equipment_mods(game, unit, "moves", {}):
+		m += float(mod[1])
+	return m
 
 
 static func domain(game: Game, unit: Unit) -> String:
@@ -71,6 +75,9 @@ static func step_cost(game: Game, unit: Unit, from: int, to: int, known: bool = 
 	if dom_is_land(game, unit) and map.road[from] > 0 and map.road[to] > 0:
 		return road_cost(game, mini(map.road[from], map.road[to]))
 	var cost := terrain_cost(game, to)
+	# Тяжёлое снаряжение: +1 ОД на холмах, в лесу и джунглях.
+	if (map.is_hills(to) or map.feature[to] == "WOODS" or map.feature[to] == "RAINFOREST") and Army.is_heavy(game, unit):
+		cost += 1.0
 	# Повышения разведчиков: лес/холмы стоят 1 ОД.
 	if unit.promotions.size() > 0:
 		if (map.feature[to] == "WOODS" or map.feature[to] == "RAINFOREST") and Combat.has_flag(game, unit, "woods_cost_1"):

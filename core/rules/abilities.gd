@@ -11,6 +11,8 @@ static func civ_def(game: Game, owner: int) -> Dictionary:
 
 ## Название юнита для держав owner: своё у цивилизации или нейтральное название слота.
 static func unit_name(game: Game, owner: int, unit_type: String) -> String:
+	if game.data.unit_def(unit_type).has("era_names") and owner >= 0:
+		return Army.commander_name(game, owner, unit_type)
 	var civ := civ_def(game, owner)
 	var own: Dictionary = civ.get("units", {}).get(unit_type, {})
 	if own.has("name"):

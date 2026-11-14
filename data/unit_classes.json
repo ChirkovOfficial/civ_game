@@ -1,66 +1,69 @@
 {
-  "_doc": "Свойства классов юнитов (ГДД 3.5, 9.2, 9.4). layer — слой стэкинга в клетке: COMBAT | CIVILIAN | SUPPORT | RELIGIOUS . exerts_zoc — создаёт зону контроля; ignores_zoc — игнорирует чужую. bonus_vs — бонус силы против классов.",
-  "classes": {
-    "CIVILIAN": {
-      "layer": "CIVILIAN"
-    },
-    "SUPPORT": {
-      "layer": "SUPPORT"
-    },
-    "MELEE": {
-      "layer": "COMBAT",
-      "exerts_zoc": true,
-      "bonus_vs": {
-        "ANTI_CAVALRY": 5
-      }
-    },
-    "ANTI_CAVALRY": {
-      "layer": "COMBAT",
-      "exerts_zoc": true,
-      "bonus_vs": {
-        "LIGHT_CAVALRY": 10,
-        "HEAVY_CAVALRY": 10
-      }
-    },
-    "RANGED": {
-      "layer": "COMBAT",
-      "ranged_penalty_vs_districts": 17
-    },
-    "LIGHT_CAVALRY": {
-      "layer": "COMBAT",
-      "exerts_zoc": true,
-      "ignores_zoc": true
-    },
-    "HEAVY_CAVALRY": {
-      "layer": "COMBAT",
-      "exerts_zoc": true,
-      "ignores_zoc": true
-    },
-    "SIEGE": {
-      "layer": "COMBAT",
-      "bombard": true,
-      "ranged_penalty_vs_units": 17
-    },
-    "RECON": {
-      "layer": "COMBAT",
-      "exerts_zoc": true
-    },
-    "NAVAL_MELEE": {
-      "layer": "COMBAT"
-    },
-    "NAVAL_RANGED": {
-      "layer": "COMBAT"
-    },
-    "NAVAL_RAIDER": {
-      "layer": "COMBAT",
-      "stealth": true
-    },
-    "GDR": {
-      "layer": "COMBAT",
-      "exerts_zoc": true
-    },
-    "NAVAL_SUPPORT": {
-      "layer": "COMBAT"
-    }
+ "_doc": "Свойства классов юнитов (ГДД 3.5, 9.2, 9.4). layer — слой стэкинга в клетке: COMBAT | CIVILIAN | SUPPORT | RELIGIOUS . exerts_zoc — создаёт зону контроля; ignores_zoc — игнорирует чужую. bonus_vs — бонус силы против классов.",
+ "classes": {
+  "CIVILIAN": {
+   "layer": "CIVILIAN"
+  },
+  "SUPPORT": {
+   "layer": "SUPPORT"
+  },
+  "MELEE": {
+   "layer": "COMBAT",
+   "exerts_zoc": true,
+   "bonus_vs": {
+    "ANTI_CAVALRY": 5
+   }
+  },
+  "ANTI_CAVALRY": {
+   "layer": "COMBAT",
+   "exerts_zoc": true,
+   "bonus_vs": {
+    "LIGHT_CAVALRY": 10,
+    "HEAVY_CAVALRY": 10
+   }
+  },
+  "RANGED": {
+   "layer": "COMBAT",
+   "ranged_penalty_vs_districts": 17
+  },
+  "LIGHT_CAVALRY": {
+   "layer": "COMBAT",
+   "exerts_zoc": true,
+   "ignores_zoc": true
+  },
+  "HEAVY_CAVALRY": {
+   "layer": "COMBAT",
+   "exerts_zoc": true,
+   "ignores_zoc": true
+  },
+  "SIEGE": {
+   "layer": "COMBAT",
+   "bombard": true,
+   "ranged_penalty_vs_units": 17
+  },
+  "RECON": {
+   "layer": "COMBAT",
+   "exerts_zoc": true
+  },
+  "NAVAL_MELEE": {
+   "layer": "COMBAT"
+  },
+  "NAVAL_RANGED": {
+   "layer": "COMBAT"
+  },
+  "NAVAL_RAIDER": {
+   "layer": "COMBAT",
+   "stealth": true
+  },
+  "GDR": {
+   "layer": "COMBAT",
+   "exerts_zoc": true
+  },
+  "NAVAL_SUPPORT": {
+   "layer": "COMBAT"
+  },
+  "COMMANDER": {
+   "layer": "SUPPORT"
   }
+ }
 }

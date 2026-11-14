@@ -82,6 +82,25 @@ func _make_unit_node(u: Unit) -> Node3D:
 	head.material_override = _mat(Color("e9c9a4"))
 	head.position.y = 0.48
 	root.add_child(head)
+	if Army.is_commander(game, u) or not u.commander.is_empty():
+		# Знамя командующего: шест с полотнищем цвета державы.
+		var pole := MeshInstance3D.new()
+		var pm2 := CylinderMesh.new()
+		pm2.top_radius = 0.008
+		pm2.bottom_radius = 0.01
+		pm2.height = 0.8
+		pm2.radial_segments = 4
+		pole.mesh = pm2
+		pole.material_override = _mat(Color("5a4030"))
+		pole.position = Vector3(-0.13, 0.4, 0)
+		root.add_child(pole)
+		var flag := MeshInstance3D.new()
+		var fm := BoxMesh.new()
+		fm.size = Vector3(0.18, 0.12, 0.01)
+		flag.mesh = fm
+		flag.material_override = _mat(owner_color.lightened(0.1))
+		flag.position = Vector3(-0.04, 0.72, 0)
+		root.add_child(flag)
 	if layer == "COMBAT":
 		var spear := MeshInstance3D.new()
 		var sm := CylinderMesh.new()
@@ -124,8 +143,13 @@ func refresh(viewer: Player, cam_x: float) -> void:
 	for id in game.state.units:
 		var u: Unit = game.state.units[id]
 		alive[id] = true
+		var look := "%s|%d" % [u.type, int(not u.commander.is_empty())]
+		if _nodes.has(id) and _nodes[id].get_meta("look", "") != look:
+			_nodes[id].queue_free()
+			_nodes.erase(id)
 		if not _nodes.has(id):
 			_nodes[id] = _make_unit_node(u)
+			_nodes[id].set_meta("look", look)
 		var node: Node3D = _nodes[id]
 		var visible_now := map_view.reveal_all or viewer.is_visible(u.tile) or u.owner == viewer.id
 		node.visible = visible_now
