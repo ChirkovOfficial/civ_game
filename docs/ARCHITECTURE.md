@@ -9,6 +9,8 @@ core/                 симуляция (без графики)
   map/map_generator.gd генератор карты
   rules/              правила: movement, pathfinder (A*), visibility (туман), yields,
                       city_rules (города), empire_rules (держава, исследования, конец хода),
+                      district_rules (районы: размещение, соседство, уровни, Нерон),
+                      city_life (санитария, порядок, эпидемии, губернаторы),
                       improvement_rules (строители)
   ai/ai_player.gd     ИИ: исследования, расселение, производство, строители, гарнизоны
 data/                 весь контент и баланс (JSON)

@@ -9,6 +9,8 @@ signal save_pressed
 signal load_pressed
 signal reveal_toggled(on: bool)
 signal city_closed
+## Игрок выбрал район в списке производства — нужно указать клетку на карте.
+signal place_district(type: String)
 
 const ICON_DIR := "res://art/icons/placeholder/"
 const YIELD_NAMES := {"food": "Пища", "production": "Производство", "gold": "Золото",
@@ -594,6 +596,8 @@ func refresh_city() -> void:
 		for bid in city.buildings:
 			names.append(game.data.buildings[bid]["name"])
 		_label(_city_box, "Здания: " + ", ".join(names), 0, Color(0.85, 0.85, 0.9), true)
+	_city_districts(city)
+	_city_life(city)
 	if city.owner != game.state.current_player:
 		return
 	_label(_city_box, "Производство", 18)
@@ -612,21 +616,165 @@ func refresh_city() -> void:
 		pb.custom_minimum_size = Vector2(0, 8)
 		_city_box.add_child(pb)
 	var treasury := game.state.player(city.owner).treasury
+	var groups := {"unit": [], "building": [], "district": [], "in_district": []}
 	for it in CityRules.buildable_items(game, city):
-		var line := HBoxContainer.new()
-		_city_box.add_child(line)
-		var t := CityRules.turns_to_build(game, city, it)
-		var kind: String = it["kind"]
-		var id: String = it["id"]
-		var b := _button(line, "%s — %s х." % [CityRules.item_name(game, it, city.owner), str(t) if t > 0 else "∞"],
-			func(): act.call({"type": "set_production", "city": city.id, "kind": kind, "id": id}))
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var price := CityRules.purchase_cost(game, city, it)
-		var buy := _button(line, "%d" % price, func(): act.call({"type": "purchase", "city": city.id, "kind": kind, "id": id}),
-			treasury < price, "Купить за золото")
-		buy.icon = _icons.get("gold")
-		buy.add_theme_constant_override("icon_max_width", 16)
+		var g: String = it["kind"]
+		if it.has("tile") and g != "district":
+			g = "in_district"
+		groups[g].append(it)
+	var titles := {"unit": "Юниты", "building": "Здания в центре", "district": "Районы", "in_district": "Здания и улучшения районов"}
+	for g in ["unit", "building", "district", "in_district"]:
+		if groups[g].is_empty():
+			continue
+		_label(_city_box, titles[g], 14, Color(0.8, 0.85, 1.0))
+		for it in groups[g]:
+			var line := HBoxContainer.new()
+			_city_box.add_child(line)
+			var kind: String = it["kind"]
+			var id: String = it["id"]
+			var tile := int(it.get("tile", -1))
+			var label_text := CityRules.item_name(game, it, city.owner)
+			if kind == "district" and tile < 0:
+				# Новый район: цена известна, клетку выбирают на карте.
+				label_text = "%s (%s) — %s ⚙ · выбрать клетку" % [label_text, DistrictRules.ddef(game, id).get("name", id),
+					_fmt(DistrictRules.cost(game, city, id))]
+				var tp := id
+				var bd := _button(line, label_text, func(): place_district.emit(tp))
+				bd.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				bd.alignment = HORIZONTAL_ALIGNMENT_LEFT
+				continue
+			var t := CityRules.turns_to_build(game, city, it)
+			if kind == "district":
+				label_text += " (продолжить)"
+			elif tile >= 0 and kind == "building":
+				label_text += " · " + DistrictRules.display_name(game, city.owner, game.data.buildings[id]["district"],
+					int(DistrictRules.entry_at(city, tile).get("tier", 1)))
+			var b := _button(line, "%s — %s х." % [label_text, str(t) if t > 0 else "∞"],
+				func(): act.call({"type": "set_production", "city": city.id, "kind": kind, "id": id, "tile": tile}))
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			if kind == "district" or kind == "district_upgrade":
+				continue
+			var price := CityRules.purchase_cost(game, city, it)
+			var buy := _button(line, "%d" % price, func(): act.call({"type": "purchase", "city": city.id, "kind": kind, "id": id, "tile": tile}),
+				treasury < price, "Купить за золото")
+			buy.icon = _icons.get("gold")
+			buy.add_theme_constant_override("icon_max_width", 16)
 	_label(_city_box, "Купить клетку: щёлкните по клетке с ценой рядом с городом.", 12, Color(0.75, 0.78, 0.85), true)
+
+
+## Раздел «Районы»: что построено, что даёт, урбанизация Нерона.
+func _city_districts(city: City) -> void:
+	if city.districts.is_empty():
+		return
+	_label(_city_box, "Районы (специализированных %d из %d)" % [DistrictRules.specialized_count(game, city),
+		DistrictRules.specialized_limit(city)], 18)
+	for d in city.districts:
+		var name := DistrictRules.display_name(game, city.owner, d["type"], int(d["tier"]))
+		if not d["complete"]:
+			var key := City.item_key({"kind": "district", "id": d["type"], "tile": d["tile"]})
+			_label(_city_box, "• %s — строится: %s/%s ⚙" % [name, _fmt(snappedf(float(city.progress.get(key, 0.0)), 0.1)),
+				_fmt(float(d["cost"]))], 0, Color(0.85, 0.8, 0.6), true)
+			continue
+		var o := DistrictRules.output(game, city, d)
+		var parts := []
+		for k in Yields.TYPES:
+			var v := float(o["yields"].get(k, 0))
+			if v != 0.0:
+				parts.append("%s %s" % [_fmt(snappedf(v, 0.1)), str(YIELD_NAMES[k]).to_lower()])
+		for pair in [["housing", "жильё"], ["amenities", "довольство"], ["sanitation", "санитария"], ["order", "порядок"]]:
+			var v2 := float(o[pair[0]])
+			if v2 != 0.0:
+				parts.append("%+d %s" % [int(v2), pair[1]])
+		var line := "• %s" % name
+		if int(d["tier"]) > 1:
+			line += " (ур. %d)" % int(d["tier"])
+		if not parts.is_empty():
+			line += ": " + ", ".join(parts)
+		var bnames := []
+		for bid in d["buildings"]:
+			bnames.append(game.data.buildings[bid]["name"])
+		if not bnames.is_empty():
+			line += "\n   здания: " + ", ".join(bnames)
+		var spec := int(city.specialists.get(str(d["tile"]), 0))
+		if spec > 0:
+			line += "\n   специалистов: %d" % spec
+		var nero := DistrictRules.nero(game, city, d)
+		var col := Color(0.9, 0.9, 0.95)
+		if not nero.is_empty():
+			line += "\n   ✿ Урбанизация Нерона +%d%%%s — рядом: %s" % [int(float(nero["bonus"]) * 100),
+				(" и +%d к эффектам" % int(nero["flat"])) if int(nero["flat"]) > 0 else "", ", ".join(nero["neighbors"])]
+			col = Color(0.78, 1.0, 0.7)
+		_label(_city_box, line, 0, col, true)
+
+
+## Раздел «Городская жизнь»: санитария, порядок, эпидемия, губернатор и доктрина.
+func _city_life(city: City) -> void:
+	_label(_city_box, "Городская жизнь", 18)
+	var san := CityLife.sanitation(game, city)
+	var ord := CityLife.order(game, city)
+	var thr := int(game.data.const_value("city_life_threshold_pop", 10))
+	var lines := []
+	lines.append("Санитария: %s есть / %s нужно" % [_fmt(snappedf(float(san["supply"]), 0.1)), _fmt(snappedf(float(san["need"]), 0.1))])
+	lines.append("Порядок: %s есть / %s нужно" % [_fmt(snappedf(float(ord["supply"]), 0.1)), _fmt(snappedf(float(ord["need"]), 0.1))])
+	var col := Color(0.85, 0.88, 0.95)
+	if not CityLife.active(game, city):
+		lines.append("Проблемы начнутся с населения %d." % thr)
+	else:
+		var ch := CityLife.epidemic_chance(game, city)
+		if ch > 0.0:
+			lines.append("⚠ Риск эпидемии: %d%% за ход" % roundi(ch * 100.0))
+			col = Color(1.0, 0.8, 0.5)
+		var pen := CityLife.unrest_penalty(game, city)
+		if pen > 0.0:
+			lines.append("⚠ Беспорядки: −%d%% к доходам" % roundi(pen * 100.0))
+			col = Color(1.0, 0.8, 0.5)
+	if city.epidemic_turns > 0:
+		lines.append("☣ Эпидемия! Ещё %d х.: рост остановлен, доходы −10%%" % city.epidemic_turns)
+		col = Color(1.0, 0.6, 0.5)
+	_label(_city_box, "\n".join(lines), 0, col, true)
+	# Губернатор.
+	var gov_text := "Губернатор: нет"
+	if city.doctrine != "":
+		var dd := CityLife.doctrine_def(game, city.doctrine)
+		gov_text = "Губернатор: %s" % dd.get("name", city.doctrine)
+		if city.doctrine_turns > 0:
+			gov_text += " (вступит в должность через %d х.)" % city.doctrine_turns
+	gov_text += " · свободно %d из %d" % [CityLife.governors_total(game, city.owner) - CityLife.governors_used(game, city.owner),
+		CityLife.governors_total(game, city.owner)]
+	_label(_city_box, gov_text, 0, Color(0.9, 0.9, 0.95), true)
+	if city.owner != game.state.current_player:
+		return
+	var row := HFlowContainer.new()
+	_city_box.add_child(row)
+	for dd2 in game.data.const_value("doctrines", []):
+		var did: String = dd2["id"]
+		var err := CityLife.set_doctrine_error(game, city, did)
+		_button(row, str(dd2["name"]), func(): act.call({"type": "set_doctrine", "city": city.id, "doctrine": did}),
+			err != "", "%s%s" % [dd2.get("text", ""), ("\n(%s)" % err) if err != "" else ""])
+	if city.doctrine != "":
+		_button(row, "Отозвать", func(): act.call({"type": "set_doctrine", "city": city.id, "doctrine": ""}))
+
+
+## Подсказка в режиме размещения района: соседство и урбанизация на клетке под курсором.
+func show_district_preview(city: City, type: String, tile: int) -> void:
+	if tile < 0:
+		return
+	_tile_panel.visible = true
+	var lines := [_tile_label.text, ""]
+	var name := DistrictRules.display_name(game, city.owner, type, 1)
+	var err := DistrictRules.placement_error(game, city, type, tile)
+	if err != "":
+		lines.append("%s: нельзя — %s" % [name, err])
+	else:
+		var adj := DistrictRules.adjacency(game, city.owner, type, tile)
+		var parts := []
+		for k in Yields.TYPES:
+			if adj.has(k):
+				parts.append("+%d %s" % [int(adj[k]), str(YIELD_NAMES[k]).to_lower()])
+		lines.append("%s здесь: %s" % [name, ", ".join(parts) if not parts.is_empty() else "без бонуса соседства"])
+		lines.append("ЛКМ — заложить, ПКМ или Esc — отмена")
+	_tile_label.text = "\n".join(lines)
 
 
 # --- Клетка под курсором ------------------------------------------------------------------------
@@ -653,6 +801,13 @@ func show_tile(viewer: Player, tile: int, reveal_all: bool) -> void:
 		lines.append("Ресурс: %s (%s)" % [rdef.get("name", rid), cls])
 	if map.improvement[tile] != "":
 		lines.append("Улучшение: %s" % game.data.improvements.get(map.improvement[tile], {}).get("name", ""))
+	if map.district[tile] != "" and map.district[tile] != DistrictRules.CENTER:
+		var a := DistrictRules.at(game, tile)
+		if not a.is_empty():
+			var dc: City = a[0]
+			var de: Dictionary = a[1]
+			lines.append("Район: %s%s" % [DistrictRules.display_name(game, dc.owner, de["type"], int(de["tier"])),
+				"" if de["complete"] else " (строится)"])
 	if map.has_river(tile):
 		lines.append("Река")
 	var owner_city := game.state.city_owning(tile)

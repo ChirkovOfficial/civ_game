@@ -11,6 +11,7 @@ var game: Game
 var map_view: MapView
 var units_view: UnitsView
 var cities_view: CitiesView
+var districts_view: DistrictsView
 var overlay: OverlayView
 var camera_rig: CameraRig
 var hud: Hud
@@ -18,6 +19,8 @@ var hud: Hud
 var selected: Unit = null
 var selected_city: City = null
 var hover_tile := -1
+## Режим размещения района: тип района ("" — режим выключен).
+var placing_district := ""
 var _hover_path_target := -2
 ## Какие части геометрии карты пересобрать при следующем обновлении.
 var _geometry_dirty := {}
@@ -35,6 +38,7 @@ const GEOMETRY_EVENTS := {
 	"village_reward": ["improvements"],
 	"city_captured": ["borders"],
 	"city_destroyed": ["borders", "improvements"],
+	"district_placed": ["terrain", "improvements"],
 }
 
 
@@ -49,6 +53,9 @@ func _ready() -> void:
 	cities_view = CitiesView.new()
 	cities_view.name = "Cities"
 	add_child(cities_view)
+	districts_view = DistrictsView.new()
+	districts_view.name = "Districts"
+	add_child(districts_view)
 	units_view = UnitsView.new()
 	units_view.name = "Units"
 	add_child(units_view)
@@ -64,6 +71,7 @@ func _ready() -> void:
 	hud.load_pressed.connect(load_game)
 	hud.reveal_toggled.connect(_set_reveal)
 	hud.city_closed.connect(func(): _select_city(null))
+	hud.place_district.connect(_start_placement)
 	_new_game()
 
 
@@ -121,7 +129,9 @@ func _attach_game(g: Game) -> void:
 	camera_rig.setup(map_view.world_width, map.grid.world_position(map.size() - 1).y + 1.0)
 	units_view.setup(game, map_view)
 	cities_view.setup(game, map_view)
+	districts_view.setup(game, map_view)
 	overlay.setup(map_view)
+	placing_district = ""
 	selected = null
 	selected_city = null
 	hud.open_city(-1)
@@ -165,12 +175,14 @@ func _refresh_all() -> void:
 	units_view.selected_id = selected.id if selected != null else -1
 	units_view.refresh(viewer, camera_rig.position.x)
 	cities_view.refresh(viewer, camera_rig.position.x)
+	districts_view.refresh(viewer, camera_rig.position.x)
 	hud.refresh_top()
 	hud.refresh_research()
 	hud.show_unit(selected)
 	if selected_city != null and game.state.city(selected_city.id) != null:
 		hud.refresh_city()
-		overlay.show_city(game, selected_city, camera_rig.position.x)
+		if placing_district == "":
+			overlay.show_city(game, selected_city, camera_rig.position.x)
 	var blocking := EmpireRules.blocking_decisions(game, viewer.id)
 	if blocking.is_empty():
 		hud.set_end_turn_text("Конец хода (Enter)", false)
@@ -226,6 +238,7 @@ func _process(_delta: float) -> void:
 	# Фигурки и наложения следуют за камерой через шов цилиндра.
 	units_view.refresh(_viewer(), camera_rig.position.x)
 	cities_view.refresh(_viewer(), camera_rig.position.x)
+	districts_view.refresh(_viewer(), camera_rig.position.x)
 	_update_hover()
 
 
@@ -238,6 +251,8 @@ func _update_hover() -> void:
 	if tile != hover_tile:
 		hover_tile = tile
 		hud.show_tile(_viewer(), tile, map_view.reveal_all)
+		if placing_district != "" and selected_city != null:
+			hud.show_district_preview(selected_city, placing_district, tile)
 		if selected != null and tile >= 0 and game.state.unit(selected.id) != null and Combat.can_attack(game, selected):
 			var tgt := Combat.target_at(game, selected.owner, tile)
 			if tgt["kind"] == "unit" or tgt["kind"] == "city":
@@ -257,6 +272,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			_click_tile(hover_tile)
+		elif mb.button_index == MOUSE_BUTTON_RIGHT and placing_district != "":
+			_stop_placement()
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and selected != null and hover_tile >= 0:
 			_move_selected(hover_tile)
 	elif event is InputEventKey and event.pressed and not event.echo:
@@ -291,6 +308,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_F9:
 				load_game()
 			KEY_ESCAPE:
+				if placing_district != "":
+					_stop_placement()
+					return
 				_select(null)
 				_select_city(null)
 				hud.close_research()
@@ -298,6 +318,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _click_tile(tile: int) -> void:
 	if tile < 0:
+		return
+	if placing_district != "" and selected_city != null:
+		var err := DistrictRules.placement_error(game, selected_city, placing_district, tile)
+		if err != "":
+			hud.show_message(err)
+			return
+		var type := placing_district
+		_stop_placement()
+		act({"type": "set_production", "city": selected_city.id, "kind": "district", "id": type, "tile": tile})
 		return
 	# В режиме города щелчок по ничьей клетке рядом — покупка.
 	if selected_city != null and game.state.map.owner_city[tile] < 0 \
@@ -322,6 +351,23 @@ func _click_tile(tile: int) -> void:
 	_select(mine[(idx + 1) % mine.size()])
 
 
+func _start_placement(type: String) -> void:
+	if selected_city == null:
+		return
+	placing_district = type
+	overlay.clear_city()
+	overlay.show_placement(game, selected_city, type, camera_rig.position.x)
+	hud.show_message("Выберите клетку для района «%s» (ПКМ или Esc — отмена)" %
+		DistrictRules.display_name(game, selected_city.owner, type), 4.0)
+
+
+func _stop_placement() -> void:
+	placing_district = ""
+	overlay.clear_placement()
+	if selected_city != null:
+		overlay.show_city(game, selected_city, camera_rig.position.x)
+
+
 func _select(u: Unit) -> void:
 	selected = u
 	_hover_path_target = -2
@@ -330,6 +376,8 @@ func _select(u: Unit) -> void:
 
 
 func _select_city(c: City) -> void:
+	if placing_district != "":
+		_stop_placement()
 	selected_city = c
 	hud.open_city(c.id if c != null else -1)
 	if c == null:

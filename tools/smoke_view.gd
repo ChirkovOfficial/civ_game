@@ -76,6 +76,18 @@ func _process(_delta: float) -> bool:
 				_main.camera_rig.focus(_main.map_view.tile_world(u.tile))
 				_main.camera_rig.target_distance = 9.0
 				break
+	if _frames == 41:
+		# Районы: режим размещения, закладка щелчком, губернатор.
+		var cd: City = g.state.cities_of(0)[0]
+		g.state.player(0).known_techs["WRITING"] = true
+		_main._start_placement("CAMPUS")
+		var tiles := DistrictRules.valid_tiles(g, cd, "CAMPUS")
+		if not tiles.is_empty():
+			_main.hud.show_district_preview(cd, "CAMPUS", tiles[0])
+			_main._click_tile(tiles[0])
+		print("Районов в столице: %d, производство: %s" % [cd.districts.size(), str(cd.queue)])
+		_main.act({"type": "set_doctrine", "city": cd.id, "doctrine": "RELIGIOUS"})
+		_main.hud.refresh_city()
 	if _frames == 42:
 		_main.save_game()
 	if _frames == 43:

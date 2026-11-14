@@ -1,6 +1,6 @@
 extends SceneTree
 ## Снимок экрана главной сцены (для проверки графики без окна):
-##   xvfb-run -a godot --path . --rendering-driver opengl3 -s tools/screenshot.gd -- out.png [seed] [reveal] [zoom]
+##   xvfb-run -a godot --path . --rendering-driver opengl3 -s tools/screenshot.gd -- out.png [seed] [reveal] [zoom] [path|-] [ходов] [city|place:ТИП|-]
 ## Используется Claude для проверки изменений в отображении.
 
 var _frames := 0
@@ -43,6 +43,11 @@ func _process(_delta: float) -> bool:
 		var caps := g.state.cities_of(0)
 		if not caps.is_empty():
 			_main.camera_rig.focus(_main.map_view.tile_world(caps[0].tile))
+			# 7-й аргумент: city — открыть панель столицы; place:ТИП — режим размещения района.
+			if args.size() > 6 and args[6] != "-":
+				_main._select_city(caps[0])
+				if args[6].begins_with("place:"):
+					_main._start_placement(args[6].substr(6))
 	if _frames == 5 and args.size() > 4 and args[4] == "path":
 		# Показать предпросмотр пути выбранного юнита к клетке в 4 шагах на восток.
 		var u: Unit = _main.selected

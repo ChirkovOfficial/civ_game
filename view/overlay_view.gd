@@ -105,6 +105,93 @@ func show_city(game: Game, city: City, cam_x: float) -> void:
 		_city_root.add_child(label)
 
 
+var _place_root: Node3D = null
+var _icons := {}
+
+
+## Режим размещения района: подсвечивает подходящие клетки и показывает бонус соседства.
+func show_placement(game: Game, city: City, type: String, cam_x: float) -> void:
+	clear_placement()
+	_place_root = Node3D.new()
+	add_child(_place_root)
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(0.45, 1.0, 0.55, 0.9)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var mesh := _hex_outline_mesh()
+	var main: String = DistrictRules.ddef(game, type).get("main_yield", "")
+	var nero_ab := DistrictRules.city_ability(game, city.owner, "NERO_URBANIZATION")
+	for t in DistrictRules.valid_tiles(game, city, type):
+		var pos := map_view.tile_world(t, cam_x)
+		var mi := MeshInstance3D.new()
+		mi.mesh = mesh
+		mi.material_override = mat
+		mi.position = pos + Vector3(0, 0.03, 0)
+		_place_root.add_child(mi)
+		var adj := DistrictRules.adjacency(game, city.owner, type, t)
+		var parts := []
+		var keys := adj.keys()
+		keys.sort()
+		for y in keys:
+			parts.append([y, int(adj[y])])
+		if parts.is_empty() and main != "":
+			parts.append([main, 0])
+		var x := -0.12 * (parts.size() - 1)
+		for pr in parts:
+			var label := Label3D.new()
+			label.text = "+%d" % pr[1]
+			label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			label.font_size = 52
+			label.pixel_size = 0.004
+			label.outline_size = 10
+			label.modulate = Color(1, 1, 1) if pr[1] > 0 else Color(0.75, 0.75, 0.75)
+			label.outline_modulate = Color(0.05, 0.12, 0.05)
+			label.no_depth_test = true
+			label.position = pos + Vector3(x - 0.09, 0.32, 0)
+			_place_root.add_child(label)
+			var tex: Texture2D = _icon(pr[0])
+			if tex != null:
+				var sp := Sprite3D.new()
+				sp.texture = tex
+				sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+				sp.pixel_size = 0.22 / maxf(1.0, tex.get_width())
+				sp.no_depth_test = true
+				sp.position = pos + Vector3(x + 0.1, 0.32, 0)
+				_place_root.add_child(sp)
+			x += 0.3
+		# Римская урбанизация: сколько других специализированных районов рядом.
+		if not nero_ab.is_empty() and DistrictRules.is_specialized(game, type):
+			var n := 0
+			for nb in game.state.map.grid.neighbors(t):
+				var nd := game.state.map.district[nb]
+				if nd != "" and nd != DistrictRules.CENTER and nd != type and DistrictRules.is_specialized(game, nd):
+					n += 1
+			if n > 0:
+				var lab := Label3D.new()
+				lab.text = "✿%d" % n
+				lab.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+				lab.font_size = 44
+				lab.pixel_size = 0.004
+				lab.outline_size = 10
+				lab.modulate = Color(0.7, 1.0, 0.55) if n >= int(nero_ab.get("min_neighbors", 2)) else Color(0.7, 0.75, 0.7)
+				lab.outline_modulate = Color(0.05, 0.12, 0.05)
+				lab.no_depth_test = true
+				lab.position = pos + Vector3(0, 0.12, 0.3)
+				_place_root.add_child(lab)
+
+
+func _icon(kind: String) -> Texture2D:
+	if not _icons.has(kind):
+		_icons[kind] = load(Hud.ICON_DIR + "yield_%s.svg" % kind) if ResourceLoader.exists(Hud.ICON_DIR + "yield_%s.svg" % kind) else null
+	return _icons[kind]
+
+
+func clear_placement() -> void:
+	if _place_root != null:
+		_place_root.queue_free()
+		_place_root = null
+
+
 func clear_city() -> void:
 	if _city_root != null:
 		_city_root.queue_free()
