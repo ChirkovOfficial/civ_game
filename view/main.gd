@@ -38,6 +38,7 @@ const GEOMETRY_EVENTS := {
 	"camp_cleared": ["improvements"],
 	"village_reward": ["improvements"],
 	"city_captured": ["borders"],
+	"city_conceded": ["borders"],
 	"city_destroyed": ["borders", "improvements"],
 	"district_placed": ["terrain", "improvements"],
 }

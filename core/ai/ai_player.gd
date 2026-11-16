@@ -47,6 +47,9 @@ static func _answer_demands(game: Game, pid: int) -> void:
 		var dependence := DiplomacyRules.dependency_value(DiplomacyRules.dependency(game, pid, issuer))
 		var reverse := DiplomacyRules.dependency_value(DiplomacyRules.dependency(game, issuer, pid))
 		var accept := dependence > reverse and TreatyRules.trust(game, pid, issuer) >= 0
+		if demand["kind"] == "concede_city":
+			var city := game.state.city(int(demand["offer"]))
+			accept = accept and dependence - reverse >= 75.0 and city != null and city.population <= 3
 		game.apply_action({"type": "respond_demand", "pair": demand["pair"], "id": demand["id"], "accept": accept})
 
 
@@ -756,6 +759,11 @@ static func _clear_camps(game: Game, pid: int) -> void:
 	var p := s.player(pid)
 	var camp_tiles := s.camps.keys()
 	camp_tiles.sort()
+	for task in DemandRules.obligations_for(game, pid):
+		if int(task["recipient"]) == pid:
+			var tile: int = task["offer"]
+			camp_tiles.erase(tile)
+			camp_tiles.push_front(tile)
 	for tile in camp_tiles:
 		var ct := int(tile)
 		if not p.is_revealed(ct):

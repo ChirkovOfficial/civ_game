@@ -89,6 +89,27 @@ func _process(_delta: float) -> bool:
 		printerr("ИИ не ответил на требование прохода")
 		quit(1)
 		return true
-	print("Покупка мрамора, предложение дружбы и требование прохода работают")
+	game.state.player(0).met[2] = true
+	game.state.player(2).met[0] = true
+	game.state.player(2).met[1] = true
+	game.state.set_war(0, 1, true)
+	game.state.diplomacy["dependency"]["2,0"] = {"strategic": 55.0}
+	main.hud.open_strong_demands(2)
+	var joint_war: Button = null
+	for node in box.find_children("*", "Button", true, false):
+		if node.text.begins_with("Вступить в войну"):
+			joint_war = node
+			break
+	if joint_war == null:
+		printerr("Совместная война не появилась среди сильных требований")
+		quit(1)
+		return true
+	joint_war.pressed.emit()
+	main.act({"type": "end_turn", "force": true})
+	if not game.state.at_war(2, 1):
+		printerr("ИИ не вступил в совместную войну после требования")
+		quit(1)
+		return true
+	print("Покупка мрамора, дружба, требование прохода и совместной войны работают")
 	quit(0)
 	return true

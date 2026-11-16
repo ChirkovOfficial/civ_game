@@ -276,17 +276,11 @@ func apply_action(action: Dictionary) -> Array:
 					Army.detach(self, u, events)
 		"declare_war":
 			var target := int(action.get("target", -1))
-			var err := UnitRules.declare_war_error(self, state.current_player, target)
-			if err != "":
-				events.append(_error(err))
+			var error := UnitRules.declare_war_error(self, state.current_player, target)
+			if error != "":
+				events.append(_error(error))
 			else:
-				state.set_war(state.current_player, target, true)
-				TreatyRules.on_war(self, state.current_player, target, events)
-				TradeRules.cancel_invalid(self, events)
-				for u in state.units_of(target):
-					if u.orders.get("type", "") == "sleep":
-						u.orders = {}
-				events.append({"type": "war_declared", "player": state.current_player, "target": target})
+				declare_war(state.current_player, target, events)
 		"make_peace":
 			var target := int(action.get("target", -1))
 			var err := UnitRules.make_peace_error(self, state.current_player, target)
@@ -320,7 +314,7 @@ func apply_action(action: Dictionary) -> Array:
 		_:
 			events.append(_error("Неизвестное действие: %s" % action.get("type", "")))
 	for event in events:
-		if event["type"] in ["war_declared", "pillaged", "city_captured", "city_destroyed",
+		if event["type"] in ["war_declared", "pillaged", "city_captured", "city_destroyed", "city_conceded",
 				"city_founded", "harvested", "improvement_built"]:
 			DiplomacyRules.cancel_invalid_luxuries(self, events)
 			break
@@ -337,6 +331,18 @@ func _error(msg: String) -> Dictionary:
 	return {"type": "error", "message": msg}
 
 
+## Общие последствия объявления войны после проверки права на действие.
+func declare_war(issuer: int, target: int, events: Array) -> void:
+	state.set_war(issuer, target, true)
+	TreatyRules.on_war(self, issuer, target, events)
+	ConcessionRules.update_loans(self, state.turn, events)
+	TradeRules.cancel_invalid(self, events)
+	for unit in state.units_of(target):
+		if unit.orders.get("type", "") == "sleep":
+			unit.orders = {}
+	events.append({"type": "war_declared", "player": issuer, "target": target})
+
+
 func _own_unit(action: Dictionary, events: Array) -> Unit:
 	var u := state.unit(int(action.get("unit", -1)))
 	if u == null:
@@ -347,6 +353,10 @@ func _own_unit(action: Dictionary, events: Array) -> Unit:
 		return null
 	if not u.trade_route.is_empty():
 		events.append(_error("Торговец в пути"))
+		return null
+	if ConcessionRules.legal_owner(self, u) != u.owner \
+			and action.get("type", "") in ["upgrade_unit", "equip", "attach_commander", "detach_commander"]:
+		events.append(_error("Подкрепление нельзя модернизировать, перевооружать или передавать командующему"))
 		return null
 	if action.get("type", "") not in ["move_unit", "skip_unit", "sleep_unit", "cancel_orders"] \
 			and TreatyRules.withdrawing(self, u):
@@ -633,6 +643,7 @@ func _advance_round(events: Array) -> bool:
 	VictoryRules.check_turn_limit(self, events)
 	if not state.result.is_empty():
 		return false
+	DemandRules.close_round(self, events)
 	TreatyRules.close_round(self)
 	DiplomacyRules.close_round(self, events)
 	state.turn += 1

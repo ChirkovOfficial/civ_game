@@ -327,6 +327,9 @@ func refresh_research() -> void:
 		var parts := _research_kind.split(":")
 		open_supply_offer(int(parts[1]), parts[2] == "buy")
 		return
+	if _research_kind.begins_with("strong_demands:"):
+		open_strong_demands(int(_research_kind.get_slice(":", 1)))
+		return
 	if _research_kind == "government":
 		open_government()
 		return
@@ -573,6 +576,8 @@ func open_diplomacy() -> void:
 			_button(_research_box, "Потребовать проход",
 				func(): act.call({"type": "issue_demand", "kind": "passage", "target": oid}),
 				passage_error != "", _demand_tooltip(passage_error))
+			if DiplomacyRules.dependency_value(theirs) > float(game.data.diplomacy["strong_demand_threshold"]):
+				_button(_research_box, "Сильные требования", func(): open_strong_demands(oid))
 	if not any:
 		_label(_research_box, "Вы ещё ни с кем не встретились.")
 	var offer_ids: Array = d.get("offers", {}).keys()
@@ -622,11 +627,15 @@ func _demand_tooltip(error: String) -> String:
 
 
 func _show_demands(pid: int) -> void:
+	for task in DemandRules.obligations_for(game, pid):
+		_label(_research_box, "%s · выполнить до начала хода %d" % [
+			_demand_subject("clear_camp", int(task["offer"])), int(task["until"])], 14, Color.WHITE, true)
 	for demand in DemandRules.pending_for(game, pid):
 		var incoming := int(demand["recipient"]) == pid
 		var peer := game.state.player(int(demand["issuer"] if incoming else demand["recipient"]))
-		var title := "Право прохода" if demand["kind"] == "passage" else "Скидка %d%% на предложение №%d" % [
-			int(demand["percent"]), int(demand["offer"])]
+		var title := _demand_subject(demand["kind"], int(demand["offer"]))
+		if demand["kind"] == "discount":
+			title = "Скидка %d%% на предложение №%d" % [int(demand["percent"]), int(demand["offer"])]
 		_label(_research_box, "%s · %s · %s" % [title, peer.name,
 			"требование к нам" if incoming else "наше требование"], 15, Color.WHITE, true)
 		if demand["kind"] == "discount":
@@ -642,6 +651,55 @@ func _show_demands(pid: int) -> void:
 			var id: int = demand["id"]
 			_button(actions, "Согласиться", func(): act.call({"type": "respond_demand", "pair": pair, "id": id, "accept": true}))
 			_button(actions, "Отказать", func(): act.call({"type": "respond_demand", "pair": pair, "id": id, "accept": false}))
+
+
+func _demand_subject(kind: String, subject: int) -> String:
+	match kind:
+		"joint_war": return "Вступить в войну против державы «%s»" % game.state.player(subject).name
+		"clear_camp":
+			var grid := game.state.map.grid
+			return "Ликвидировать лагерь варваров (%d, %d)" % [grid.col_of(subject), grid.row_of(subject)]
+		"reinforcement":
+			var unit := game.state.unit(subject)
+			return "Подкрепление · %s №%d" % [Abilities.unit_name(game, ConcessionRules.legal_owner(game, unit), unit.type), subject] \
+				if unit != null else "Подкрепление · отряд №%d" % subject
+		"concede_city":
+			var city := game.state.city(subject)
+			return "Мирно уступить город «%s»" % city.name if city != null else "Мирно уступить город"
+		_: return "Право прохода"
+
+
+func open_strong_demands(peer: int) -> void:
+	var pid := game.state.current_player
+	_research_kind = "strong_demands:%d" % peer
+	_research_panel.visible = true
+	_clear(_research_box)
+	var head := HBoxContainer.new()
+	_research_box.add_child(head)
+	var title := _label(head, "Требования · %s" % game.state.player(peer).name, 18)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_button(head, "Назад", open_diplomacy)
+	var targets := {"joint_war": [], "clear_camp": game.state.camps.keys(), "reinforcement": [], "concede_city": []}
+	for other in game.state.players:
+		if other.id != pid and other.id != peer and not other.is_barbarian and game.state.at_war(pid, other.id):
+			targets["joint_war"].append(other.id)
+	for unit in game.state.units_of(peer):
+		targets["reinforcement"].append(unit.id)
+	for city in game.state.cities_of(peer):
+		targets["concede_city"].append(city.id)
+	var any := false
+	for kind in targets:
+		targets[kind].sort()
+		for subject in targets[kind]:
+			if DemandRules.issue_error(game, pid, peer, kind, int(subject)) != "":
+				continue
+			any = true
+			_button(_research_box, _demand_subject(kind, int(subject)), func():
+				act.call({"type": "issue_demand", "kind": kind, "target": peer, "offer": subject})
+				open_diplomacy(), false, _demand_tooltip(""))
+	if not any:
+		_label(_research_box, "Сейчас нет доступных целей или ещё действует пауза после предыдущего требования.",
+			13, Color.WHITE, true)
 
 
 static func _treaty_label(kind: String) -> String:
@@ -855,7 +913,10 @@ func show_unit(u: Unit) -> void:
 		return
 	_unit_panel.visible = true
 	var def := game.data.unit_def(u.type)
-	var title := Abilities.unit_name(game, u.owner, u.type)
+	var lender := ConcessionRules.legal_owner(game, u)
+	var title := Abilities.unit_name(game, lender, u.type)
+	if lender != u.owner:
+		title += " · подкрепление"
 	if not u.commander.is_empty():
 		title += " — " + Army.detachment_name(game, u.owner)
 	_label(_unit_box, title, 20)
@@ -882,7 +943,7 @@ func show_unit(u: Unit) -> void:
 		for pid in u.promotions:
 			names.append(game.data.promotions[pid]["name"])
 		lines.append("Повышения: " + ", ".join(names))
-	for a in Abilities.of(game, u.owner, u.type):
+	for a in Abilities.of(game, lender, u.type):
 		if game.data.abilities.has(a):
 			lines.append("◆ %s" % game.data.abilities[a]["name"])
 	if not u.commander.is_empty():

@@ -3,9 +3,10 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 6
+const SAVE_VERSION := 7
 
-var demand_data := {"next_id": 1, "pending": {}, "cooldowns": {}, "refusals": {}}
+var demand_data := {"next_id": 1, "pending": {}, "cooldowns": {}, "refusals": {},
+	"obligations": {}, "breaches": {}, "loans": {}, "city_concessions": {}}
 
 var treaty_data := {"active": {}, "offers": {}, "history": {}, "cooldowns": {},
 	"reputation": {}, "withdrawal": {}}
@@ -235,8 +236,11 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 	s.demand_data["next_id"] = int(demands.get("next_id", 1))
 	for key in demands.get("pending", {}):
 		s.demand_data["pending"][key] = Unit._ints_in_dict(demands["pending"][key])
-	for kind in ["cooldowns", "refusals"]:
+	for kind in ["cooldowns", "refusals", "breaches"]:
 		s.demand_data[kind] = Unit._ints_in_dict(demands.get(kind, {}))
+	for kind in ["obligations", "loans", "city_concessions"]:
+		for key in demands.get(kind, {}):
+			s.demand_data[kind][key] = Unit._ints_in_dict(demands[kind][key])
 	var saved_treaties: Dictionary = d.get("treaties", {})
 	for collection in s.treaty_data:
 		var records: Dictionary = saved_treaties.get(collection, {})

@@ -441,10 +441,15 @@ static func _update_dependency(game: Game, round_number: int, events: Array) -> 
 			var previous_goods: float = old.get("goods", 0.0)
 			var step := cfg(game, "goods_dependency_step")
 			var goods := previous_goods + clampf(goods_target - previous_goods, -step, step)
-			d["dependency"][key] = {"strategic": value, "goods": goods, "religion": 0.0,
+			var religion: float = old.get("religion", 0.0)
+			var record := {"strategic": value, "goods": goods, "religion": religion,
 				"target": target + goods_target, "goods_target": goods_target, "main_resource": best_rid}
-			if not is_equal_approx(value, current) or not is_equal_approx(goods, previous_goods):
-				events.append({"type": "dependency_changed", "dependent": buyer, "provider": seller, "value": value + goods})
+			if ConcessionRules.concession_active(game, buyer, seller):
+				ConcessionRules.cap_components(record, cfg(game, "concession_dependency_cap"))
+			d["dependency"][key] = record
+			if not is_equal_approx(dependency_value(record), dependency_value(old)):
+				events.append({"type": "dependency_changed", "dependent": buyer, "provider": seller,
+					"value": dependency_value(record)})
 
 static func dependency(game: Game, dependent: int, provider: int) -> Dictionary:
 	var item: Dictionary = game.state.diplomacy.get("dependency", {}).get(_pair(dependent, provider), {})

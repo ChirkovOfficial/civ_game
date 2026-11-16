@@ -587,6 +587,7 @@ static func _check_elimination(game: Game, pid: int, events: Array) -> void:
 		# Держава без городов выбывает, если ей уже нечем основать новый.
 		if not has_settler:
 			p.alive = false
+			ConcessionRules.update_loans(game, game.state.turn, events)
 			for u in game.state.units_of(pid):
 				game.state.remove_unit(u.id)
 			events.append({"type": "player_eliminated", "player": pid})

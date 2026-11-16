@@ -176,6 +176,8 @@ static func attach_error(game: Game, cmd: Unit, target: Unit) -> String:
 		return "Это не командующий"
 	if target == null or target.owner != cmd.owner or target.tile != cmd.tile:
 		return "Войска должны стоять на той же клетке"
+	if ConcessionRules.legal_owner(game, target) != target.owner:
+		return "Нельзя присоединить командующего к подкреплению"
 	if not Combat.can_attack(game, target) or Movement.domain(game, target) != "LAND":
 		return "Командующий ведёт только наземные боевые войска"
 	if not target.commander.is_empty():

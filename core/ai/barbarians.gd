@@ -326,6 +326,7 @@ static func on_enter(game: Game, u: Unit, events: Array) -> void:
 		var gold := float(k(game, "barbarian_camp_gold", 50)) * (1.0 + _era_index(game) * 0.5)
 		p.treasury += gold
 		events.append({"type": "camp_cleared", "tile": u.tile, "player": u.owner, "gold": gold})
+		DemandRules.on_camp_cleared(game, u.tile, u.owner, events)
 	elif imp == "TRIBAL_VILLAGE":
 		map.improvement[u.tile] = ""
 		_village_reward(game, u, events)

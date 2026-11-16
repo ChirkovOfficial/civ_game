@@ -38,7 +38,7 @@ static func of(game: Game, owner: int, unit_type: String) -> Array[String]:
 
 
 static func has(game: Game, u: Unit, ability: String) -> bool:
-	return of(game, u.owner, u.type).has(ability)
+	return of(game, ConcessionRules.legal_owner(game, u), u.type).has(ability)
 
 
 static func param(game: Game, ability: String, key: String, default: Variant = 0) -> Variant:
