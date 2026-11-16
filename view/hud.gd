@@ -7,6 +7,7 @@ signal end_turn_pressed
 signal new_map_pressed
 signal save_pressed
 signal load_pressed
+signal menu_pressed
 signal reveal_toggled(on: bool)
 signal city_closed
 ## Игрок выбрал район в списке производства — нужно указать клетку на карте.
@@ -130,6 +131,7 @@ func _ready() -> void:
 	new_map.text = "Новая карта (F5)"
 	new_map.pressed.connect(func(): new_map_pressed.emit())
 	br.add_child(new_map)
+	_button(br, "Главное меню", func(): menu_pressed.emit())
 	_end_turn_button = Button.new()
 	_end_turn_button.text = "Конец хода (Enter)"
 	_end_turn_button.custom_minimum_size = Vector2(280, 56)

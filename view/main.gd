@@ -2,10 +2,12 @@ extends Node3D
 ## Точка входа: создаёт партию и связывает ядро с отображением и вводом.
 ## Ядро (core/) меняется только через Game.apply_action().
 
-## Параметры новой партии (позже появится экран настройки).
+## Параметры новой партии. Стартовое меню задаёт их до входа в сцену.
 @export var map_size := "SMALL"
 @export var map_type := "CONTINENTS"
+@export var game_speed := "STANDARD"
 @export var fixed_seed := 0   # 0 — случайное зерно
+var initial_game: Game
 
 var game: Game
 var map_view: MapView
@@ -25,6 +27,7 @@ var _hover_path_target := -2
 ## Какие части геометрии карты пересобрать при следующем обновлении.
 var _geometry_dirty := {}
 var _result_presented := false
+var _menu_confirmation: ConfirmationDialog
 
 ## Событие -> части геометрии, которые оно меняет.
 const GEOMETRY_EVENTS := {
@@ -71,10 +74,16 @@ func _ready() -> void:
 	hud.new_map_pressed.connect(_new_game)
 	hud.save_pressed.connect(save_game)
 	hud.load_pressed.connect(load_game)
+	hud.menu_pressed.connect(_confirm_main_menu)
 	hud.reveal_toggled.connect(_set_reveal)
 	hud.city_closed.connect(func(): _select_city(null))
 	hud.place_district.connect(_start_placement)
-	_new_game()
+	if initial_game != null:
+		_attach_game(initial_game)
+		initial_game = null
+		hud.show_message("Игра загружена: ход %d" % game.state.turn)
+	else:
+		_new_game()
 
 
 func _setup_environment() -> void:
@@ -100,7 +109,7 @@ func _new_game() -> void:
 	var seed_value := fixed_seed if fixed_seed != 0 else randi() % 1000000 + 1
 	var t0 := Time.get_ticks_msec()
 	var g := Game.new_game(GameData.get_default(), {
-		"map_size": map_size, "map_type": map_type, "seed": seed_value, "humans": [0],
+		"map_size": map_size, "map_type": map_type, "speed": game_speed, "seed": seed_value, "humans": [0],
 	})
 	print("Карта создана за %d мс, зерно %d" % [Time.get_ticks_msec() - t0, seed_value])
 	_attach_game(g)
@@ -119,6 +128,23 @@ func load_game() -> void:
 		return
 	_attach_game(g)
 	hud.show_message("Игра загружена: ход %d" % g.state.turn)
+
+
+func _confirm_main_menu() -> void:
+	if _menu_confirmation == null:
+		_menu_confirmation = ConfirmationDialog.new()
+		_menu_confirmation.title = "Главное меню"
+		_menu_confirmation.dialog_text = "Вернуться в главное меню? Несохранённые изменения партии будут потеряны."
+		_menu_confirmation.ok_button_text = "В меню"
+		_menu_confirmation.cancel_button_text = "Остаться"
+		_menu_confirmation.confirmed.connect(_return_to_main_menu)
+		add_child(_menu_confirmation)
+	_menu_confirmation.popup_centered()
+
+
+func _return_to_main_menu() -> void:
+	if get_tree().change_scene_to_file("res://view/start_menu.tscn") != OK:
+		hud.show_message("Не удалось открыть главное меню")
 
 
 ## Подключает партию к отображению (новую или загруженную).
@@ -141,7 +167,7 @@ func _attach_game(g: Game) -> void:
 	hud.close_research()
 	_geometry_dirty = {}
 	_refresh_all()
-	var focus_tile := game.state.start_positions[0]
+	var focus_tile := 0 if game.state.start_positions.is_empty() else game.state.start_positions[0]
 	var caps := game.state.cities_of(game.state.current_player)
 	if not caps.is_empty():
 		focus_tile = caps[0].tile

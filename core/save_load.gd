@@ -37,6 +37,15 @@ static func load_game(data: GameData, slot: String = QUICKSAVE) -> Game:
 	var parsed = bytes_to_var(f.get_buffer(f.get_length()))
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return null
+	for key in ["turn", "current_player", "map", "rng", "settings", "players", "units", "next_unit_id", "start_positions"]:
+		if not parsed.has(key):
+			return null
+	if not parsed["players"] is Array or parsed["players"].is_empty() \
+			or not int(parsed["current_player"]) in range(parsed["players"].size()):
+		return null
+	if not parsed["map"] is Dictionary or int(parsed["map"].get("width", 0)) <= 0 \
+			or int(parsed["map"].get("height", 0)) <= 0:
+		return null
 	return from_dict(data, parsed)
 
 
