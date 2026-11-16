@@ -315,6 +315,10 @@ func refresh_research() -> void:
 	if _research_kind == "diplomacy":
 		open_diplomacy()
 		return
+	if _research_kind.begins_with("supply:"):
+		var parts := _research_kind.split(":")
+		open_supply_offer(int(parts[1]), parts[2] == "buy")
+		return
 	if _research_kind == "government":
 		open_government()
 		return
@@ -491,6 +495,17 @@ func open_diplomacy() -> void:
 	var title := _label(head, "Державы", 20)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_button(head, "✕", close_research)
+	var d: Dictionary = game.state.diplomacy
+	var score: Dictionary = d.get("influence", {}).get(str(pid), {})
+	_label(_research_box, "Мировое влияние: %s / 1000 · цель %s" % [
+		_fmt(float(score.get("value", 0.0))), _fmt(float(score.get("target", 0.0)))], 16)
+	var sources: Dictionary = score.get("sources", {})
+	_label(_research_box, "Перевес зависимости %s · пути %s · поставки %s · жизнь городов %s" % [
+		_fmt(float(sources.get("dependency", 0.0))), _fmt(float(sources.get("routes", 0.0))),
+		_fmt(float(sources.get("supplies", 0.0))), _fmt(float(sources.get("living", 0.0)))],
+		12, Color(0.75, 0.78, 0.85), true)
+	_label(_research_box, "Религия, туризм и международные события появятся вместе с их механиками.",
+		12, Color(0.75, 0.78, 0.85), true)
 	var any := false
 	for other in game.state.players:
 		if other.id == pid or other.is_barbarian or not me.met.has(other.id):
@@ -509,15 +524,143 @@ func open_diplomacy() -> void:
 		if not other.alive:
 			continue
 		var oid := other.id
+		var ours: Dictionary = d.get("dependency", {}).get("%d,%d" % [pid, oid], {})
+		var theirs: Dictionary = d.get("dependency", {}).get("%d,%d" % [oid, pid], {})
+		_label(_research_box, "Мы зависим: %s · зависит от нас: %s" % [
+			_fmt(float(ours.get("strategic", 0.0))), _fmt(float(theirs.get("strategic", 0.0)))],
+			12, Color(0.75, 0.78, 0.85), true)
+		if not ours.is_empty() and float(ours.get("strategic", 0.0)) > 0.0:
+			_label(_research_box, "Наш источник: %s · целевой уровень %s" % [
+				str(game.data.resources.get(ours.get("main_resource", ""), {}).get("name", "ресурс")),
+				_fmt(float(ours.get("target", 0.0)))], 12, Color(0.75, 0.78, 0.85), true)
+		if not theirs.is_empty() and float(theirs.get("strategic", 0.0)) > 0.0:
+			_label(_research_box, "Их источник: %s · целевой уровень %s" % [
+				str(game.data.resources.get(theirs.get("main_resource", ""), {}).get("name", "ресурс")),
+				_fmt(float(theirs.get("target", 0.0)))], 12, Color(0.75, 0.78, 0.85), true)
 		if war:
 			var e := UnitRules.make_peace_error(game, pid, oid)
 			_button(row, "Заключить мир", func(): act.call({"type": "make_peace", "target": oid}); open_diplomacy(), e != "", e)
 		else:
 			var e2 := UnitRules.declare_war_error(game, pid, oid)
 			_button(row, "Объявить войну", func(): act.call({"type": "declare_war", "target": oid}); open_diplomacy(), e2 != "", e2)
+			var actions := HBoxContainer.new()
+			_research_box.add_child(actions)
+			_button(actions, "Купить ресурс", func(): open_supply_offer(oid, true))
+			_button(actions, "Продать ресурс", func(): open_supply_offer(oid, false))
 	if not any:
 		_label(_research_box, "Вы ещё ни с кем не встретились.")
-	_label(_research_box, "Дипломатия появится на этапе M6; пока доступны только война и мир. С варварами всегда война.", 12, Color(0.75, 0.78, 0.85), true)
+	var offer_ids: Array = d.get("offers", {}).keys()
+	offer_ids.sort_custom(func(a: String, b: String) -> bool: return int(a) < int(b))
+	for id in offer_ids:
+		var offer: Dictionary = d["offers"][id]
+		if pid not in [int(offer["seller"]), int(offer["buyer"])]:
+			continue
+		var other_id := int(offer["buyer"]) if int(offer["seller"]) == pid else int(offer["seller"])
+		var direction := "продаём" if int(offer["seller"]) == pid else "покупаем"
+		var heading := "Предложение №%s · %s · %s" % [id, game.state.player(other_id).name, direction]
+		_label(_research_box, heading, 15)
+		_label(_research_box, _supply_summary(offer), 12, Color(0.75, 0.78, 0.85), true)
+		if int(offer.get("responder", offer["buyer"])) == pid:
+			var controls := HBoxContainer.new()
+			_research_box.add_child(controls)
+			var offer_id := int(id)
+			_button(controls, "Принять", func(): act.call({"type": "respond_supply", "id": offer_id, "accept": true}); open_diplomacy())
+			_button(controls, "Отказать", func(): act.call({"type": "respond_supply", "id": offer_id, "accept": false}); open_diplomacy())
+		else:
+			_label(_research_box, "Ожидаем ответа")
+	var contract_ids: Array = d.get("contracts", {}).keys()
+	contract_ids.sort_custom(func(a: String, b: String) -> bool: return int(a) < int(b))
+	for id in contract_ids:
+		var contract: Dictionary = d["contracts"][id]
+		if pid not in [int(contract["seller"]), int(contract["buyer"])]:
+			continue
+		var partner := int(contract["buyer"]) if int(contract["seller"]) == pid else int(contract["seller"])
+		_label(_research_box, "Договор №%s · %s" % [id, game.state.player(partner).name], 15)
+		_label(_research_box, "%s: %s за ход · осталось %d ходов · предоплата %d золота" % [
+			str(game.data.resources[contract["resource"]]["name"]), _fmt(float(contract["per_turn"])),
+			int(contract["remaining"]), int(contract["escrow"])], 12, Color(0.75, 0.78, 0.85), true)
+		var contract_id := int(id)
+		_button(_research_box, "Прекратить договор", func(): act.call({"type": "cancel_supply", "id": contract_id}); open_diplomacy())
+
+
+func _supply_summary(offer: Dictionary) -> String:
+	var resource_name: String = game.data.resources.get(offer["resource"], {}).get("name", str(offer["resource"]))
+	var upfront := int(offer["upfront"])
+	var periodic := int(offer["per_turn"])
+	var rounds := int(offer["rounds"])
+	var total := upfront + periodic * rounds
+	return "%s: %d сейчас + %d за ход × %d ходов = %d ед. · %d золота один раз" % [
+		resource_name, upfront, periodic, rounds, total, total * int(offer["unit_price"])]
+
+
+func _supply_number(parent: Container, caption: String, start: int, minimum: int, maximum: int) -> SpinBox:
+	var row := HBoxContainer.new()
+	parent.add_child(row)
+	var label := _label(row, caption)
+	label.custom_minimum_size.x = 160
+	var input := SpinBox.new()
+	input.min_value = minimum
+	input.max_value = maximum
+	input.step = 1
+	input.rounded = true
+	input.value = start
+	input.custom_minimum_size.x = 120
+	row.add_child(input)
+	return input
+
+
+func open_supply_offer(partner: int, buying: bool) -> void:
+	var pid := game.state.current_player
+	if partner < 0 or partner >= game.state.players.size() or partner == pid or \
+			game.state.at_war(pid, partner) or not game.state.player(pid).met.has(partner):
+		open_diplomacy()
+		return
+	_research_kind = "supply:%d:%s" % [partner, "buy" if buying else "sell"]
+	_research_panel.visible = true
+	_clear(_research_box)
+	var head := HBoxContainer.new()
+	_research_box.add_child(head)
+	var title := _label(head, "Купить ресурс" if buying else "Продать ресурс", 20)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_button(head, "Назад", open_diplomacy)
+	_label(_research_box, "Партнёр: %s" % game.state.player(partner).name)
+	var options := OptionButton.new()
+	_research_box.add_child(options)
+	var ids: Array[String] = []
+	for rid in game.data.resource_ids:
+		if game.data.resources[rid].get("class", "") != "strategic":
+			continue
+		if not Yields.resource_visible(game.data, rid, game.state.player(pid)):
+			continue
+		ids.append(rid)
+		options.add_item(game.data.resources[rid]["name"])
+	if ids.is_empty():
+		_label(_research_box, "Пока нет известных стратегических ресурсов")
+		return
+	var upfront := _supply_number(_research_box, "Сразу, ед.", 0, 0, 50)
+	var periodic := _supply_number(_research_box, "За ход, ед.", 2, 0, 50)
+	var rounds := _supply_number(_research_box, "Число ходов", 5, 0, 100)
+	var price := _supply_number(_research_box, "Золото за единицу", 2, 0, 1000)
+	var preview := _label(_research_box, "", 13, Color(0.75, 0.78, 0.85), true)
+	var update := func():
+		var amount := int(upfront.value) + int(periodic.value) * int(rounds.value)
+		preview.text = "Всего %d ед. · разовая оплата %d золота" % [amount, amount * int(price.value)]
+	for field in [upfront, periodic, rounds, price]:
+		field.value_changed.connect(func(_value): update.call())
+	update.call()
+	_label(_research_box, "Оплата будущих поставок хранится до исполнения. Отправка предложения ничего не списывает.",
+		12, Color(0.75, 0.78, 0.85), true)
+	_button(_research_box, "Отправить предложение", func():
+		var action := {"type": "propose_supply", "resource": ids[options.selected],
+			"upfront": int(upfront.value), "per_turn": int(periodic.value),
+			"rounds": int(rounds.value), "unit_price": int(price.value)}
+		if buying:
+			action["seller"] = partner
+		else:
+			action["buyer"] = partner
+		var events: Array = act.call(action)
+		if events.any(func(e): return e["type"] == "supply_proposed"):
+			open_diplomacy())
 
 
 func _choose_research(id: String) -> void:

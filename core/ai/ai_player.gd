@@ -41,13 +41,17 @@ static func _supply_diplomacy(game: Game, pid: int) -> void:
 	offer_ids.sort_custom(func(a: String, b: String) -> bool: return int(a) < int(b))
 	for id in offer_ids:
 		var offer: Dictionary = d["offers"][id]
-		if int(offer["buyer"]) != pid:
+		if int(offer.get("responder", offer["buyer"])) != pid:
 			continue
 		var rid: String = offer["resource"]
 		var total: int = (int(offer["upfront"]) + int(offer["per_turn"]) * int(offer["rounds"])) * int(offer["unit_price"])
 		var need := DiplomacyRules._resource_need(game, pid, rid, game.state.turn)
 		var supply: float = UnitRules.strategic_income(game, pid).get(rid, 0.0)
 		var accept := need > supply and game.state.player(pid).treasury >= total + 30.0
+		if int(offer["seller"]) == pid:
+			accept = float(game.state.player(pid).stockpile.get(rid, 0.0)) >= float(offer["upfront"]) \
+				and float(game.state.player(pid).stockpile.get(rid, 0.0)) >= 20.0 \
+				and int(offer["unit_price"]) >= 2
 		game.apply_action({"type": "respond_supply", "id": int(id), "accept": accept})
 	# Не создаём предложения без выявленной потребности и контакта.
 	for other in game.state.players:

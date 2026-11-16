@@ -127,3 +127,17 @@ func test_reexport_preserves_original_source() -> void:
 	check_near(g.state.player(0).stockpile["OIL"], 0.0)
 	check_near(g.state.player(2).stockpile["OIL"], 10.0)
 	check_near(float(g.state.diplomacy["origin"]["2"]["OIL"]["0"]), 10.0)
+
+func test_buyer_can_start_offer_and_seller_accepts() -> void:
+	var g := _game()
+	g.state.current_player = 1
+	var events := g.apply_action({"type": "propose_supply", "seller": 0, "resource": "OIL",
+		"upfront": 20, "per_turn": 5, "rounds": 10, "unit_price": 3})
+	check_eq(events[0]["type"], "supply_proposed")
+	var id := str(events[0]["id"])
+	check_eq(g.state.diplomacy["offers"][id]["responder"], 0)
+	check_near(g.state.player(1).treasury, 210.0)
+	g.state.current_player = 0
+	check_eq(g.apply_action({"type": "respond_supply", "id": int(id), "accept": true})[0]["type"], "supply_accepted")
+	check_near(g.state.player(1).treasury, 0.0)
+	check_near(g.state.player(0).treasury, 60.0)

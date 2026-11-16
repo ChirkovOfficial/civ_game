@@ -49,10 +49,12 @@ static func _resource_error(game: Game, seller: int, buyer: int, rid: String) ->
 
 static func propose(game: Game, action: Dictionary, events: Array) -> void:
 	initialize(game)
-	var seller := game.state.current_player
-	var buyer := int(action.get("buyer", -1))
+	var seller := int(action.get("seller", game.state.current_player))
+	var buyer := int(action.get("buyer", game.state.current_player))
 	var rid := str(action.get("resource", ""))
 	var err := _resource_error(game, seller, buyer, rid)
+	if err == "" and game.state.current_player != seller and game.state.current_player != buyer:
+		err = "Предложение может сделать только одна из сторон"
 	var upfront := int(action.get("upfront", -1))
 	var periodic := int(action.get("per_turn", -1))
 	var periods := int(action.get("rounds", -1))
@@ -68,7 +70,8 @@ static func propose(game: Game, action: Dictionary, events: Array) -> void:
 	var d := game.state.diplomacy
 	var id: int = d["next_id"]
 	d["next_id"] = id + 1
-	d["offers"][str(id)] = {"id": id, "seller": seller, "buyer": buyer, "resource": rid,
+	d["offers"][str(id)] = {"id": id, "seller": seller, "buyer": buyer,
+		"responder": buyer if seller == game.state.current_player else seller, "resource": rid,
 		"upfront": upfront, "per_turn": periodic, "rounds": periods, "unit_price": price,
 		"created": game.state.turn}
 	events.append({"type": "supply_proposed", "id": id, "seller": seller, "buyer": buyer})
@@ -78,7 +81,7 @@ static func respond(game: Game, action: Dictionary, events: Array) -> void:
 	var id := str(int(action.get("id", -1)))
 	var d := game.state.diplomacy
 	var offer: Dictionary = d["offers"].get(id, {})
-	if offer.is_empty() or int(offer["buyer"]) != game.state.current_player:
+	if offer.is_empty() or int(offer.get("responder", offer.get("buyer", -1))) != game.state.current_player:
 		_error(events, "Предложение недоступно")
 		return
 	if not bool(action.get("accept", false)):
