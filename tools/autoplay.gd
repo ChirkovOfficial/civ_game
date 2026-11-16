@@ -1,6 +1,6 @@
 extends SceneTree
 ## Автоигра без интерфейса (ГДД 23.13) — статистика для баланса:
-##   godot --headless --path . -s tools/autoplay.gd -- [ходов=100] [размер=SMALL] [зерно=1]
+##   godot --headless --path . -s tools/autoplay.gd -- [ходов=100] [размер=SMALL] [зерно=1] [лимит партии]
 
 
 func _init() -> void:
@@ -8,15 +8,23 @@ func _init() -> void:
 	var turns := int(args[0]) if args.size() > 0 else 100
 	var size := args[1] if args.size() > 1 else "SMALL"
 	var seed_value := int(args[2]) if args.size() > 2 else 1
-	var g := Game.new_game(GameData.get_default(), {
+	var settings := {
 		"map_size": size, "map_type": "CONTINENTS", "seed": seed_value, "humans": [],
-	})
+	}
+	if args.size() > 3:
+		settings["turn_limit"] = int(args[3])
+	var g := Game.new_game(GameData.get_default(), settings)
 	var t0 := Time.get_ticks_msec()
-	for t in turns:
+	var played := 0
+	for _t in turns:
 		AIPlayer.take_turn(g, g.state.current_player)
 		g.apply_action({"type": "end_turn", "force": true})
+		played += 1
+		if not g.state.result.is_empty():
+			print("Итог партии: ", g.state.result)
+			break
 	var dt := Time.get_ticks_msec() - t0
-	print("Ходов: %d, время: %d мс (%.1f мс/ход)" % [turns, dt, float(dt) / turns])
+	print("Ходов: %d, время: %d мс (%.1f мс/ход)" % [played, dt, float(dt) / maxi(1, played)])
 	for p in g.state.players:
 		if p.is_barbarian:
 			print("Варвары: лагерей %d, юнитов %d" % [g.state.camps.size(), g.state.units_of(p.id).size()])

@@ -115,6 +115,7 @@ func _ready() -> void:
 	_reveal_button.text = "Вся карта (F2)"
 	_reveal_button.toggled.connect(func(on): reveal_toggled.emit(on))
 	br.add_child(_reveal_button)
+	_button(br, "Победы и счёт", open_victory)
 	var file_row := HBoxContainer.new()
 	br.add_child(file_row)
 	var save_b := Button.new()
@@ -311,6 +312,9 @@ func close_research() -> void:
 
 func refresh_research() -> void:
 	if not _research_panel.visible:
+		return
+	if _research_kind == "victory":
+		open_victory()
 		return
 	if _research_kind == "diplomacy":
 		open_diplomacy()
@@ -666,6 +670,58 @@ func open_supply_offer(partner: int, buying: bool) -> void:
 func _choose_research(id: String) -> void:
 	act.call({"type": "set_research", "kind": _research_kind, "id": id})
 	close_research()
+
+
+func open_victory() -> void:
+	_research_kind = "victory"
+	_research_panel.visible = true
+	_clear(_research_box)
+	var result := game.state.result
+	var head := HBoxContainer.new()
+	_research_box.add_child(head)
+	var title := _label(head, "Итоги партии" if not result.is_empty() else "Победы и счёт", 20)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_button(head, "✕", close_research)
+	var pid := game.state.current_player
+	if not result.is_empty():
+		var winners: Array = result["winners"]
+		var names: PackedStringArray = []
+		for id in winners:
+			names.append(game.state.player(int(id)).name)
+		var human_won := false
+		var has_human := false
+		for player in game.state.players:
+			if not player.is_ai and not player.is_barbarian:
+				has_human = true
+				human_won = human_won or winners.has(player.id)
+		var outcome := "Совместная победа" if winners.size() > 1 else "Победа"
+		if winners.is_empty():
+			outcome = "Без победителя"
+		elif has_human and not human_won:
+			outcome = "Поражение"
+		_label(_research_box, outcome, 22)
+		if not names.is_empty():
+			_label(_research_box, "Победители · " + ", ".join(names), 16, Color.WHITE, true)
+		var reason := "Контроль исходных столиц" if result["kind"] == "domination" else "Итоговый счёт"
+		_label(_research_box, "%s · ход %d" % [reason, int(result["turn"])])
+	else:
+		var own := VictoryRules.capital_progress(game, pid)
+		_label(_research_box, "Исходные столицы под вашим контролем · %d из %d" % [own.x, own.y])
+		_label(_research_box, "Победа по очкам после хода %d" % VictoryRules.turn_limit(game))
+	_label(_research_box, "Счёт держав", 17)
+	for row in VictoryRules.standings(game):
+		var player := game.state.player(int(row["player"]))
+		if result.is_empty() and player.id != pid and not game.state.player(pid).met.has(player.id):
+			continue
+		var status := " · выбыла" if not player.alive else ""
+		_label(_research_box, "%s · %d очков%s" % [player.name, row["score"], status], 15)
+		var c: Dictionary = row["counts"]
+		var capitals := VictoryRules.capital_progress(game, player.id)
+		_label(_research_box, "Города %d · население %d · районы %d · здания %d\nТехнологии %d · институты %d · исходные столицы %d/%d" % [
+			c["cities"], c["population"], c["districts"], c["buildings"], c["technologies"],
+			c["civics"], capitals.x, capitals.y], 12, Color(0.75, 0.78, 0.85), true)
+	if not result.is_empty():
+		_button(_research_box, "Осмотреть карту", close_research)
 
 
 # --- Юнит -------------------------------------------------------------------------------------

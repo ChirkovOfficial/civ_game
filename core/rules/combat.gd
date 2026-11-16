@@ -509,7 +509,7 @@ static func capture_city(game: Game, u: Unit, city: City, events: Array) -> void
 			events.append({"type": "unit_killed", "unit": other.id, "owner": other.owner, "by": u.owner})
 			game.state.remove_unit(other.id)
 	if game.state.player(u.owner).is_barbarian:
-		if city.is_capital:
+		if city.is_capital or city.id in game.state.original_capitals.values():
 			city.hp = 1
 			return
 		_destroy_city(game, city, events)

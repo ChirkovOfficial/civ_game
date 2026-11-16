@@ -10,10 +10,14 @@ const EXPLORE_RADIUS := 8
 
 
 static func take_turn(game: Game, pid: int) -> void:
+	if not game.state.result.is_empty():
+		return
 	_supply_diplomacy(game, pid)
 	_choose_research(game, pid)
 	_choose_government(game, pid)
 	_tactical(game, pid)
+	if not game.state.result.is_empty():
+		return
 	for u in game.state.units_of(pid):
 		if game.state.unit(u.id) == null:
 			continue

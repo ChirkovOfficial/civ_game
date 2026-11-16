@@ -24,6 +24,7 @@ var placing_district := ""
 var _hover_path_target := -2
 ## Какие части геометрии карты пересобрать при следующем обновлении.
 var _geometry_dirty := {}
+var _result_presented := false
 
 ## Событие -> части геометрии, которые оно меняет.
 const GEOMETRY_EVENTS := {
@@ -122,6 +123,7 @@ func load_game() -> void:
 ## Подключает партию к отображению (новую или загруженную).
 func _attach_game(g: Game) -> void:
 	game = g
+	_result_presented = false
 	game.events_emitted.connect(_on_events)
 	hud.game = game
 	map_view.build(game)
@@ -183,6 +185,12 @@ func _refresh_all() -> void:
 		hud.refresh_city()
 		if placing_district == "":
 			overlay.show_city(game, selected_city, camera_rig.position.x)
+	if not game.state.result.is_empty():
+		hud.set_end_turn_text("Итоги партии (Enter)", false)
+		if not _result_presented:
+			hud.open_victory()
+			_result_presented = true
+		return
 	var blocking := EmpireRules.blocking_decisions(game, viewer.id)
 	if blocking.is_empty():
 		hud.set_end_turn_text("Конец хода (Enter)", false)
@@ -425,6 +433,9 @@ func _move_selected(tile: int) -> void:
 
 ## Конец хода; если остались обязательные решения — показать первое из них.
 func _end_turn() -> void:
+	if not game.state.result.is_empty():
+		hud.open_victory()
+		return
 	var blocking := EmpireRules.blocking_decisions(game, game.state.current_player)
 	if not blocking.is_empty():
 		var b: Dictionary = blocking[0]
@@ -448,6 +459,8 @@ func _end_turn() -> void:
 	game.apply_action({"type": "end_turn"})
 	_select(null)
 	_after_action()
+	if not game.state.result.is_empty():
+		return
 	_select_next_unit()
 	hud.show_message("Ход %d" % game.state.turn, 1.5)
 

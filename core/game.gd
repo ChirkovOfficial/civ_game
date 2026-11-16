@@ -33,6 +33,8 @@ static func new_game(game_data: GameData, settings: Dictionary) -> Game:
 		"seed": str(seed_value),
 		"num_civs": num_civs,
 	}
+	if settings.has("turn_limit"):
+		s.settings["turn_limit"] = maxi(1, int(settings["turn_limit"]))
 	var gen := MapGenerator.new(game_data, s.rng)
 	s.map = gen.generate(s.settings)
 	s.start_positions = gen.start_positions
@@ -99,6 +101,8 @@ func _layer_taken(tile: int, layer_name: String) -> bool:
 ## событие {"type": "error", "message": ...}, состояние не меняется.
 func apply_action(action: Dictionary) -> Array:
 	var events: Array = []
+	if not state.result.is_empty():
+		return [_error("Партия завершена")]
 	match action.get("type", ""):
 		"move_unit":
 			_act_move_unit(action, events)
@@ -304,6 +308,10 @@ func apply_action(action: Dictionary) -> Array:
 				_act_end_turn(events)
 		_:
 			events.append(_error("Неизвестное действие: %s" % action.get("type", "")))
+	for event in events:
+		if event["type"] in ["city_founded", "city_captured", "player_eliminated"]:
+			VictoryRules.check_capitals(self, events)
+			break
 	if not events.is_empty():
 		events_emitted.emit(events)
 	return events
@@ -562,10 +570,8 @@ func _act_end_turn(events: Array) -> void:
 	events.append({"type": "turn_ended", "player": finished})
 	var next := _next_alive_player(finished)
 	if next <= finished:
-		_barbarian_phase(events)
-		DiplomacyRules.close_round(self, events)
-		state.turn += 1
-		events.append({"type": "new_round", "turn": state.turn})
+		if not _advance_round(events):
+			return
 	state.current_player = next
 	_begin_player_turn(next, events)
 	# ИИ ходит сразу; управление возвращается, когда очередь дойдёт до человека.
@@ -580,20 +586,32 @@ func _act_end_turn(events: Array) -> void:
 			break
 		guard += 1
 		AIPlayer.take_turn(self, state.current_player)
+		if not state.result.is_empty():
+			return
 		var ai_id := state.current_player
 		events.append({"type": "turn_ended", "player": ai_id})
 		var n2 := _next_alive_player(ai_id)
 		if n2 <= ai_id:
-			_barbarian_phase(events)
-			DiplomacyRules.close_round(self, events)
-			state.turn += 1
-			events.append({"type": "new_round", "turn": state.turn})
+			if not _advance_round(events):
+				return
 			if not has_humans:
 				state.current_player = n2
 				_begin_player_turn(n2, events)
 				break
 		state.current_player = n2
 		_begin_player_turn(n2, events)
+
+
+func _advance_round(events: Array) -> bool:
+	_barbarian_phase(events)
+	VictoryRules.check_capitals(self, events)
+	VictoryRules.check_turn_limit(self, events)
+	if not state.result.is_empty():
+		return false
+	DiplomacyRules.close_round(self, events)
+	state.turn += 1
+	events.append({"type": "new_round", "turn": state.turn})
+	return true
 
 
 ## Ход варваров — после всех держав, раз в круг (ГДД 2).

@@ -3,7 +3,11 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
+
+## ID первой столицы каждой державы и зафиксированный итог партии.
+var original_capitals: Dictionary = {}
+var result: Dictionary = {}
 
 var turn: int = 1
 var current_player: int = 0
@@ -172,6 +176,8 @@ func to_dict() -> Dictionary:
 		"cities": _sorted_city_ids().map(func(id): return cities[id].to_dict()),
 		"war_changed": war_changed.duplicate(),
 		"diplomacy": diplomacy.duplicate(true),
+		"original_capitals": original_capitals.duplicate(),
+		"result": result.duplicate(true),
 		"camps": _camps_list(),
 		"next_city_id": next_city_id,
 	}
@@ -197,6 +203,24 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 		var c := City.from_dict(cd)
 		s.cities[c.id] = c
 	s.next_city_id = int(d.get("next_city_id", 1))
+	if d.has("original_capitals"):
+		for key in d["original_capitals"]:
+			s.original_capitals[str(key)] = int(d["original_capitals"][key])
+	else:
+		# В старых сохранениях первая сохранившаяся постройка державы — ближайшее
+		# приближение исходной столицы, включая города под чужим контролем.
+		for id in s._sorted_city_ids():
+			var city: City = s.cities[id]
+			var key := str(city.original_owner)
+			if not s.original_capitals.has(key):
+				s.original_capitals[key] = city.id
+	s.result = d.get("result", {}).duplicate(true)
+	if not s.result.is_empty():
+		s.result["turn"] = int(s.result["turn"])
+		var winners: Array[int] = []
+		for id in s.result["winners"]:
+			winners.append(int(id))
+		s.result["winners"] = winners
 	for k in d.get("war_changed", {}):
 		s.war_changed[k] = int(d["war_changed"][k])
 	s.diplomacy = d.get("diplomacy", {}).duplicate(true)

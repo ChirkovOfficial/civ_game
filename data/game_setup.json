@@ -1,5 +1,9 @@
 {
   "_doc": "Параметры настройки партии (ГДД 1).",
+  "victory": {
+    "standard_turn_limit": 500,
+    "score_weights": {"cities": 5, "population": 1, "districts": 2, "buildings": 1, "technologies": 3, "civics": 3}
+  },
   "map_sizes": [
     {"id": "DUEL",     "name": "Дуэль",       "width": 44,  "height": 26, "civs": 2,  "city_states": 3},
     {"id": "TINY",     "name": "Крошечная",   "width": 60,  "height": 38, "civs": 4,  "city_states": 6},

@@ -63,6 +63,8 @@ static func found_city(game: Game, pid: int, tile: int) -> City:
 	city.name = next_city_name(game, pid)
 	city.is_capital = s.cities_of(pid).is_empty()
 	if city.is_capital:
+		if not s.player(pid).is_barbarian and not s.original_capitals.has(str(pid)):
+			s.original_capitals[str(pid)] = city.id
 		for bid in game.data.building_ids:
 			if game.data.buildings[bid].get("capital_only", false):
 				city.buildings.append(bid)
