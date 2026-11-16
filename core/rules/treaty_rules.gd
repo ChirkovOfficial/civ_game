@@ -30,7 +30,7 @@ static func until(game: Game, kind: String, from: int, to: int) -> int:
 static func trust(game: Game, viewer: int, subject: int) -> int:
 	var record := _entry(game, "reputation", _key("trust", viewer, subject))
 	var value := int(record["value"]) if _active(record, game.state.turn) else 0
-	return value + DemandRules.trust_penalty(game, viewer, subject)
+	return value + DemandRules.trust_penalty(game, viewer, subject) + CongressRules.trust_penalty(game, viewer, subject)
 
 
 static func _valid_pair(game: Game, a: int, b: int) -> bool:

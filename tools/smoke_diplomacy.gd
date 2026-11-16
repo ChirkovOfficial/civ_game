@@ -110,6 +110,34 @@ func _process(_delta: float) -> bool:
 		printerr("ИИ не вступил в совместную войну после требования")
 		quit(1)
 		return true
-	print("Покупка мрамора, дружба, требование прохода и совместной войны работают")
+	for pid in 3:
+		game.state.player(pid).known_civics["IDEOLOGY"] = true
+	main.hud.open_congress()
+	var found: Button = null
+	for node in box.find_children("*", "Button", true, false):
+		if node.text == "Предложить учреждение ООН" and not node.disabled:
+			found = node
+			break
+	if found == null:
+		printerr("В окне ООН не доступно учредительное голосование")
+		quit(1)
+		return true
+	found.pressed.emit()
+	var in_favor: Button = null
+	for node in box.find_children("*", "Button", true, false):
+		if node.text == "За":
+			in_favor = node
+			break
+	if in_favor == null:
+		printerr("В окне ООН нет кнопки голосования")
+		quit(1)
+		return true
+	in_favor.pressed.emit()
+	main.act({"type": "end_turn", "force": true})
+	if not game.state.congress_data["founded"]:
+		printerr("ООН не учреждена после голосов игрока и ИИ")
+		quit(1)
+		return true
+	print("Формы дипломатии, сильные требования и учреждение ООН работают в игровой сцене")
 	quit(0)
 	return true

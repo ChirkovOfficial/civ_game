@@ -3,7 +3,10 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 7
+const SAVE_VERSION := 8
+
+var congress_data := {"founded": false, "next_id": 1, "next_session": 0, "polls": {},
+	"docket": {}, "orders": {}, "evidence": {}, "cooldowns": {}, "recent": {}}
 
 var demand_data := {"next_id": 1, "pending": {}, "cooldowns": {}, "refusals": {},
 	"obligations": {}, "breaches": {}, "loans": {}, "city_concessions": {}}
@@ -184,6 +187,7 @@ func to_dict() -> Dictionary:
 		"diplomacy": diplomacy.duplicate(true),
 		"treaties": treaty_data.duplicate(true),
 		"demands": demand_data.duplicate(true),
+		"congress": congress_data.duplicate(true),
 		"original_capitals": original_capitals.duplicate(),
 		"result": result.duplicate(true),
 		"camps": _camps_list(),
@@ -232,6 +236,8 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 	for k in d.get("war_changed", {}):
 		s.war_changed[k] = int(d["war_changed"][k])
 	s.diplomacy = d.get("diplomacy", {}).duplicate(true)
+	for key in d.get("congress", {}):
+		s.congress_data[key] = _restore_congress(d["congress"][key])
 	var demands: Dictionary = d.get("demands", {})
 	s.demand_data["next_id"] = int(demands.get("next_id", 1))
 	for key in demands.get("pending", {}):
@@ -273,6 +279,18 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 		var camp := Unit._ints_in_dict(c)
 		s.camps[int(camp["tile"])] = camp
 	return s
+
+
+## В реестре ООН все числовые поля — целые; JSON декодирует их как float.
+static func _restore_congress(value: Variant) -> Variant:
+	if value is Dictionary:
+		var result := {}
+		for key in value:
+			result[key] = _restore_congress(value[key])
+		return result
+	if value is Array:
+		return value.map(_restore_congress)
+	return int(value) if value is float else value
 
 
 func _camps_list() -> Array:

@@ -56,6 +56,8 @@ static func _resource_error(game: Game, seller: int, buyer: int, rid: String) ->
 		return "Державы ещё не встретились"
 	if game.state.at_war(seller, buyer):
 		return "Во время войны поставки невозможны"
+	if CongressRules.embargoed(game, seller, buyer):
+		return "Торговля между державами запрещена эмбарго"
 	if game.data.resources.get(rid, {}).get("class", "") not in ["strategic", "luxury"]:
 		return "Можно торговать стратегическими и редкими ресурсами"
 	return ""
@@ -166,6 +168,9 @@ static func cancel(game: Game, action: Dictionary, events: Array) -> void:
 		_error(events, "Договор недоступен")
 		return
 	_finish(game, id, "cancelled", events)
+	if game.state.current_player == int(contract["seller"]) and _resource_error(game,
+			int(contract["seller"]), int(contract["buyer"]), contract["resource"]) == "":
+		_record_breach(game, contract, "seller_cancelled", int(contract["per_turn"]), events)
 
 static func _finish(game: Game, id: String, reason: String, events: Array) -> void:
 	var d := game.state.diplomacy
@@ -194,6 +199,26 @@ static func cancel_invalid_luxuries(game: Game, events: Array) -> void:
 					game, int(offer["seller"]), offer["resource"], int(offer["source_tile"]))):
 			offers.erase(id)
 			events.append({"type": "supply_expired", "id": int(id)})
+
+
+static func cancel_embargoed(game: Game, events: Array) -> void:
+	var contracts: Dictionary = game.state.diplomacy.get("contracts", {})
+	var offers: Dictionary = game.state.diplomacy.get("offers", {})
+	for id in contracts.keys():
+		var contract: Dictionary = contracts[id]
+		if CongressRules.embargoed(game, int(contract["seller"]), int(contract["buyer"])):
+			_finish(game, id, "embargo", events)
+	for id in offers.keys():
+		var offer: Dictionary = offers[id]
+		if CongressRules.embargoed(game, int(offer["seller"]), int(offer["buyer"])):
+			offers.erase(id)
+			events.append({"type": "supply_expired", "id": int(id)})
+
+
+static func _record_breach(game: Game, deal: Dictionary, reason: String, missing: int, events: Array) -> void:
+	var evidence := {"contract": deal["id"], "offender": deal["seller"], "victim": deal["buyer"],
+		"resource": deal["resource"], "reason": reason, "missing": missing}
+	CongressRules.note_supply_breach(game, evidence, events)
 
 
 static func _settle_luxury(game: Game, id: String, contract: Dictionary, new_round: int, events: Array) -> void:
@@ -282,8 +307,15 @@ static func close_round(game: Game, events: Array) -> void:
 			d[collection][key] = recent
 	var ids: Array = d["contracts"].keys()
 	ids.sort_custom(func(a: String, b: String) -> bool: return int(a) < int(b))
+	for id in ids.duplicate():
+		var contract: Dictionary = d["contracts"][id]
+		if _resource_error(game, int(contract["seller"]), int(contract["buyer"]), contract["resource"]) != "":
+			_finish(game, id, "relations_changed", events)
+			ids.erase(id)
 	# Снимок не позволяет отправить полученный в этой же фазе ресурс дальше.
 	var available := {}
+	var wants := {}
+	var cap := float(game.data.const_value("strategic_cap", 50))
 	for id in ids:
 		var contract: Dictionary = d["contracts"][id]
 		if contract.has("source_tile"):
@@ -291,7 +323,9 @@ static func close_round(game: Game, events: Array) -> void:
 		var stock_key := _pair(int(contract["seller"]), 0) + ":" + str(contract["resource"])
 		if not available.has(stock_key):
 			available[stock_key] = float(game.state.player(int(contract["seller"])).stockpile.get(contract["resource"], 0.0))
-	var planned := _proportional_allocations(d["contracts"], ids, available, new_round)
+		var stock: float = game.state.player(int(contract["buyer"])).stockpile.get(contract["resource"], 0.0)
+		wants[id] = mini(int(contract["per_turn"]), int(maxf(0.0, cap - stock)))
+	var planned := _proportional_allocations(d["contracts"], ids, available, wants, new_round)
 	for id in ids:
 		var c: Dictionary = d["contracts"].get(id, {})
 		if c.is_empty() or int(c["next_round"]) > new_round:
@@ -308,7 +342,6 @@ static func close_round(game: Game, events: Array) -> void:
 		var stock_key := _pair(seller, 0) + ":" + rid
 		var seller_stock: float = available[stock_key]
 		var buyer_stock: float = game.state.player(buyer).stockpile.get(rid, 0.0)
-		var cap := float(game.data.const_value("strategic_cap", 50))
 		var delivered := int(minf(float(planned.get(id, 0)), minf(seller_stock, cap - buyer_stock)))
 		delivered = maxi(0, delivered)
 		var direct := _transfer(game, seller, buyer, rid, delivered)
@@ -320,7 +353,8 @@ static func close_round(game: Game, events: Array) -> void:
 		_debit_escrow(c, period_price)
 		c["remaining"] = int(c["remaining"]) - 1
 		c["next_round"] = new_round + 1
-		c["shortfalls"] = int(c["shortfalls"]) + 1 if delivered < int(c["per_turn"]) and seller_stock < int(c["per_turn"]) else 0
+		var shortage := mini(int(wants[id]), int(maxf(0.0, cap - buyer_stock))) - delivered
+		c["shortfalls"] = int(c["shortfalls"]) + 1 if shortage > 0 else 0
 		if direct > 0.0:
 			var pair := _pair(buyer, seller) + ":" + rid
 			if not d["delivery_history"].has(pair):
@@ -328,6 +362,8 @@ static func close_round(game: Game, events: Array) -> void:
 			d["delivery_history"][pair].append({"round": new_round, "amount": direct})
 		events.append({"type": "supply_settled", "id": int(id), "delivered": delivered,
 			"refunded": (period_price - paid) / 100.0})
+		if shortage > 0:
+			_record_breach(game, c, "seller_shortfall", shortage, events)
 		if int(c["remaining"]) <= 0:
 			_finish(game, id, "completed", events)
 		elif int(c["shortfalls"]) >= 3:
@@ -338,7 +374,8 @@ static func close_round(game: Game, events: Array) -> void:
 	d["last_round"] = round_number
 
 ## При дефиците одного продавца одинаковые обязательства получают равную долю.
-static func _proportional_allocations(contracts: Dictionary, ids: Array, available: Dictionary, due_round: int) -> Dictionary:
+static func _proportional_allocations(contracts: Dictionary, ids: Array, available: Dictionary,
+		wants: Dictionary, due_round: int) -> Dictionary:
 	var groups := {}
 	for id in ids:
 		var c: Dictionary = contracts[id]
@@ -353,16 +390,16 @@ static func _proportional_allocations(contracts: Dictionary, ids: Array, availab
 		var members: Array = groups[key]
 		var requested := 0
 		for id in members:
-			requested += int(contracts[id]["per_turn"])
+			requested += int(wants[id])
 		var stock := maxi(0, int(floorf(float(available[key]))))
 		if requested <= stock:
 			for id in members:
-				result[id] = int(contracts[id]["per_turn"])
+				result[id] = int(wants[id])
 			continue
 		var fractions := []
 		var assigned := 0
 		for id in members:
-			var exact := float(stock * int(contracts[id]["per_turn"])) / maxf(1.0, requested)
+			var exact := float(stock * int(wants[id])) / maxf(1.0, requested)
 			var whole := int(floorf(exact))
 			result[id] = whole
 			assigned += whole
@@ -556,7 +593,9 @@ static func _update_influence(game: Game, round_number: int, events: Array) -> v
 		var target := 0.0
 		for amount in sources.values():
 			target += float(amount)
-		target = minf(cfg(game, "influence_max"), target)
+		var damage := CongressRules.reputation_damage(game, pid, round_number)
+		target = clampf(target - damage, 0.0, cfg(game, "influence_max"))
+		sources["congress_damage"] = float(damage)
 		var old: Dictionary = d["influence"].get(str(pid), {"value": 0.0})
 		var value: float = old.get("value", 0.0)
 		var change := (target - value) * cfg(game, "influence_growth_fraction")

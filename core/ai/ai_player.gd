@@ -13,6 +13,7 @@ static func take_turn(game: Game, pid: int) -> void:
 	if not game.state.result.is_empty():
 		return
 	_answer_demands(game, pid)
+	_congress(game, pid)
 	_treaty_diplomacy(game, pid)
 	_supply_diplomacy(game, pid)
 	_choose_research(game, pid)
@@ -51,6 +52,34 @@ static func _answer_demands(game: Game, pid: int) -> void:
 			var city := game.state.city(int(demand["offer"]))
 			accept = accept and dependence - reverse >= 75.0 and city != null and city.population <= 3
 		game.apply_action({"type": "respond_demand", "pair": demand["pair"], "id": demand["id"], "accept": accept})
+
+
+static func _congress(game: Game, pid: int) -> void:
+	if CongressRules.founding_error(game, pid) == "":
+		game.apply_action({"type": "congress_found"})
+	for evidence in CongressRules.evidence_for(game, pid):
+		var id: int = evidence["id"]
+		if CongressRules.proposal_error(game, pid, id, "emergency") == "":
+			game.apply_action({"type": "congress_propose", "evidence": id, "mode": "emergency"})
+			break
+		if CongressRules.proposal_error(game, pid, id, "ordinary") == "":
+			game.apply_action({"type": "congress_propose", "evidence": id, "mode": "ordinary"})
+			break
+	for item in CongressRules.polls(game):
+		var ballot: Dictionary = item["ballots"].get(str(pid), {})
+		if ballot.is_empty() or ballot["vote"] != "":
+			continue
+		var choice := "yes"
+		if item["mode"] != "founding" and int(ballot["promise"]) < 0:
+			var accused: int = item["accused"]
+			if accused == pid:
+				choice = "no"
+			elif int(item["issuer"]) != pid and not item.get("recommendation", false):
+				var cost := CongressRules.trade_exposure(game, pid, accused)
+				var siding := TreatyRules.trust(game, pid, int(item["issuer"])) - TreatyRules.trust(game, pid, accused)
+				if cost.x * 2 + cost.y > 0 and siding <= 0:
+					choice = "abstain"
+		game.apply_action({"type": "congress_vote", "id": item["id"], "vote": choice})
 
 
 ## ИИ заключает договоры с надёжными державами и торговыми партнёрами.

@@ -59,7 +59,8 @@ static func plan(game: Game, origin: City, destination: City) -> Dictionary:
 		return {}
 	var pid := origin.owner
 	var p := game.state.player(pid)
-	if not p.is_revealed(destination.tile) or game.state.at_war(pid, destination.owner):
+	if not p.is_revealed(destination.tile) or game.state.at_war(pid, destination.owner) \
+			or CongressRules.embargoed(game, pid, destination.owner):
 		return {}
 	if destination.owner != pid and not p.met.has(destination.owner):
 		return {}
@@ -174,7 +175,8 @@ static func cancel_invalid(game: Game, events: Array) -> void:
 			var origin := game.state.city(int(route["origin"]))
 			var destination := game.state.city(int(route["destination"]))
 			var blocked := origin == null or origin.owner != unit.owner or destination == null \
-				or game.state.at_war(unit.owner, destination.owner)
+				or game.state.at_war(unit.owner, destination.owner) \
+				or CongressRules.embargoed(game, unit.owner, destination.owner)
 			if not blocked:
 				for tile in route["path"]:
 					var city := game.state.city_owning(int(tile))

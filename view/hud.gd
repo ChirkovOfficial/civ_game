@@ -323,6 +323,9 @@ func refresh_research() -> void:
 	if _research_kind == "diplomacy":
 		open_diplomacy()
 		return
+	if _research_kind == "congress":
+		open_congress()
+		return
 	if _research_kind.begins_with("supply:"):
 		var parts := _research_kind.split(":")
 		open_supply_offer(int(parts[1]), parts[2] == "buy")
@@ -505,6 +508,7 @@ func open_diplomacy() -> void:
 	_research_box.add_child(head)
 	var title := _label(head, "Державы", 20)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_button(head, "ООН", open_congress)
 	_button(head, "✕", close_research)
 	var d: Dictionary = game.state.diplomacy
 	var score: Dictionary = d.get("influence", {}).get(str(pid), {})
@@ -518,6 +522,8 @@ func open_diplomacy() -> void:
 		12, Color(0.75, 0.78, 0.85), true)
 	_label(_research_box, "Религия, туризм и международные события появятся вместе с их механиками.",
 		12, Color(0.75, 0.78, 0.85), true)
+	if float(sources.get("congress_damage", 0)) > 0.0:
+		_label(_research_box, "Штраф к влиянию за нарушение резолюций · −%d" % int(sources["congress_damage"]), 13)
 	_show_treaty_offers(pid)
 	_show_demands(pid)
 	var any := false
@@ -538,6 +544,8 @@ func open_diplomacy() -> void:
 		if not other.alive:
 			continue
 		var oid := other.id
+		if CongressRules.embargoed(game, pid, oid):
+			_label(_research_box, "Эмбарго до начала хода %d" % CongressRules.embargo_until(game, pid, oid), 13)
 		_show_treaty_status(pid, oid)
 		var ours: Dictionary = d.get("dependency", {}).get("%d,%d" % [pid, oid], {})
 		var theirs: Dictionary = d.get("dependency", {}).get("%d,%d" % [oid, pid], {})
@@ -563,8 +571,9 @@ func open_diplomacy() -> void:
 			_button(row, "Объявить войну", func(): act.call({"type": "declare_war", "target": oid}); open_diplomacy(), e2 != "", e2)
 			var actions := HBoxContainer.new()
 			_research_box.add_child(actions)
-			_button(actions, "Купить ресурс", func(): open_supply_offer(oid, true))
-			_button(actions, "Продать ресурс", func(): open_supply_offer(oid, false))
+			var embargo := CongressRules.embargoed(game, pid, oid)
+			_button(actions, "Купить ресурс", func(): open_supply_offer(oid, true), embargo, "Действует эмбарго" if embargo else "")
+			_button(actions, "Продать ресурс", func(): open_supply_offer(oid, false), embargo, "Действует эмбарго" if embargo else "")
 			var treaties := HBoxContainer.new()
 			_research_box.add_child(treaties)
 			for kind in TreatyRules.KINDS:
@@ -655,6 +664,7 @@ func _show_demands(pid: int) -> void:
 
 func _demand_subject(kind: String, subject: int) -> String:
 	match kind:
+		"vote_support": return "Поддержать резолюцию №%d" % subject
 		"joint_war": return "Вступить в войну против державы «%s»" % game.state.player(subject).name
 		"clear_camp":
 			var grid := game.state.map.grid
@@ -667,6 +677,100 @@ func _demand_subject(kind: String, subject: int) -> String:
 			var city := game.state.city(subject)
 			return "Мирно уступить город «%s»" % city.name if city != null else "Мирно уступить город"
 		_: return "Право прохода"
+
+
+func open_congress() -> void:
+	_research_kind = "congress"
+	_research_panel.visible = true
+	_clear(_research_box)
+	var head := HBoxContainer.new()
+	_research_box.add_child(head)
+	var title := _label(head, "Международная организация", 18)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_button(head, "Назад", open_diplomacy)
+	_button(head, "✕", close_research)
+	var pid := game.state.current_player
+	var data := game.state.congress_data
+	if not data["founded"]:
+		var error := CongressRules.founding_error(game, pid)
+		_button(_research_box, "Предложить учреждение ООН",
+			func(): act.call({"type": "congress_found"}), error != "", error)
+	else:
+		_label(_research_box, "Следующая очередная сессия · ход %d" % int(data["next_session"]), 14)
+		for entry in data["docket"].values():
+			if int(entry["issuer"]) == pid:
+				_label(_research_box, "Дело №%d внесено в повестку" % int(entry["id"]), 13)
+		_show_congress_cases(pid)
+	for item in CongressRules.polls(game):
+		var id: int = item["id"]
+		var founding: bool = item["mode"] == "founding"
+		var heading := "Учреждение ООН"
+		if not founding:
+			var intent := "Предписание соблюдать поставки"
+			if item.get("recommendation", false):
+				intent = "Рекомендация соблюдать поставки"
+			elif item["mode"] == "sanctions":
+				intent = "Немедленное торговое эмбарго"
+			heading = "№%d · %s\n%s → %s" % [id, intent, game.state.player(int(item["issuer"])).name,
+				game.state.player(int(item["accused"])).name]
+		_label(_research_box, heading, 16, Color.WHITE, true)
+		if not founding:
+			_label(_research_box, _evidence_text(item["proof"]), 12, Color.WHITE, true)
+			var risk := CongressRules.trade_exposure(game, pid, int(item["accused"]))
+			if not item.get("recommendation", false):
+				_label(_research_box, ("Голос за включает вас в эмбарго. Под риском %d договоров и %d ваших путей." if
+					item["mode"] == "sanctions" else "При нарушении эмбарго затронет %d ваших договоров и %d путей.") % [risk.x, risk.y],
+					12, Color.WHITE, true)
+		var ballot: Dictionary = item["ballots"].get(str(pid), {})
+		if not ballot.is_empty() and ballot["vote"] == "":
+			var buttons := HBoxContainer.new()
+			_research_box.add_child(buttons)
+			var labels := {"yes": "За", "no": "Против", "abstain": "Воздержаться"}
+			for option in labels:
+				_button(buttons, labels[option],
+					func(): act.call({"type": "congress_vote", "id": id, "vote": option}))
+			_label(_research_box, "Ваших ходов для ответа: %d%s" % [int(ballot["left"]),
+				" · обещали поддержку" if int(ballot["promise"]) >= 0 else ""], 12)
+		elif not ballot.is_empty():
+			_label(_research_box, "Ваш голос: %s" % {"yes": "за", "no": "против", "abstain": "воздержался"}.get(ballot["vote"], ""), 12)
+		if int(item["issuer"]) == pid and not founding:
+			for peer in game.state.player(pid).met.keys():
+				var error := DemandRules.issue_error(game, pid, int(peer), "vote_support", id)
+				if error == "":
+					_button(_research_box, "Потребовать поддержки · %s" % game.state.player(int(peer)).name,
+						func(): act.call({"type": "issue_demand", "kind": "vote_support", "target": peer, "offer": id}))
+	var recent: Dictionary = data["recent"]
+	if not recent.is_empty():
+		_label(_research_box, "Последнее голосование №%d · %s · за %d из %d" % [
+			recent["id"], "принято" if recent["passed"] else "отклонено", recent["yes"], recent["eligible"]], 13, Color.WHITE, true)
+	for order in data["orders"].values():
+		if int(order["ends"]) > game.state.turn:
+			_label(_research_box, "Решение №%d · %s · до начала хода %d" % [
+				order["id"], game.state.player(int(order["accused"])).name, order["ends"]], 13, Color.WHITE, true)
+
+
+func _evidence_text(record: Dictionary) -> String:
+	var resource: String = game.data.resources.get(record["resource"], {}).get("name", str(record["resource"]))
+	var reason := "продавец отменил договор" if record["reason"] == "seller_cancelled" else "недопоставка · %d ед." % int(record["missing"])
+	return "%s · %s · ход %d" % [resource, reason, int(record["turn"])]
+
+
+func _show_congress_cases(pid: int) -> void:
+	for proof in CongressRules.evidence_for(game, pid):
+		var id: int = proof["id"]
+		_label(_research_box, "%s · %s" % [game.state.player(int(proof["offender"])).name,
+			_evidence_text(proof)], 14, Color.WHITE, true)
+		var names := {"ordinary": "В повестку", "emergency": "Внеочередное дело", "sanctions": "Эмбарго"}
+		var row := HBoxContainer.new()
+		_research_box.add_child(row)
+		for mode in names:
+			var error := CongressRules.proposal_error(game, pid, id, mode)
+			_button(row, names[mode], func(): act.call({"type": "congress_propose", "evidence": id, "mode": mode}),
+				error != "", error)
+		var error := CongressRules.proposal_error(game, pid, id, "ordinary")
+		_button(_research_box, "В повестку как рекомендацию",
+			func(): act.call({"type": "congress_propose", "mode": "ordinary", "evidence": id, "recommendation": true}),
+			error != "", error)
 
 
 func open_strong_demands(peer: int) -> void:

@@ -305,6 +305,14 @@ func apply_action(action: Dictionary) -> Array:
 				else DemandRules.respond(self, action, events)
 			if err != "":
 				events.append(_error(err))
+		"congress_found", "congress_propose", "congress_vote":
+			var error := ""
+			match action["type"]:
+				"congress_found": error = CongressRules.initiate(self, events)
+				"congress_propose": error = CongressRules.propose(self, action, events)
+				"congress_vote": error = CongressRules.cast_vote(self, action, events)
+			if error != "":
+				events.append(_error(error))
 		"end_turn":
 			var blocking := EmpireRules.blocking_decisions(self, state.current_player)
 			if not blocking.is_empty() and not action.get("force", false):
@@ -313,6 +321,7 @@ func apply_action(action: Dictionary) -> Array:
 				_act_end_turn(events)
 		_:
 			events.append(_error("Неизвестное действие: %s" % action.get("type", "")))
+	CongressRules.apply_commerce_effects(self, events)
 	for event in events:
 		if event["type"] in ["war_declared", "pillaged", "city_captured", "city_destroyed", "city_conceded",
 				"city_founded", "harvested", "improvement_built"]:
@@ -601,6 +610,7 @@ func _continue_move(u: Unit, events: Array) -> void:
 func _act_end_turn(events: Array) -> void:
 	var finished := state.current_player
 	DemandRules.end_turn(self, finished, events)
+	CongressRules.end_turn(self, finished, events)
 	events.append({"type": "turn_ended", "player": finished})
 	var next := _next_alive_player(finished)
 	if next <= finished:
@@ -624,6 +634,7 @@ func _act_end_turn(events: Array) -> void:
 			return
 		var ai_id := state.current_player
 		DemandRules.end_turn(self, ai_id, events)
+		CongressRules.end_turn(self, ai_id, events)
 		events.append({"type": "turn_ended", "player": ai_id})
 		var n2 := _next_alive_player(ai_id)
 		if n2 <= ai_id:
@@ -646,6 +657,8 @@ func _advance_round(events: Array) -> bool:
 	DemandRules.close_round(self, events)
 	TreatyRules.close_round(self)
 	DiplomacyRules.close_round(self, events)
+	CongressRules.apply_commerce_effects(self, events)
+	CongressRules.close_round(self, events)
 	state.turn += 1
 	events.append({"type": "new_round", "turn": state.turn})
 	return true

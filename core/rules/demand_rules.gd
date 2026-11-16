@@ -22,6 +22,8 @@ static func _terms_error(game: Game, issuer: int, recipient: int, kind: String, 
 		return "Требование доступно только встреченной мирной державе"
 	if kind == "passage":
 		return TreatyRules.passage_error(game, issuer, recipient)
+	if kind == "vote_support":
+		return CongressRules.support_error(game, issuer, recipient, offer_id)
 	if kind == "discount":
 		var offer: Dictionary = game.state.diplomacy.get("offers", {}).get(str(offer_id), {})
 		if offer.is_empty() or int(offer["seller"]) != recipient or int(offer["buyer"]) != issuer \
@@ -112,6 +114,8 @@ static func respond(game: Game, action: Dictionary, events: Array) -> String:
 	match kind:
 		"passage":
 			TreatyRules.grant_passage(game, issuer, recipient, events)
+		"vote_support":
+			CongressRules.promise_support(game, issuer, recipient, subject)
 		"discount":
 			game.state.diplomacy["offers"][str(subject)]["discount_percent"] = demand["percent"]
 		"joint_war":
@@ -151,6 +155,12 @@ static func trust_penalty(game: Game, viewer: int, subject: int) -> int:
 	var refusal := -_setting(game, "demand_refusal_penalty") if until > game.state.turn else 0
 	var breach := -_setting(game, "obligation_breach_penalty") if breached > game.state.turn else 0
 	return refusal + breach + ConcessionRules.city_penalty(game, viewer, subject)
+
+
+static func note_breach(game: Game, issuer: int, recipient: int, from_turn: int = -1) -> void:
+	var turn := game.state.turn if from_turn < 0 else from_turn
+	game.state.demand_data["breaches"]["%d,%d" % [issuer, recipient]] = \
+		turn + _duration(game, "obligation_breach_duration")
 
 
 static func pending_for(game: Game, pid: int) -> Array[Dictionary]:
@@ -233,7 +243,6 @@ static func close_round(game: Game, events: Array) -> void:
 			_emit("obligation_excused", task, events)
 		elif game.state.turn + 1 >= int(task["until"]):
 			obligations.erase(id)
-			game.state.demand_data["breaches"]["%d,%d" % [issuer, recipient]] = \
-				game.state.turn + 1 + _duration(game, "obligation_breach_duration")
+			note_breach(game, issuer, recipient, game.state.turn + 1)
 			_emit("obligation_breached", task, events)
 	ConcessionRules.update_loans(game, game.state.turn + 1, events)

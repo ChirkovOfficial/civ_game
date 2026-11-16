@@ -241,6 +241,8 @@ func _on_events(events: Array) -> void:
 			hud.show_message("Дипломатическое требование принято")
 		elif t == "demand_refused" and _viewer().id in [int(e["issuer"]), int(e["recipient"])]:
 			hud.show_message("Дипломатическое требование отклонено")
+		elif t == "congress_result":
+			hud.show_message("ООН · голосование №%d %s" % [int(e["id"]), "принято" if e["passed"] else "отклонено"])
 		elif t == "supply_closed" and e["reason"] == "luxury_access_lost" \
 				and _viewer().id in [int(e["buyer"]), int(e["seller"])]:
 			hud.show_message("Доступ к редкому ресурсу прекращён · возврат покупателю %s золота" % Hud._fmt(float(e["refund"])))
