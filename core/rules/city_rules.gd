@@ -551,6 +551,7 @@ static func complete_item(game: Game, city: City, item: Dictionary, events: Arra
 		var res: Dictionary = def.get("resource", {})
 		for r in res:
 			p.stockpile[r] = float(p.stockpile.get(r, 0.0)) - float(res[r])
+			DiplomacyRules.record_spend(game, city.owner, r, float(res[r]))
 		UnitRules.note_strength(game, city.owner, item["id"])
 		p.produced[item["id"]] = int(p.produced.get(item["id"], 0)) + 1
 		var pop_cost := int(def.get("pop_cost", 0))

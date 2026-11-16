@@ -140,6 +140,7 @@ static func upgrade(game: Game, u: Unit, events: Array) -> void:
 	var res: Dictionary = game.data.unit_def(target).get("resource", {})
 	for r in res:
 		p.stockpile[r] = float(p.stockpile.get(r, 0.0)) - float(res[r])
+		DiplomacyRules.record_spend(game, u.owner, r, float(res[r]))
 	var old := u.type
 	u.type = target
 	u.moves_left = 0.0

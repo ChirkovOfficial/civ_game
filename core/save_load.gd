@@ -41,6 +41,9 @@ static func load_game(data: GameData, slot: String = QUICKSAVE) -> Game:
 
 
 static func from_dict(data: GameData, d: Dictionary) -> Game:
+	var version := int(d.get("version", 1))
+	if version < 1 or version > GameState.SAVE_VERSION:
+		return null
 	var game := Game.new(data, GameState.from_dict(d, data))
 	# Видимость не сохраняется — пересчитываем.
 	for p in game.state.players:

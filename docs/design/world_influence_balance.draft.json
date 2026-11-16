@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "status": "proposal_not_loaded_by_game",
+  "fixed_point_scale": 100,
+  "standard_speed": {
+    "economic_window_rounds": 5,
+    "reserve_horizon_rounds": 10,
+    "personal_response_turns": 2,
+    "religious_grace_personal_turns": 1
+  },
+  "dependency": {
+    "max": 100,
+    "components": {
+      "strategic": {"cap": 60, "rise_per_round": 5, "fall_per_round": 5},
+      "goods": {"cap": 15, "rise_per_round": 2, "fall_per_round": 2},
+      "religion": {"cap": 25, "rise_per_round": 2, "fall_per_round": 2}
+    },
+    "religion_majority_stability_rounds": 3,
+    "religion_city_share_exclusive_min": 0.5,
+    "strategic_aggregation": "maximum_service_loss"
+  },
+  "influence": {
+    "max": 1000,
+    "source_caps": {
+      "dependency": 200, "routes": 100, "supplies": 50, "relations": 100,
+      "living_standard": 150, "religion": 150, "tourism": 150, "events": 100
+    },
+    "dependency_average_for_full_cap": 50,
+    "normalization": "initial_other_major_count",
+    "approach_fraction": 0.1,
+    "max_rise_per_round": 10,
+    "max_fall_per_round": 20,
+    "route_first_strength": 0.75,
+    "route_second_strength": 1.0,
+    "friendship_strength": 0.4,
+    "alliance_strength": 1.0,
+    "living_weights": {"food": 0.30, "housing": 0.25, "amenities": 0.25, "order": 0.20},
+    "religion_share_for_full_cap": 0.30,
+    "religion_followers_per_other_major_for_maturity": 10,
+    "tourism_share_for_full_cap": 0.30,
+    "tourism_window_rounds": 10,
+    "tourism_visits_per_other_major_for_maturity": 10,
+    "access": {"public_appeal": 100, "ordinary_motion": 300, "evidence_hearing": 500, "standalone_sanctions": 700, "collective_mandate": 850}
+  },
+  "deals": {
+    "prepayment_mode": "escrow_release_on_delivery",
+    "first_periodic_settlement": "next_round_boundary",
+    "consecutive_supplier_shortfalls_to_cancel": 3,
+    "consecutive_supplier_shortfalls_to_trust_penalty": 2,
+    "seller_break_trust": -10,
+    "buyer_break_trust": -5,
+    "trust_penalty_rounds": 20,
+    "resale_prestige_enabled": false
+  },
+  "relations": {
+    "min": -100, "max": 100,
+    "friendship_rounds_before_alliance": 5,
+    "treaty_duration_rounds": 20
+  },
+  "demands": {
+    "minor_inclusive_min": 20,
+    "minor_inclusive_max": 50,
+    "major_exclusive_min": 50,
+    "city_exact_dependency": 100,
+    "pair_cooldown_rounds": 10,
+    "max_open_pressure_demands_per_unordered_pair": 1,
+    "discount_max_fraction": 0.10,
+    "passage_rounds": 10,
+    "border_exit_personal_turns": 3,
+    "reinforcement_rounds": 10,
+    "reinforcement_max_army_cost_fraction": 0.20,
+    "barbarian_border_distance": 5,
+    "barbarian_deadline_rounds": 10,
+    "refusal_relation_penalty": -5,
+    "refusal_penalty_rounds": 10,
+    "obligation_breach_trust": -15,
+    "obligation_breach_penalty_rounds": 20,
+    "city_success_limit_per_issuer_game": 1,
+    "city_dependency_after_transfer": 50,
+    "city_dependency_cap_rounds": 20,
+    "city_relation_penalty": -40,
+    "city_relation_hold_rounds": 30,
+    "city_relation_recovery_per_round": 2
+  },
+  "congress": {
+    "founding_civic": "IDEOLOGY",
+    "founding_min_qualified_majors": 3,
+    "minimum_voters": 3,
+    "ordinary_approval": "strict_majority_all_eligible",
+    "binding_approval_numerator": 2,
+    "binding_approval_denominator": 3,
+    "abstentions_in_denominator": true,
+    "ordinary_session_interval_rounds": 20,
+    "extraordinary_cooldown_rounds": 10,
+    "evidence_max_age_rounds": 10,
+    "bilateral_religion_promise_rounds": 10,
+    "resolution_duration_rounds": 20,
+    "first_violation_influence_loss": 40,
+    "repeat_violating_round_influence_loss": 10,
+    "max_influence_loss_per_resolution": 100,
+    "supporter_relation_penalty": -15,
+    "supporter_relation_penalty_rounds": 20,
+    "reputation_hold_after_last_violation_rounds": 20,
+    "reputation_recovery_per_round": 5,
+    "embargo_after_last_violation_rounds": 10
+  },
+  "events": {
+    "minimum_major_participants": 3,
+    "host_prestige": 20,
+    "place_prestige": [40, 20, 10],
+    "hold_rounds": 20,
+    "decay_per_round": 5
+  },
+  "initial_delivery_scope": {
+    "resource_deals": true,
+    "resource_dependency": true,
+    "trade_and_living_influence": true,
+    "map_coloring": false,
+    "new_full_ui": false,
+    "religion_system": false,
+    "tourism_system": false,
+    "congress_system": false,
+    "city_transfer": false
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "max_offer_response_rounds": 10,
+  "strategic_cap": 60,
+  "dependency_growth": 5,
+  "dependency_fall": 5,
+  "demand_window": 5,
+  "reserve_horizon": 10,
+  "influence_max": 1000,
+  "influence_growth_fraction": 0.1,
+  "influence_rise": 10,
+  "influence_fall": 20,
+  "dependency_influence_cap": 200,
+  "dependency_full_average": 50,
+  "route_influence_cap": 100,
+  "supply_influence_cap": 50,
+  "living_influence_cap": 150,
+  "living_weights": {"food": 0.30, "housing": 0.25, "amenities": 0.25, "order": 0.20},
+  "route_one_strength": 0.75,
+  "route_two_strength": 1.0,
+  "nonexistent_source_contribution": 0
+}

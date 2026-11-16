@@ -3,7 +3,7 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 
 var turn: int = 1
 var current_player: int = 0
@@ -21,6 +21,8 @@ var start_positions: PackedInt32Array
 var wars: Dictionary = {}
 ## Ход последнего объявления войны или мира в паре: "a,b" -> ход.
 var war_changed: Dictionary = {}
+## Договоры поставок, направленные зависимости и мировой рейтинг.
+var diplomacy: Dictionary = {}
 ## Лагеря варваров: клетка -> {"spawned", "timer", "target", "scout"}.
 var camps: Dictionary = {}
 
@@ -169,6 +171,7 @@ func to_dict() -> Dictionary:
 		"wars": wars.keys(),
 		"cities": _sorted_city_ids().map(func(id): return cities[id].to_dict()),
 		"war_changed": war_changed.duplicate(),
+		"diplomacy": diplomacy.duplicate(true),
 		"camps": _camps_list(),
 		"next_city_id": next_city_id,
 	}
@@ -196,6 +199,24 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 	s.next_city_id = int(d.get("next_city_id", 1))
 	for k in d.get("war_changed", {}):
 		s.war_changed[k] = int(d["war_changed"][k])
+	s.diplomacy = d.get("diplomacy", {}).duplicate(true)
+	if not s.diplomacy.is_empty():
+		var majors: Array[int] = []
+		for pid in s.diplomacy.get("initial_majors", []):
+			majors.append(int(pid))
+		s.diplomacy["initial_majors"] = majors
+		for key in ["last_round", "next_id"]:
+			s.diplomacy[key] = int(s.diplomacy.get(key, 0))
+		for collection in ["offers", "contracts"]:
+			for id in s.diplomacy.get(collection, {}):
+				var record: Dictionary = s.diplomacy[collection][id]
+				for field in record:
+					if field not in ["resource"]:
+						record[field] = int(record[field])
+		for collection in ["delivery_history", "spend_history", "route_history", "living_history"]:
+			for key in s.diplomacy.get(collection, {}):
+				for record in s.diplomacy[collection][key]:
+					record["round"] = int(record["round"])
 	for c in d.get("camps", []):
 		var camp := Unit._ints_in_dict(c)
 		s.camps[int(camp["tile"])] = camp

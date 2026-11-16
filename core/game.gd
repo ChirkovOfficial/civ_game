@@ -59,6 +59,7 @@ static func new_game(game_data: GameData, settings: Dictionary) -> Game:
 	for p in s.players:
 		Visibility.recompute(game, p.id)
 	Barbarians.setup(game)
+	DiplomacyRules.initialize(game)
 	s.current_player = 0
 	game._begin_player_turn(0, [])
 	return game
@@ -289,6 +290,12 @@ func apply_action(action: Dictionary) -> Array:
 			else:
 				state.set_war(state.current_player, target, false)
 				events.append({"type": "peace_made", "player": state.current_player, "target": target})
+		"propose_supply":
+			DiplomacyRules.propose(self, action, events)
+		"respond_supply":
+			DiplomacyRules.respond(self, action, events)
+		"cancel_supply":
+			DiplomacyRules.cancel(self, action, events)
 		"end_turn":
 			var blocking := EmpireRules.blocking_decisions(self, state.current_player)
 			if not blocking.is_empty() and not action.get("force", false):
@@ -556,6 +563,7 @@ func _act_end_turn(events: Array) -> void:
 	var next := _next_alive_player(finished)
 	if next <= finished:
 		_barbarian_phase(events)
+		DiplomacyRules.close_round(self, events)
 		state.turn += 1
 		events.append({"type": "new_round", "turn": state.turn})
 	state.current_player = next
@@ -577,6 +585,7 @@ func _act_end_turn(events: Array) -> void:
 		var n2 := _next_alive_player(ai_id)
 		if n2 <= ai_id:
 			_barbarian_phase(events)
+			DiplomacyRules.close_round(self, events)
 			state.turn += 1
 			events.append({"type": "new_round", "turn": state.turn})
 			if not has_humans:

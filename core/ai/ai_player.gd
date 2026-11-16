@@ -10,6 +10,7 @@ const EXPLORE_RADIUS := 8
 
 
 static func take_turn(game: Game, pid: int) -> void:
+	_supply_diplomacy(game, pid)
 	_choose_research(game, pid)
 	_choose_government(game, pid)
 	_tactical(game, pid)
@@ -31,6 +32,51 @@ static func take_turn(game: Game, pid: int) -> void:
 	_handle_commanders(game, pid)
 	_handle_military(game, pid)
 	_equip_units(game, pid)
+
+## ИИ принимает посильные полезные поставки и предлагает избыток ресурса.
+static func _supply_diplomacy(game: Game, pid: int) -> void:
+	DiplomacyRules.initialize(game)
+	var d := game.state.diplomacy
+	var offer_ids: Array = d["offers"].keys()
+	offer_ids.sort_custom(func(a: String, b: String) -> bool: return int(a) < int(b))
+	for id in offer_ids:
+		var offer: Dictionary = d["offers"][id]
+		if int(offer["buyer"]) != pid:
+			continue
+		var rid: String = offer["resource"]
+		var total: int = (int(offer["upfront"]) + int(offer["per_turn"]) * int(offer["rounds"])) * int(offer["unit_price"])
+		var need := DiplomacyRules._resource_need(game, pid, rid, game.state.turn)
+		var supply: float = UnitRules.strategic_income(game, pid).get(rid, 0.0)
+		var accept := need > supply and game.state.player(pid).treasury >= total + 30.0
+		game.apply_action({"type": "respond_supply", "id": int(id), "accept": accept})
+	# Не создаём предложения без выявленной потребности и контакта.
+	for other in game.state.players:
+		if other.id == pid or other.is_barbarian or not other.alive or not game.state.player(pid).met.has(other.id):
+			continue
+		if game.state.at_war(pid, other.id):
+			continue
+		for rid in game.data.resource_ids:
+			if game.data.resources[rid].get("class", "") != "strategic":
+				continue
+			if float(game.state.player(pid).stockpile.get(rid, 0.0)) < 30.0:
+				continue
+			var need := DiplomacyRules._resource_need(game, other.id, rid, game.state.turn)
+			if need <= float(UnitRules.strategic_income(game, other.id).get(rid, 0.0)):
+				continue
+			var already := false
+			for id in d["offers"]:
+				var offer: Dictionary = d["offers"][id]
+				if int(offer["seller"]) == pid and int(offer["buyer"]) == other.id and offer["resource"] == rid:
+					already = true
+			for id in d["contracts"]:
+				var contract: Dictionary = d["contracts"][id]
+				if int(contract["seller"]) == pid and int(contract["buyer"]) == other.id and contract["resource"] == rid:
+					already = true
+			if already:
+				continue
+			game.apply_action({"type": "propose_supply", "buyer": other.id, "resource": rid,
+				"upfront": 0, "per_turn": 2, "rounds": 5, "unit_price": 2})
+			return
 
 
 ## Покупки (ГДД 23.3): держим резерв, излишек тратим на текущее производство города,

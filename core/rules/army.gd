@@ -143,6 +143,7 @@ static func equip(game: Game, u: Unit, slot: String, opt: String, events: Array)
 	var res: Dictionary = option_def(game, opt).get("resource", {})
 	for r in res:
 		p.stockpile[r] = float(p.stockpile.get(r, 0.0)) - float(res[r])
+		DiplomacyRules.record_spend(game, u.owner, r, float(res[r]))
 	u.equipment[slot] = opt
 	events.append({"type": "unit_equipped", "unit": u.id, "slot": slot, "option": opt})
 

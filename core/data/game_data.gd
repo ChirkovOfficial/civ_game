@@ -19,6 +19,7 @@ var government_setup: Dictionary = {}
 var governments: Dictionary = {}
 var policies: Dictionary = {}
 var trade: Dictionary = {}
+var diplomacy: Dictionary = {}
 var buildings: Dictionary = {}
 var districts: Dictionary = {}
 var improvements: Dictionary = {}
@@ -108,6 +109,7 @@ func load_all(dir: String = DATA_DIR) -> void:
 	governments = _index(government_setup.get("governments", []))
 	policies = _index(government_setup.get("policies", []))
 	trade = _read(dir + "trade.json")
+	diplomacy = _read(dir + "diplomacy.json")
 	setup = _read(dir + "game_setup.json")
 
 
