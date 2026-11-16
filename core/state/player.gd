@@ -31,6 +31,8 @@ var current_civic: String = ""
 var civic_progress: Dictionary = {}   # id -> 🎭
 ## Сколько юнитов каждого типа произведено (рост цены поселенцев/строителей, ГДД 5.1, 8.1).
 var produced: Dictionary = {}
+## Одноразовые эврики и вдохновения: "tech:ID" или "civic:ID".
+var research_boosts: Dictionary = {}
 ## Сколько имён городов уже использовано из списка цивилизации.
 var city_names_used: int = 0
 
@@ -71,6 +73,7 @@ func to_dict() -> Dictionary:
 		"known_civics": _sorted_keys(known_civics), "revealed": Marshalls.raw_to_base64(revealed),
 		"current_tech": current_tech, "tech_progress": tech_progress.duplicate(),
 		"current_civic": current_civic, "civic_progress": civic_progress.duplicate(),
+		"research_boosts": _sorted_keys(research_boosts),
 		"government": government, "policy_slots": policy_slots.duplicate(),
 		"produced": produced.duplicate(), "city_names_used": city_names_used,
 		"is_barbarian": is_barbarian, "met": _sorted_keys(met), "stockpile": stockpile.duplicate(),
@@ -107,6 +110,8 @@ static func from_dict(d: Dictionary) -> Player:
 		p.tech_progress[k] = float(d["tech_progress"][k])
 	for k in d.get("civic_progress", {}):
 		p.civic_progress[k] = float(d["civic_progress"][k])
+	for id in d.get("research_boosts", []):
+		p.research_boosts[id] = true
 	for k in d.get("produced", {}):
 		p.produced[k] = int(d["produced"][k])
 	p.city_names_used = int(d.get("city_names_used", 0))

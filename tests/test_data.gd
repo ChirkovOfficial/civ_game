@@ -9,9 +9,12 @@ func test_data_valid() -> void:
 
 func test_tree_sizes() -> void:
 	var d := GameData.get_default()
-	check_eq(d.techs.size(), 77, "технологий")
-	check_eq(d.civics.size(), 61, "институтов")
+	var early := ["ANCIENT", "CLASSICAL", "MEDIEVAL", "RENAISSANCE"]
+	check_eq(d.techs.values().filter(func(x): return x["era"] in early).size(), 32)
+	check_eq(d.civics.values().filter(func(x): return x["era"] in early).size(), 24)
 	check(d.techs["BANKING"]["prereqs"].has("EDUCATION"))
+	check_eq(d.techs["CARTOGRAPHY"]["prereqs"], ["CELESTIAL_NAVIGATION", "EDUCATION"])
+	check_eq(d.civics["THE_ENLIGHTENMENT"]["prereqs"], ["HUMANISM", "DIPLOMATIC_SERVICE"])
 
 
 func test_cycle_detection() -> void:

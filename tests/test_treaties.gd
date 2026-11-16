@@ -32,6 +32,8 @@ func test_alliance_requires_friendship_and_war_removes_access() -> void:
 		DiplomacyRules.close_round(g, [])
 		g.state.turn += 1
 	check_near(float(DiplomacyRules.influence(g, 0)["sources"]["relations"]), 40.0)
+	check_eq(_offer(g, "alliance")[0]["type"], "error", "Союзы открывает Гражданская служба")
+	g.state.player(0).known_civics["CIVIL_SERVICE"] = true
 	check_eq(_offer(g, "alliance")[0]["type"], "treaty_proposed")
 	check_eq(_accept(g, "alliance")[0]["type"], "treaty_accepted")
 	check_eq(TreatyRules.until(g, "friendship", 0, 1), 0)
@@ -97,4 +99,5 @@ func test_renewal_preserves_friendship_age_and_decline_delays_offer() -> void:
 	_offer(g, "friendship")
 	_accept(g, "friendship")
 	check_eq(TreatyRules.until(g, "friendship", 0, 1), 46)
+	g.state.player(0).known_civics["CIVIL_SERVICE"] = true
 	check_eq(_offer(g, "alliance")[0]["type"], "treaty_proposed")

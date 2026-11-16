@@ -81,6 +81,79 @@ static func civic_cost(game: Game, civic_id: String) -> float:
 	return roundf(float(game.data.civics.get(civic_id, {}).get("cost", 0)) * CityRules.speed_mult(game))
 
 
+## При объединении узлов сохраняем открытие и наибольший накопленный прогресс.
+static func migrate_research(player: Player, data: GameData) -> void:
+	player.current_tech = _migrate_tree(player.known_techs, player.tech_progress, player.current_tech, data.legacy_techs)
+	player.current_civic = _migrate_tree(player.known_civics, player.civic_progress, player.current_civic, data.legacy_civics)
+
+
+static func _migrate_tree(known: Dictionary, progress: Dictionary, current: String, aliases: Dictionary) -> String:
+	for old_id in aliases:
+		var id: String = aliases[old_id]
+		if known.erase(old_id):
+			known[id] = true
+		if progress.has(old_id):
+			progress[id] = maxf(float(progress.get(id, 0.0)), float(progress[old_id]))
+			progress.erase(old_id)
+	var next: String = aliases.get(current, current)
+	if known.has(next):
+		progress["_overflow"] = float(progress.get("_overflow", 0.0)) + float(progress.get(next, 0.0))
+		progress.erase(next)
+		next = ""
+	return next
+
+
+static func apply_research_boosts(game: Game, pid: int, events: Array) -> void:
+	var p := game.state.player(pid)
+	for kind in ["tech", "civic"]:
+		var definitions := game.data.techs if kind == "tech" else game.data.civics
+		var ids := game.data.tech_ids if kind == "tech" else game.data.civic_ids
+		var known := p.known_techs if kind == "tech" else p.known_civics
+		var progress := p.tech_progress if kind == "tech" else p.civic_progress
+		for id in ids:
+			var boost: Dictionary = definitions[id].get("boost", {})
+			if boost.is_empty() or known.has(id):
+				continue
+			var key := "%s:%s" % [kind, id]
+			if p.research_boosts.has(key) or not _boost_reached(game, pid, boost):
+				continue
+			var cost := tech_cost(game, id) if kind == "tech" else civic_cost(game, id)
+			var amount := cost * float(game.data.const_value("research_boost_fraction", 0.4))
+			# Эврика ускоряет только свой узел, не пополняя общий запас.
+			progress[id] = minf(cost, float(progress.get(id, 0.0)) + amount)
+			p.research_boosts[key] = true
+			events.append({"type": "research_boost", "player": pid, "kind": kind, "id": id})
+
+
+static func _boost_reached(game: Game, pid: int, boost: Dictionary) -> bool:
+	var condition: String = boost["condition"]
+	if condition == "met_major":
+		return not game.state.player(pid).met.is_empty()
+	var total := 0
+	var minimum := int(boost.get("minimum", 1))
+	for city in game.state.cities_of(pid):
+		match condition:
+			"coastal_city":
+				if game.state.map.is_coastal_land(city.tile):
+					return true
+			"population":
+				total += city.population
+			"specialized_district":
+				for district in city.districts:
+					if district["complete"] and game.data.districts.get(district["type"], {}).get("specialized", false):
+						return true
+			"improvements":
+				for tile in CityRules.owned_tiles(game, city):
+					var improvement := game.state.map.improvement[tile]
+					if improvement != "" and game.state.map.pillaged[tile] == 0 and \
+							not game.data.improvements.get(improvement, {}).get("special", false) \
+							and improvement == str(boost.get("id", improvement)):
+						total += 1
+		if total >= minimum:
+			return true
+	return false
+
+
 static func _available(tree: Dictionary, ids: Array[String], known: Dictionary) -> Array[String]:
 	var result: Array[String] = []
 	for id in ids:
@@ -168,6 +241,7 @@ static func process_turn_start(game: Game, pid: int, events: Array) -> void:
 	p.treasury += float(sum["net_gold"])
 	p.faith += float(y.get("faith", 0.0))
 	if not cities.is_empty():
+		apply_research_boosts(game, pid, events)
 		add_research(game, pid, "tech", float(y.get("science", 0.0)), events)
 		add_research(game, pid, "civic", float(y.get("culture", 0.0)), events)
 	# Пусть результат текущего исследования (если оно завершилось) сразу засчитается.

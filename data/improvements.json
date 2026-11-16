@@ -130,6 +130,7 @@
   {
    "id": "FORT",
    "name": "Форт",
+   "tech": "METAL_CASTING",
    "special": true,
    "defense": 4,
    "auto_fortify": true,

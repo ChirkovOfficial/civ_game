@@ -459,6 +459,9 @@ static func build_error(game: Game, city: City, item: Dictionary) -> String:
 			return DistrictRules.building_error(game, city, id, int(item["tile"]))
 		if city.has_building(id):
 			return "Уже построено"
+		var requirement: String = b.get("requires_building", "")
+		if requirement != "" and not city.has_building(requirement):
+			return "Нужно здание «%s»" % game.data.buildings[requirement]["name"]
 		if b.get("requires", "") == "river" and not game.state.map.has_river(city.tile):
 			return "Город должен стоять у реки"
 		return ""
@@ -523,7 +526,7 @@ static func production_per_turn(game: Game, city: City, lux: Dictionary = {}) ->
 
 
 static func turns_to_build(game: Game, city: City, item: Dictionary) -> int:
-	var per := production_per_turn(game, city)
+	var per := production_per_turn(game, city) * GovernmentRules.production_multiplier(game, city.owner, item)
 	var left := item_cost(game, city, item) - float(city.progress.get(City.item_key(item), 0.0))
 	if per <= 0.0:
 		return -1
@@ -545,6 +548,8 @@ static func complete_item(game: Game, city: City, item: Dictionary, events: Arra
 		var def := game.data.unit_def(item["id"])
 		u.moves_left = Movement.max_moves(game, u)
 		u.charges = int(def.get("charges", 0))
+		if "BUILD_IMPROVEMENT" in def.get("abilities", []):
+			u.charges += int(GovernmentRules.sum_effect(game, city.owner, "builder_charges"))
 		if u.charges == 0 and Abilities.has(game, u, "BUILD_FORT"):
 			u.charges = 1
 		var p := game.state.player(city.owner)
@@ -617,7 +622,8 @@ static func process_production(game: Game, city: City, per_turn: float, events: 
 		city.queue.pop_front()
 		return
 	var key := City.item_key(item)
-	var have := float(city.progress.get(key, 0.0)) + per_turn + city.overflow
+	var multiplier := GovernmentRules.production_multiplier(game, city.owner, item)
+	var have := float(city.progress.get(key, 0.0)) + per_turn * multiplier + city.overflow
 	city.overflow = 0.0
 	var cost := item_cost(game, city, item)
 	if have < cost:
@@ -627,7 +633,7 @@ static func process_production(game: Game, city: City, per_turn: float, events: 
 		city.progress[key] = cost
 		return
 	city.progress.erase(key)
-	city.overflow = have - cost
+	city.overflow = (have - cost) / maxf(1.0, multiplier)
 	city.queue.pop_front()
 	if city.queue.is_empty():
 		events.append({"type": "production_needed", "city": city.id})
@@ -718,7 +724,8 @@ static func tile_purchase_cost(game: Game, city: City, tile: int) -> int:
 	var known := p.known_techs.size() + p.known_civics.size()
 	var cost := float(c(game, "tile_buy_base", 50)) * (1.0 + float(c(game, "tile_buy_per_distance", 0.5)) * (dist - 1)) \
 		* (1.0 + float(c(game, "tile_buy_per_known", 0.02)) * known)
-	return int(roundf(cost * speed_mult(game)))
+	var discount := GovernmentRules.sum_effect(game, city.owner, "tile_discount")
+	return int(roundf(cost * speed_mult(game) * clampf(1.0 - discount, 0.0, 1.0)))
 
 
 static func tile_purchase_error(game: Game, city: City, tile: int) -> String:

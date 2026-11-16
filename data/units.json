@@ -165,7 +165,7 @@
    "moves": 2,
    "sight": 2,
    "cost": 180,
-   "tech": "MILITARY_TACTICS",
+   "tech": "MILITARY_ENGINEERING",
    "upgrades_to": "PIKE_AND_SHOT"
   },
   {
@@ -601,7 +601,7 @@
    "moves": 3,
    "sight": 2,
    "cost": 120,
-   "tech": "SHIPBUILDING",
+   "tech": "CELESTIAL_NAVIGATION",
    "upgrades_to": "FRIGATE"
   },
   {

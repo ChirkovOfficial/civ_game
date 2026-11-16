@@ -135,6 +135,7 @@ static func route_yields(game: Game, route: Dictionary) -> Dictionary:
 	var destination := game.state.city(int(route["destination"]))
 	if origin == null or destination == null:
 		return {}
+	var international := origin.owner != destination.owner
 	var table: Dictionary = game.data.trade["domestic" if origin.owner == destination.owner else "international"]
 	var result: Dictionary = table["CITY_CENTER"].duplicate()
 	for district in destination.districts:
@@ -148,6 +149,7 @@ static func route_yields(game: Game, route: Dictionary) -> Dictionary:
 		if city != null and city.tile == tile and city.trade_posts.has(origin.owner) and not counted.has(city.id):
 			counted[city.id] = true
 			result["gold"] = float(result.get("gold", 0)) + float(game.data.trade["post_gold"])
+	GovernmentRules.add_route_yields(game, origin.owner, international, result)
 	return result
 
 

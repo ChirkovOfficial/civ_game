@@ -6,7 +6,8 @@
    "tech_overrides": {
     "CONSTRUCTION": {
      "name": "Римский бетон",
-     "unlocks_text": "Лесопилка, осадная башня; акведуки и бани II раньше и дешевле; Терракотовая армия",
+     "unlocks_text": "Лесопилки и осадные башни. Акведуки и бани II раньше и дешевле.",
+     "planned_text": "Терракотовая армия.",
      "districts": {
       "AQUEDUCT": {"tier": 1, "cost_mult": 0.8},
       "BATHS": {"tier": 2, "cost_mult": 0.8}

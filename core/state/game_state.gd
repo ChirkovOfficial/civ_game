@@ -3,7 +3,7 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 8
+const SAVE_VERSION := 9
 
 var congress_data := {"founded": false, "next_id": 1, "next_session": 0, "polls": {},
 	"docket": {}, "orders": {}, "evidence": {}, "cooldowns": {}, "recent": {}}
@@ -203,7 +203,10 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 	s.settings = Unit._ints_in_dict(d["settings"])
 	s.map = GameMap.from_dict(d["map"], data)
 	for pd in d["players"]:
-		s.players.append(Player.from_dict(pd))
+		var player := Player.from_dict(pd)
+		if int(d.get("version", 1)) < 9:
+			EmpireRules.migrate_research(player, data)
+		s.players.append(player)
 	for ud in d["units"]:
 		var u := Unit.from_dict(ud)
 		s.units[u.id] = u

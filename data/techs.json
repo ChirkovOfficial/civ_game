@@ -1,5 +1,11 @@
 {
-  "_doc": "Дерево технологий (ГДД 21). Сгенерировано из docs/GDD.md скриптом, далее правится вручную. unlocks_text/boost_text — описания; машинные условия эврик будут добавлены позже.",
+  "_doc": "До Возрождения — согласованное компактное дерево. Поздние эпохи сохраняют исходный каталог. legacy_ids связывает объединённые узлы со старыми сохранениями.",
+  "legacy_ids": {
+    "SHIPBUILDING": "CELESTIAL_NAVIGATION",
+    "MILITARY_TACTICS": "MILITARY_ENGINEERING",
+    "ASTRONOMY": "CARTOGRAPHY",
+    "SIEGE_TACTICS": "METAL_CASTING"
+  },
   "techs": [
     {
       "id": "POTTERY",
@@ -7,7 +13,7 @@
       "era": "ANCIENT",
       "cost": 25,
       "prereqs": [],
-      "unlocks_text": "Амбар, бани I, рабочий квартал; чудо Великая купальня"
+      "unlocks_text": "Амбар, бани I, рабочий квартал."
     },
     {
       "id": "ANIMAL_HUSBANDRY",
@@ -15,7 +21,7 @@
       "era": "ANCIENT",
       "cost": 25,
       "prereqs": [],
-      "unlocks_text": "Пастбище, Лагерь; показывает Лошадей"
+      "unlocks_text": "Пастбища, лагеря, открытие лошадей."
     },
     {
       "id": "MINING",
@@ -23,7 +29,7 @@
       "era": "ANCIENT",
       "cost": 25,
       "prereqs": [],
-      "unlocks_text": "Рудник, Каменоломня; вырубка леса"
+      "unlocks_text": "Рудники, каменоломни, вырубка леса."
     },
     {
       "id": "SAILING",
@@ -31,7 +37,8 @@
       "era": "ANCIENT",
       "cost": 50,
       "prereqs": [],
-      "unlocks_text": "Галера, Рыбацкие лодки; строители могут плавать",
+      "unlocks_text": "Галеры и рыбацкие лодки.",
+      "boost": {"condition": "coastal_city"},
       "boost_text": "основать город на побережье"
     },
     {
@@ -40,7 +47,7 @@
       "era": "ANCIENT",
       "cost": 50,
       "prereqs": [],
-      "unlocks_text": "район Священное место, Святилище; Стоунхендж",
+      "unlocks_text": "Священное место I.",
       "boost_text": "найти чудо природы"
     },
     {
@@ -51,7 +58,7 @@
       "prereqs": [
         "POTTERY"
       ],
-      "unlocks_text": "Плантация; осушение болот; Висячие сады",
+      "unlocks_text": "Плантации и осушение болот.",
       "boost_text": "улучшить ресурс фермой"
     },
     {
@@ -62,7 +69,8 @@
       "prereqs": [
         "POTTERY"
       ],
-      "unlocks_text": "район Кампус, Библиотека",
+      "unlocks_text": "Кампус I.",
+      "boost": {"condition": "met_major"},
       "boost_text": "встретить другую державу"
     },
     {
@@ -73,7 +81,7 @@
       "prereqs": [
         "ANIMAL_HUSBANDRY"
       ],
-      "unlocks_text": "Лучник; Храм Артемиды",
+      "unlocks_text": "Лучники.",
       "boost_text": "убить юнит Пращником"
     },
     {
@@ -84,7 +92,8 @@
       "prereqs": [
         "MINING"
       ],
-      "unlocks_text": "Античные стены, таран, жилой квартал; Пирамиды",
+      "unlocks_text": "Античные стены и жилой квартал.",
+      "boost": {"condition": "improvements", "id": "QUARRY", "minimum": 1},
       "boost_text": "построить Каменоломню"
     },
     {
@@ -95,7 +104,7 @@
       "prereqs": [
         "MINING"
       ],
-      "unlocks_text": "район Военный лагерь, Казармы, Копейщик; показывает Железо; вырубка джунглей",
+      "unlocks_text": "Копейщики, военный лагерь I, открытие железа.",
       "boost_text": "убить 3 варваров"
     },
     {
@@ -106,31 +115,8 @@
       "prereqs": [
         "MINING"
       ],
-      "unlocks_text": "Тяжёлая колесница, Водяная мельница",
+      "unlocks_text": "Тяжёлые колесницы и водяная мельница.",
       "boost_text": "улучшить ресурс рудником"
-    },
-    {
-      "id": "CELESTIAL_NAVIGATION",
-      "name": "Небесная навигация",
-      "era": "CLASSICAL",
-      "cost": 120,
-      "prereqs": [
-        "SAILING",
-        "ASTROLOGY"
-      ],
-      "unlocks_text": "район Гавань, Маяк; Великий маяк",
-      "boost_text": "улучшить 2 морских ресурса"
-    },
-    {
-      "id": "CURRENCY",
-      "name": "Деньги",
-      "era": "CLASSICAL",
-      "cost": 120,
-      "prereqs": [
-        "WRITING"
-      ],
-      "unlocks_text": "район Коммерческий центр, Рынок",
-      "boost_text": "создать торговый путь"
     },
     {
       "id": "HORSEBACK_RIDING",
@@ -138,9 +124,10 @@
       "era": "CLASSICAL",
       "cost": 120,
       "prereqs": [
-        "ARCHERY"
+        "ANIMAL_HUSBANDRY",
+        "THE_WHEEL"
       ],
-      "unlocks_text": "Всадник, Конюшня",
+      "unlocks_text": "Всадники.",
       "boost_text": "построить Пастбище"
     },
     {
@@ -151,19 +138,20 @@
       "prereqs": [
         "BRONZE_WORKING"
       ],
-      "unlocks_text": "Мечник",
+      "unlocks_text": "Мечники и железное снаряжение.",
       "boost_text": "построить рудник на Железе"
     },
     {
-      "id": "SHIPBUILDING",
-      "name": "Кораблестроение",
+      "id": "CURRENCY",
+      "name": "Денежное обращение",
       "era": "CLASSICAL",
-      "cost": 200,
+      "cost": 120,
       "prereqs": [
-        "SAILING"
+        "WRITING",
+        "THE_WHEEL"
       ],
-      "unlocks_text": "Квадрирема; все наземные юниты могут плавать; Колосс",
-      "boost_text": "иметь 2 Галеры"
+      "unlocks_text": "Коммерческий центр I.",
+      "boost_text": "создать торговый путь"
     },
     {
       "id": "MATHEMATICS",
@@ -173,7 +161,7 @@
       "prereqs": [
         "WRITING"
       ],
-      "unlocks_text": "Военный лагерь II, командующие (нужен построенный лагерь II), катапульта",
+      "unlocks_text": "Военный лагерь II и командующие. Катапульты.",
       "boost_text": "построить 3 разных специализированных района"
     },
     {
@@ -185,7 +173,7 @@
         "MASONRY",
         "THE_WHEEL"
       ],
-      "unlocks_text": "Лесопилка, Осадная башня; Терракотовая армия",
+      "unlocks_text": "Лесопилки и осадные башни. У Рима этот узел заменяется «Римским бетоном».",
       "boost_text": "построить Водяную мельницу"
     },
     {
@@ -194,34 +182,24 @@
       "era": "CLASSICAL",
       "cost": 200,
       "prereqs": [
-        "CONSTRUCTION",
-        "MATHEMATICS"
+        "MATHEMATICS",
+        "CONSTRUCTION"
       ],
-      "unlocks_text": "Акведуки, бани II, городской квартал и жилые районы II; Мачу-Пикчу",
+      "unlocks_text": "Акведуки, бани II, городской квартал и улучшение жилой застройки до II уровня.",
       "boost_text": "построить Античные стены"
     },
     {
-      "id": "MILITARY_TACTICS",
-      "name": "Военная тактика",
-      "era": "MEDIEVAL",
-      "cost": 300,
+      "id": "CELESTIAL_NAVIGATION",
+      "name": "Небесная навигация",
+      "era": "CLASSICAL",
+      "cost": 120,
       "prereqs": [
-        "MATHEMATICS"
+        "SAILING",
+        "ASTROLOGY"
       ],
-      "unlocks_text": "Пикинёр",
-      "boost_text": "убить юнит Копейщиком"
-    },
-    {
-      "id": "BUTTRESS",
-      "name": "Контрфорс",
-      "era": "MEDIEVAL",
-      "cost": 300,
-      "prereqs": [
-        "SHIPBUILDING",
-        "MATHEMATICS"
-      ],
-      "unlocks_text": "район Дамба; Собор Св. Софии",
-      "boost_text": "построить чудо классической эры или позже"
+      "unlocks_text": "Гавань I и квадриремы.",
+      "boost_text": "улучшить 2 морских ресурса",
+      "planned_text": "Перевозка сухопутных юнитов по воде."
     },
     {
       "id": "APPRENTICESHIP",
@@ -230,22 +208,11 @@
       "cost": 300,
       "prereqs": [
         "CURRENCY",
-        "HORSEBACK_RIDING"
+        "CONSTRUCTION"
       ],
-      "unlocks_text": "район Промышленная зона, Мастерская, Латник; Рудники +1⚙",
-      "boost_text": "построить 3 Рудника"
-    },
-    {
-      "id": "MACHINERY",
-      "name": "Механика",
-      "era": "MEDIEVAL",
-      "cost": 300,
-      "prereqs": [
-        "IRON_WORKING",
-        "ENGINEERING"
-      ],
-      "unlocks_text": "Арбалетчик, Застрельщик; Килва-Кисивани",
-      "boost_text": "иметь 3 Лучников"
+      "unlocks_text": "Промышленная зона I и латники.",
+      "boost_text": "построить 3 Рудника",
+      "planned_text": "Усиление рудников."
     },
     {
       "id": "EDUCATION",
@@ -253,11 +220,23 @@
       "era": "MEDIEVAL",
       "cost": 390,
       "prereqs": [
-        "APPRENTICESHIP",
-        "MATHEMATICS"
+        "MATHEMATICS",
+        "CURRENCY"
       ],
-      "unlocks_text": "Университет",
+      "unlocks_text": "Кампус II.",
       "boost_text": "завербовать Великого учёного"
+    },
+    {
+      "id": "MACHINERY",
+      "name": "Механика",
+      "era": "MEDIEVAL",
+      "cost": 300,
+      "prereqs": [
+        "ENGINEERING",
+        "IRON_WORKING"
+      ],
+      "unlocks_text": "Арбалетчики и следопыты.",
+      "boost_text": "иметь 3 Лучников"
     },
     {
       "id": "STIRRUPS",
@@ -265,21 +244,11 @@
       "era": "MEDIEVAL",
       "cost": 390,
       "prereqs": [
-        "HORSEBACK_RIDING"
+        "HORSEBACK_RIDING",
+        "IRON_WORKING"
       ],
-      "unlocks_text": "Рыцарь; Пастбища +1🍞",
+      "unlocks_text": "Рыцари.",
       "boost_text": "изучить институт Феодализм"
-    },
-    {
-      "id": "MILITARY_ENGINEERING",
-      "name": "Военная инженерия",
-      "era": "MEDIEVAL",
-      "cost": 390,
-      "prereqs": [
-        "CONSTRUCTION"
-      ],
-      "unlocks_text": "Военный инженер, Арсенал, Требушет; показывает Селитру",
-      "boost_text": "построить Акведук"
     },
     {
       "id": "CASTLES",
@@ -287,10 +256,33 @@
       "era": "MEDIEVAL",
       "cost": 390,
       "prereqs": [
-        "CONSTRUCTION"
+        "ENGINEERING",
+        "IRON_WORKING"
       ],
-      "unlocks_text": "Средневековые стены, Курсёр; Альгамбра",
+      "unlocks_text": "Средневековые стены и лёгкая кавалерия.",
       "boost_text": "форма правления с 6 слотами курсов"
+    },
+    {
+      "id": "MILITARY_ENGINEERING",
+      "name": "Военная инженерия",
+      "era": "MEDIEVAL",
+      "cost": 390,
+      "prereqs": [
+        "MACHINERY"
+      ],
+      "unlocks_text": "Требушеты, пикинёры, военный инженер, открытие и добыча селитры.",
+      "boost_text": "построить Акведук"
+    },
+    {
+      "id": "BUTTRESS",
+      "name": "Гидротехника",
+      "era": "MEDIEVAL",
+      "cost": 300,
+      "prereqs": [
+        "ENGINEERING"
+      ],
+      "unlocks_text": "Дамбы.",
+      "boost_text": "построить акведук"
     },
     {
       "id": "CARTOGRAPHY",
@@ -298,21 +290,22 @@
       "era": "RENAISSANCE",
       "cost": 600,
       "prereqs": [
-        "SHIPBUILDING"
+        "CELESTIAL_NAVIGATION",
+        "EDUCATION"
       ],
-      "unlocks_text": "Каравелла; выход в океан; Рыбацкие лодки +2💰; Каса-де-Контратасьон",
+      "unlocks_text": "Каравеллы и выход в океан.",
       "boost_text": "построить 2 Гавани"
     },
     {
       "id": "MASS_PRODUCTION",
-      "name": "Массовое производство",
+      "name": "Мануфактуры",
       "era": "RENAISSANCE",
       "cost": 600,
       "prereqs": [
-        "EDUCATION",
-        "SHIPBUILDING"
+        "APPRENTICESHIP",
+        "MACHINERY"
       ],
-      "unlocks_text": "Верфь; Венецианский арсенал",
+      "unlocks_text": "Промышленная зона II и Гавань II.",
       "boost_text": "построить Лесопилку"
     },
     {
@@ -321,11 +314,12 @@
       "era": "RENAISSANCE",
       "cost": 600,
       "prereqs": [
-        "EDUCATION",
-        "STIRRUPS"
+        "CURRENCY",
+        "EDUCATION"
       ],
-      "unlocks_text": "Банк; Каменоломни +💰; Большой Зимбабве; запускает гонку Финансовой победы",
-      "boost_text": "изучить институт Гильдии"
+      "unlocks_text": "Коммерческий центр II и богатый квартал II.",
+      "boost_text": "изучить институт Гильдии",
+      "planned_text": "Открытие финансовой гонки."
     },
     {
       "id": "GUNPOWDER",
@@ -333,67 +327,48 @@
       "era": "RENAISSANCE",
       "cost": 600,
       "prereqs": [
-        "APPRENTICESHIP",
-        "STIRRUPS",
-        "MILITARY_ENGINEERING"
+        "MILITARY_ENGINEERING",
+        "APPRENTICESHIP"
       ],
-      "unlocks_text": "Мушкетёр",
+      "unlocks_text": "Мушкетёры.",
       "boost_text": "построить Арсенал"
     },
     {
       "id": "PRINTING",
-      "name": "Книгопечатание",
+      "name": "Печатный станок",
       "era": "RENAISSANCE",
       "cost": 600,
       "prereqs": [
+        "EDUCATION",
         "MACHINERY"
       ],
-      "unlocks_text": "+1 дипл. видимость; ×2 туризм литературы; Запретный город",
-      "boost_text": "построить 2 Университета"
+      "unlocks_text": "Подготовка к военной модернизации.",
+      "boost_text": "построить 2 Университета",
+      "planned_text": "Усиление культуры и дипломатической видимости."
     },
     {
       "id": "SQUARE_RIGGING",
-      "name": "Прямое парусное вооружение",
+      "name": "Парусное вооружение",
       "era": "RENAISSANCE",
       "cost": 730,
       "prereqs": [
-        "CARTOGRAPHY"
+        "CARTOGRAPHY",
+        "GUNPOWDER"
       ],
-      "unlocks_text": "Фрегат",
+      "unlocks_text": "Фрегаты.",
       "boost_text": "убить юнит Мушкетёром"
     },
     {
-      "id": "ASTRONOMY",
-      "name": "Астрономия",
-      "era": "RENAISSANCE",
-      "cost": 730,
-      "prereqs": [
-        "EDUCATION"
-      ],
-      "unlocks_text": "Дворец Потала; +🔬 от… (соседство гор — контент)",
-      "boost_text": "Университет рядом с горой"
-    },
-    {
       "id": "METAL_CASTING",
-      "name": "Литьё металла",
+      "name": "Осадное дело",
       "era": "RENAISSANCE",
       "cost": 730,
       "prereqs": [
+        "CASTLES",
         "GUNPOWDER"
       ],
-      "unlocks_text": "Бомбарда, Пикинёры и аркебузиры",
+      "unlocks_text": "Бомбарды, отряды с пиками и мушкетами, форты военных инженеров, стены Возрождения.",
       "boost_text": "иметь 2 Арбалетчиков"
-    },
-    {
-      "id": "SIEGE_TACTICS",
-      "name": "Осадная тактика",
-      "era": "RENAISSANCE",
-      "cost": 730,
-      "prereqs": [
-        "CASTLES"
-      ],
-      "unlocks_text": "Ренессансные стены, Форт",
-      "boost_text": "иметь 2 Бомбарды"
     },
     {
       "id": "INDUSTRIALIZATION",
@@ -413,7 +388,7 @@
       "era": "INDUSTRIAL",
       "cost": 930,
       "prereqs": [
-        "ASTRONOMY",
+        "CARTOGRAPHY",
         "BANKING"
       ],
       "unlocks_text": "Плантации +1🍞; Оксфордский университет",
@@ -437,7 +412,7 @@
       "cost": 930,
       "prereqs": [
         "PRINTING",
-        "SIEGE_TACTICS"
+        "METAL_CASTING"
       ],
       "unlocks_text": "Кавалерия, линейная пехота, военный лагерь III",
       "boost_text": "убить юнит Рыцарем"

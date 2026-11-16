@@ -216,7 +216,7 @@
     {
      "name": "Гавань II",
      "adjacency_mult": 1.25,
-     "tech": "CARTOGRAPHY",
+     "tech": "MASS_PRODUCTION",
      "yields": {
       "production": 2
      },
@@ -352,7 +352,7 @@
     {
      "name": "Театральная площадь III",
      "adjacency_mult": 1.5,
-     "tech": "PRINTING",
+     "tech": "RADIO",
      "yields": {
       "culture": 4
      },
@@ -471,7 +471,7 @@
     {
      "name": "Развлекательный комплекс II",
      "adjacency_mult": 1.0,
-     "civic": "NATURAL_HISTORY",
+     "civic": "HUMANISM",
      "regional_amenities": 1,
      "radius": 6,
      "specialist_slots": 1,

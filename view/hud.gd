@@ -368,6 +368,13 @@ func refresh_research() -> void:
 		b.add_theme_constant_override("icon_max_width", 18)
 		var era: String = era_names.get(def.get("era", ""), "")
 		var unlocks := str(def.get("unlocks_text", ""))
+		if def.has("planned_text"):
+			unlocks += "\n    Позже: " + str(def["planned_text"])
+		if def.has("boost"):
+			var boost_label := "Эврика" if is_tech else "Вдохновение"
+			var key := "%s:%s" % [_research_kind, id]
+			var boost_status := "получено" if p.research_boosts.has(key) else str(def.get("boost_text", ""))
+			unlocks += "\n    %s: %s" % [boost_label, boost_status]
 		var desc := _label(_research_box, "    " + (era + " · " if era != "" else "") + unlocks, 12, Color(0.75, 0.78, 0.85), true)
 		desc.custom_minimum_size = Vector2(400, 0)
 	if ids.is_empty():

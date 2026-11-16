@@ -111,7 +111,9 @@ static func upgrade_target(game: Game, u: Unit) -> String:
 
 static func upgrade_cost(game: Game, u: Unit, target: String) -> int:
 	var d := float(game.data.unit_def(target).get("cost", 0)) - float(game.data.unit_def(u.type).get("cost", 0))
-	return int(maxf(0.0, d) * float(k(game, "upgrade_cost_mult", 2)) + float(k(game, "upgrade_cost_add", 10)))
+	var cost := maxf(0.0, d) * float(k(game, "upgrade_cost_mult", 2)) + float(k(game, "upgrade_cost_add", 10))
+	var discount := GovernmentRules.sum_effect(game, u.owner, "upgrade_discount")
+	return int(cost * clampf(1.0 - discount, 0.0, 1.0))
 
 
 static func upgrade_error(game: Game, u: Unit) -> String:
@@ -252,6 +254,11 @@ static func build_road(game: Game, u: Unit, events: Array) -> void:
 static func build_fort_error(game: Game, u: Unit) -> String:
 	if not Abilities.has(game, u, "BUILD_FORT"):
 		return "Этот юнит не строит форты"
+	# Легионер получает это действие от своей цивилизации раньше инженера.
+	var required: String = game.data.improvements.get("FORT", {}).get("tech", "")
+	if required != "" and game.data.unit_def(u.type).get("abilities", []).has("BUILD_FORT") \
+			and not game.state.player(u.owner).has_tech(required):
+		return "Нужно изучить: %s" % game.data.techs[required]["name"]
 	if u.charges <= 0:
 		return "Нет зарядов"
 	var map := game.state.map

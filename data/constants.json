@@ -1,7 +1,14 @@
 {
  "era_names": {
   "ANCIENT": "Древний мир",
-  "CLASSICAL": "Античность"
+  "CLASSICAL": "Античность",
+  "MEDIEVAL": "Средневековье",
+  "RENAISSANCE": "Возрождение",
+  "INDUSTRIAL": "Промышленная эра",
+  "MODERN": "Новейшее время",
+  "ATOMIC": "Атомная эра",
+  "INFORMATION": "Информационная эра",
+  "FUTURE": "Эпоха будущего"
  },
  "_doc": "Константы баланса (ГДД 24). Всё, что можно настраивать без правки кода.",
  "eras": [
@@ -23,6 +30,7 @@
   "culture",
   "faith"
  ],
+ "research_boost_fraction": 0.4,
  "unit_hp": 100,
  "unit_default_sight": 2,
  "unit_maintenance_by_era": {

@@ -44,6 +44,7 @@
   "passage_rounds": 10,
   "withdrawal_turns": 3,
   "alliance_friendship_rounds": 5,
+  "alliance_civic": "CIVIL_SERVICE",
   "treaty_betrayal_rounds": 20,
   "treaty_betrayal_penalty": 25,
   "friendship_strength": 0.4,

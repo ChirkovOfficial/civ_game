@@ -51,6 +51,9 @@ static func _treaty_error(game: Game, kind: String, from: int, to: int) -> Strin
 	if kind in ["friendship", "passage"] and until(game, "alliance", from, to) > game.state.turn:
 		return "Это уже предусмотрено союзом"
 	if kind == "alliance" and until(game, kind, from, to) <= game.state.turn:
+		var civic: String = game.data.diplomacy["alliance_civic"]
+		if not game.state.player(from).has_civic(civic):
+			return "Нужно изучить: %s" % game.data.civics[civic]["name"]
 		var friendship := _entry(game, "active", _key("friendship", from, to))
 		var minimum := _rounds(game, "alliance_friendship_rounds")
 		if not _active(friendship, game.state.turn) or game.state.turn - int(friendship["since"]) < minimum:

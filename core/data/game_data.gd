@@ -39,6 +39,8 @@ var setup: Dictionary = {}
 var resource_ids: Array[String] = []
 var tech_ids: Array[String] = []
 var civic_ids: Array[String] = []
+var legacy_techs: Dictionary = {}
+var legacy_civics: Dictionary = {}
 var building_ids: Array[String] = []
 var district_ids: Array[String] = []
 var improvement_ids: Array[String] = []
@@ -97,11 +99,15 @@ func load_all(dir: String = DATA_DIR) -> void:
 	placeholder_detachment_name = civ_file.get("placeholder", {}).get("detachment_name", "отряд")
 	equipment = _read(dir + "equipment.json")
 	unit_classes = _read(dir + "unit_classes.json").get("classes", {})
-	var tech_list: Array = _read(dir + "techs.json").get("techs", [])
+	var tech_file := _read(dir + "techs.json")
+	legacy_techs = tech_file.get("legacy_ids", {})
+	var tech_list: Array = tech_file.get("techs", [])
 	techs = _index(tech_list)
 	for x in tech_list:
 		tech_ids.append(x["id"])
-	var civic_list: Array = _read(dir + "civics.json").get("civics", [])
+	var civic_file := _read(dir + "civics.json")
+	legacy_civics = civic_file.get("legacy_ids", {})
+	var civic_list: Array = civic_file.get("civics", [])
 	civics = _index(civic_list)
 	for x in civic_list:
 		civic_ids.append(x["id"])

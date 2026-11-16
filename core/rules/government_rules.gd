@@ -88,8 +88,48 @@ static func effects(game: Game, p: Player) -> Array[Dictionary]:
 
 static func apply_city_yields(game: Game, city: City, yields: Dictionary) -> void:
 	for effect in effects(game, game.state.player(city.owner)):
-		if not effect.get("capital_only", false) or city.is_capital:
-			Yields.add_into(yields, effect.get("yields", {}))
+		if effect.get("capital_only", false) and not city.is_capital:
+			continue
+		var required: String = effect.get("requires_district", "")
+		if required != "" and DistrictRules.of_type(city, required, true).is_empty():
+			continue
+		Yields.add_into(yields, effect.get("yields", {}))
+
+
+static func sum_effect(game: Game, pid: int, key: String) -> float:
+	var result := 0.0
+	for effect in effects(game, game.state.player(pid)):
+		result += float(effect.get(key, 0.0))
+	return result
+
+
+static func production_multiplier(game: Game, pid: int, item: Dictionary) -> float:
+	var bonus := 0.0
+	var kind: String = item.get("kind", "")
+	var id: String = item.get("id", "")
+	for effect in effects(game, game.state.player(pid)):
+		if not effect.has("production_bonus"):
+			continue
+		var applies := false
+		if kind == "unit":
+			var def := game.data.unit_def(id)
+			applies = id in effect.get("production_units", []) \
+				or def.get("class", "") in effect.get("production_classes", []) \
+				or (effect.has("production_domain") and def.get("domain", "") == effect["production_domain"])
+			if effect.has("production_eras") and EmpireRules.unit_era(game, id) not in effect["production_eras"]:
+				applies = false
+		elif kind in ["district", "district_upgrade"]:
+			applies = id in effect.get("production_districts", [])
+		if applies:
+			bonus += float(effect["production_bonus"])
+	return 1.0 + bonus
+
+
+static func add_route_yields(game: Game, pid: int, international: bool, result: Dictionary) -> void:
+	for effect in effects(game, game.state.player(pid)):
+		Yields.add_into(result, effect.get("route_yields", {}))
+		if international:
+			Yields.add_into(result, effect.get("international_route_yields", {}))
 
 
 static func upkeep_delta(game: Game, pid: int) -> float:
@@ -107,11 +147,24 @@ static func effect_text(def: Dictionary) -> String:
 		var amount := float(def["yields"][key])
 		parts.append("%+.1f %s" % [amount, names[key]])
 	if not parts.is_empty():
-		parts.append("в столице" if def.get("capital_only", false) else "в каждом городе")
+		parts.append("в столице" if def.get("capital_only", false) else str(def.get("district_label", "в каждом городе")))
 	if def.has("unit_upkeep"):
 		parts.append("%+.1f золота к содержанию за юнит" % float(def["unit_upkeep"]))
 	if def.has("barbarian_strength"):
 		parts.append("%+d к силе против варваров" % int(def["barbarian_strength"]))
+	if def.has("production_bonus"):
+		parts.append("+%d%% к производству %s" % [
+			roundi(100.0 * float(def["production_bonus"])), def["production_label"]])
+	if def.has("tile_discount"):
+		parts.append("−%d%% к цене клеток" % roundi(100.0 * float(def["tile_discount"])))
+	if def.has("upgrade_discount"):
+		parts.append("−%d%% к цене модернизации" % roundi(100.0 * float(def["upgrade_discount"])))
+	if def.has("builder_charges"):
+		parts.append("+%d заряда новым строителям" % int(def["builder_charges"]))
+	for key in ["route_yields", "international_route_yields"]:
+		for yield_name in def.get(key, {}):
+			var suffix := "международного пути" if key == "international_route_yields" else "торгового пути"
+			parts.append("%+.1f %s от %s" % [float(def[key][yield_name]), names[yield_name], suffix])
 	return " · ".join(parts)
 
 

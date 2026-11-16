@@ -61,6 +61,24 @@
    "maintenance": 0,
    "tech": "MASONRY",
    "wall_hp": 100
+  },
+  {
+   "id": "MEDIEVAL_WALLS",
+   "name": "Средневековые стены",
+   "district": "CITY_CENTER",
+   "cost": 125,
+   "tech": "CASTLES",
+   "requires_building": "ANCIENT_WALLS",
+   "wall_hp": 200
+  },
+  {
+   "id": "RENAISSANCE_WALLS",
+   "name": "Стены Возрождения",
+   "district": "CITY_CENTER",
+   "cost": 175,
+   "tech": "METAL_CASTING",
+   "requires_building": "MEDIEVAL_WALLS",
+   "wall_hp": 300
   }
  ]
 }
