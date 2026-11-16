@@ -331,8 +331,9 @@ func refresh_research() -> void:
 	var ids := EmpireRules.available_techs(game, pid) if is_tech else EmpireRules.available_civics(game, pid)
 	var tree: Dictionary = game.data.techs if is_tech else game.data.civics
 	var progress: Dictionary = p.tech_progress if is_tech else p.civic_progress
+	var era_names: Dictionary = game.data.const_value("era_names", {})
 	for id in ids:
-		var def: Dictionary = tree[id]
+		var def: Dictionary = EmpireRules.tech_display(game, pid, id) if is_tech else tree[id]
 		var cost := EmpireRules.tech_cost(game, id) if is_tech else EmpireRules.civic_cost(game, id)
 		var t := EmpireRules.turns_left(cost, float(progress.get(id, 0.0)), per)
 		var current := (p.current_tech if is_tech else p.current_civic) == id
@@ -340,7 +341,9 @@ func refresh_research() -> void:
 			func(): _choose_research(id), false, "Открывает: %s" % def.get("unlocks_text", ""))
 		b.icon = _icons.get("science" if is_tech else "culture")
 		b.add_theme_constant_override("icon_max_width", 18)
-		var desc := _label(_research_box, "    " + str(def.get("unlocks_text", "")), 12, Color(0.75, 0.78, 0.85), true)
+		var era: String = era_names.get(def.get("era", ""), "")
+		var unlocks := str(def.get("unlocks_text", ""))
+		var desc := _label(_research_box, "    " + (era + " · " if era != "" else "") + unlocks, 12, Color(0.75, 0.78, 0.85), true)
 		desc.custom_minimum_size = Vector2(400, 0)
 	if ids.is_empty():
 		_label(_research_box, "Нет доступных исследований")

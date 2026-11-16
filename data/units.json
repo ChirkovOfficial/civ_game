@@ -416,7 +416,7 @@
    "moves": 2,
    "sight": 2,
    "cost": 120,
-   "tech": "ENGINEERING",
+   "tech": "MATHEMATICS",
    "upgrades_to": "TREBUCHET"
   },
   {

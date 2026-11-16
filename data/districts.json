@@ -152,7 +152,7 @@
     {
      "name": "Военный лагерь II",
      "adjacency_mult": 1.0,
-     "tech": "CASTLES",
+     "tech": "MATHEMATICS",
      "yields": {
       "production": 3
      },
@@ -673,6 +673,33 @@
    "look": "houses"
   },
   {
+   "id": "RESIDENTIAL_HOUSING",
+   "name": "Жилой квартал",
+   "main_yield": "",
+   "adjacency": [],
+   "placement": {},
+   "tiers": [
+    {
+     "name": "Жилой квартал",
+     "yields": {},
+     "adjacency_mult": 1.0
+    },
+    {
+     "name": "Жилой квартал II",
+     "tech": "ENGINEERING",
+     "yields": {},
+     "adjacency_mult": 1.0,
+     "housing": 1
+    }
+   ],
+   "tech": "MASONRY",
+   "specialized": false,
+   "residential": true,
+   "housing": 3,
+   "color": "bc8c70",
+   "look": "houses"
+  },
+  {
    "id": "RESIDENTIAL_URBAN",
    "name": "Городской квартал",
    "main_yield": "",
@@ -718,7 +745,7 @@
      "housing": 1
     }
    ],
-   "tech": "MASONRY",
+   "tech": "ENGINEERING",
    "specialized": false,
    "residential": true,
    "housing": 4,

@@ -11,7 +11,7 @@
     },
     {
       "id": "CRAFTSMANSHIP",
-      "name": "Ремесло",
+      "name": "Ремесленные традиции",
       "era": "ANCIENT",
       "cost": 40,
       "prereqs": [

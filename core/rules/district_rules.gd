@@ -81,13 +81,24 @@ static func _unlocked(p: Player, def: Dictionary) -> bool:
 	return true
 
 
+## Открытие и скидка, которые даёт изученная уникальная технология.
+static func _tech_benefit(game: Game, owner: int, type: String, tier: int) -> Dictionary:
+	var overrides: Dictionary = Abilities.civ_def(game, owner).get("tech_overrides", {})
+	var p := game.state.player(owner)
+	for tech in overrides:
+		var benefit: Dictionary = overrides[tech].get("districts", {}).get(type, {})
+		if int(benefit.get("tier", 0)) == tier and p.has_tech(tech):
+			return benefit
+	return {}
+
+
 ## Ошибка постройки района этого типа вообще (без учёта клетки).
 static func type_error(game: Game, city: City, type: String) -> String:
 	var def := ddef(game, type)
 	if def.is_empty():
 		return "Нет такого района"
 	var p := game.state.player(city.owner)
-	if not _unlocked(p, def):
+	if not _unlocked(p, def) and _tech_benefit(game, city.owner, type, 1).is_empty():
 		return "Не открыто"
 	if is_specialized(game, type) and specialized_count(game, city) >= specialized_limit(city):
 		return "Лимит районов: нужно больше жителей (сейчас %d из %d)" % [specialized_count(game, city), specialized_limit(city)]
@@ -270,6 +281,7 @@ static func cost(game: Game, city: City, type: String) -> float:
 	var base := float(k(game, "district_base_cost", 54)) * (1.0 + float(k(game, "district_cost_progress_mult", 9)) * maxf(tp, cp))
 	base *= float(def.get("cost_mult", 1.0))
 	base *= 1.0 + float(k(game, "district_repeat_cost", 0.25)) * of_type(city, type).size()
+	base *= float(_tech_benefit(game, city.owner, type, 1).get("cost_mult", 1.0))
 	return roundf(base * CityRules.speed_mult(game))
 
 
@@ -316,7 +328,8 @@ static func upgrade_error(game: Game, city: City, entry: Dictionary) -> String:
 	var next := tier_def(game, entry["type"], int(entry["tier"]) + 1)
 	if next.is_empty():
 		return "Это высший уровень"
-	if not _unlocked(game.state.player(city.owner), next):
+	if not _unlocked(game.state.player(city.owner), next) \
+			and _tech_benefit(game, city.owner, entry["type"], int(entry["tier"]) + 1).is_empty():
 		var need: String = next.get("tech", next.get("civic", ""))
 		var tree: Dictionary = game.data.techs if next.has("tech") else game.data.civics
 		return "Нужно: %s" % tree.get(need, {}).get("name", need)
@@ -324,7 +337,10 @@ static func upgrade_error(game: Game, city: City, entry: Dictionary) -> String:
 
 
 static func upgrade_cost(game: Game, city: City, entry: Dictionary) -> float:
-	return roundf(float(entry.get("cost", 54)) * float(k(game, "district_upgrade_cost_frac", 0.5)) * (int(entry["tier"])))
+	var tier := int(entry["tier"])
+	var benefit := _tech_benefit(game, city.owner, entry["type"], tier + 1)
+	var base := float(entry.get("cost", 54)) * float(k(game, "district_upgrade_cost_frac", 0.5)) * tier
+	return roundf(base * float(benefit.get("cost_mult", 1.0)))
 
 
 # --- Здания районов -----------------------------------------------------------------------------

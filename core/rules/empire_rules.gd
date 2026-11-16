@@ -60,6 +60,13 @@ static func maintenance(game: Game, pid: int) -> float:
 
 # --- Исследования -----------------------------------------------------------------------------
 
+## Уникальная технология занимает тот же узел и сохраняет его идентификатор в сохранениях.
+static func tech_display(game: Game, pid: int, tech_id: String) -> Dictionary:
+	var def: Dictionary = game.data.techs.get(tech_id, {})
+	var variant: Dictionary = Abilities.civ_def(game, pid).get("tech_overrides", {}).get(tech_id, {})
+	return def if variant.is_empty() else def.merged(variant, true)
+
+
 static func tech_cost(game: Game, tech_id: String) -> float:
 	return roundf(float(game.data.techs.get(tech_id, {}).get("cost", 0)) * CityRules.speed_mult(game))
 

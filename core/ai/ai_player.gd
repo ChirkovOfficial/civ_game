@@ -331,7 +331,7 @@ static func _district_candidates(game: Game, city: City, threatened: bool) -> Ar
 			types[it["id"]] = true
 	var housing := CityRules.housing(game, city)
 	if float(city.population) >= housing - 1.0:
-		for t in ["AQUEDUCT", "DAM", "RESIDENTIAL_URBAN", "RESIDENTIAL_DENSE"]:
+		for t in ["AQUEDUCT", "DAM", "RESIDENTIAL_URBAN", "RESIDENTIAL_HOUSING", "RESIDENTIAL_DENSE"]:
 			if types.has(t):
 				result.append(_district_pick(game, city, t))
 	if city.population >= int(game.data.const_value("city_life_threshold_pop", 10)) - 1:

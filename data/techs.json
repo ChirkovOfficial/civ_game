@@ -3,11 +3,11 @@
   "techs": [
     {
       "id": "POTTERY",
-      "name": "Гончарное дело",
+      "name": "Земледелие",
       "era": "ANCIENT",
       "cost": 25,
       "prereqs": [],
-      "unlocks_text": "Амбар; чудо Великая купальня"
+      "unlocks_text": "Амбар, бани I, рабочий квартал; чудо Великая купальня"
     },
     {
       "id": "ANIMAL_HUSBANDRY",
@@ -84,7 +84,7 @@
       "prereqs": [
         "MINING"
       ],
-      "unlocks_text": "Античные стены, Таран; Пирамиды",
+      "unlocks_text": "Античные стены, таран, жилой квартал; Пирамиды",
       "boost_text": "построить Каменоломню"
     },
     {
@@ -167,13 +167,13 @@
     },
     {
       "id": "MATHEMATICS",
-      "name": "Математика",
+      "name": "Военная наука",
       "era": "CLASSICAL",
       "cost": 200,
       "prereqs": [
-        "CURRENCY"
+        "WRITING"
       ],
-      "unlocks_text": "+1 ОД кораблям; Петра",
+      "unlocks_text": "Военный лагерь II, командующие (нужен построенный лагерь II), катапульта",
       "boost_text": "построить 3 разных специализированных района"
     },
     {
@@ -183,20 +183,21 @@
       "cost": 200,
       "prereqs": [
         "MASONRY",
-        "HORSEBACK_RIDING"
+        "THE_WHEEL"
       ],
       "unlocks_text": "Лесопилка, Осадная башня; Терракотовая армия",
       "boost_text": "построить Водяную мельницу"
     },
     {
       "id": "ENGINEERING",
-      "name": "Инженерное дело",
+      "name": "Инженерия",
       "era": "CLASSICAL",
       "cost": 200,
       "prereqs": [
-        "THE_WHEEL"
+        "CONSTRUCTION",
+        "MATHEMATICS"
       ],
-      "unlocks_text": "Катапульта, район Акведук; Мачу-Пикчу",
+      "unlocks_text": "Акведуки, бани II, городской квартал и жилые районы II; Мачу-Пикчу",
       "boost_text": "построить Античные стены"
     },
     {
@@ -431,14 +432,14 @@
     },
     {
       "id": "MILITARY_SCIENCE",
-      "name": "Военная наука",
+      "name": "Военная модернизация",
       "era": "INDUSTRIAL",
       "cost": 930,
       "prereqs": [
         "PRINTING",
         "SIEGE_TACTICS"
       ],
-      "unlocks_text": "Кавалерия, Линейная пехота, Военная академия",
+      "unlocks_text": "Кавалерия, линейная пехота, военный лагерь III",
       "boost_text": "убить юнит Рыцарем"
     },
     {

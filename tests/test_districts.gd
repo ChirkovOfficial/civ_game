@@ -234,7 +234,6 @@ func test_upgrade_and_roman_names() -> void:
 	var cmd := {"kind": "unit", "id": "COMMANDER"}
 	check_eq(CityRules.build_error(g, city, cmd), "Нужен район «Военная академия»")
 	g.state.player(0).known_techs["BRONZE_WORKING"] = true
-	g.state.player(0).known_techs["CASTLES"] = true
 	city.population = 4
 	var camp_tile := -1
 	for t in DistrictRules.valid_tiles(g, city, "ENCAMPMENT"):
@@ -242,7 +241,11 @@ func test_upgrade_and_roman_names() -> void:
 		break
 	var camp := _build(g, city, "ENCAMPMENT", camp_tile)
 	check(CityRules.build_error(g, city, cmd) != "", "лагерь I уровня — мало")
-	CityRules.complete_item(g, city, {"kind": "district_upgrade", "id": "ENCAMPMENT", "tile": camp_tile}, [])
+	var upgrade := {"kind": "district_upgrade", "id": "ENCAMPMENT", "tile": camp_tile}
+	check(CityRules.build_error(g, city, upgrade) != "", "для лагеря II нужна Военная наука")
+	g.state.player(0).known_techs["MATHEMATICS"] = true
+	check_eq(CityRules.build_error(g, city, upgrade), "")
+	CityRules.complete_item(g, city, upgrade, [])
 	check_eq(int(camp["tier"]), 2)
 	check_eq(CityRules.build_error(g, city, cmd), "")
 	check_eq(DistrictRules.display_name(g, 0, "ENCAMPMENT", 3), "Плацдарм")
@@ -253,6 +256,32 @@ func test_upgrade_and_roman_names() -> void:
 	check_eq(DistrictRules.display_name(g, 0, "CITY_CENTER", 1), "Центр города")
 	# У чужой (не римской) державы — нейтральные названия.
 	check_eq(DistrictRules.display_name(g, 1, "CAMPUS", 2), "Кампус II")
+
+
+func test_housing_unlocks_and_roman_concrete() -> void:
+	var r := _setup(["POTTERY", "MASONRY", "CONSTRUCTION"])
+	var g: Game = r[0]
+	var city: City = r[1]
+	var p := g.state.player(0)
+	check_eq(DistrictRules.type_error(g, city, "RESIDENTIAL_DENSE"), "")
+	check_eq(DistrictRules.type_error(g, city, "RESIDENTIAL_HOUSING"), "")
+	check_near(DistrictRules.ddef(g, "RESIDENTIAL_HOUSING")["housing"], 3.0)
+	check(DistrictRules.type_error(g, city, "RESIDENTIAL_URBAN") != "")
+	check_eq(EmpireRules.tech_display(g, 0, "CONSTRUCTION")["name"], "Римский бетон")
+	check_eq(DistrictRules.type_error(g, city, "AQUEDUCT"), "")
+	var baths := {"type": "BATHS", "tier": 1, "complete": true, "cost": 100}
+	check_eq(DistrictRules.upgrade_error(g, city, baths), "")
+	check_eq(DistrictRules.upgrade_cost(g, city, baths), 40.0)
+	var roman_cost := DistrictRules.cost(g, city, "AQUEDUCT")
+	p.civ_trait_id = ""
+	check_eq(EmpireRules.tech_display(g, 0, "CONSTRUCTION")["name"], "Строительство")
+	check(DistrictRules.type_error(g, city, "AQUEDUCT") != "")
+	check(DistrictRules.upgrade_error(g, city, baths) != "")
+	check(DistrictRules.cost(g, city, "AQUEDUCT") > roman_cost)
+	p.known_techs["ENGINEERING"] = true
+	check_eq(DistrictRules.type_error(g, city, "AQUEDUCT"), "")
+	check_eq(DistrictRules.type_error(g, city, "RESIDENTIAL_URBAN"), "")
+	check_eq(DistrictRules.upgrade_cost(g, city, baths), 50.0)
 
 
 func test_nero_urbanization() -> void:

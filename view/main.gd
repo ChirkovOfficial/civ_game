@@ -202,7 +202,7 @@ func _on_events(events: Array) -> void:
 				and game.state.unit(e["unit"]).owner == game.state.current_player:
 			hud.show_message("Путь перекрыт")
 		elif t == "tech_researched" and e["player"] == game.state.current_player:
-			hud.show_message("Изучено: %s" % game.data.techs[e["tech"]]["name"], 3.0)
+			hud.show_message("Изучено: %s" % EmpireRules.tech_display(game, e["player"], e["tech"])["name"], 3.0)
 		elif t == "civic_completed" and e["player"] == game.state.current_player:
 			hud.show_message("Принят институт: %s" % game.data.civics[e["civic"]]["name"], 3.0)
 		elif t == "village_reward" and e["player"] == game.state.current_player:
