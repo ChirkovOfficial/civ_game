@@ -39,6 +39,22 @@ func _process(_delta: float) -> bool:
 		printerr("Окно дипломатии не открылось")
 		quit(1)
 		return true
-	print("Окно дипломатии, обе формы и отправка предложения работают")
+	var friend_offer: Button = null
+	for node in box.find_children("*", "Button", true, false):
+		if node.text == "Дружба":
+			friend_offer = node
+			break
+	if friend_offer == null or friend_offer.disabled:
+		printerr("В окне дипломатии нет доступного предложения дружбы")
+		quit(1)
+		return true
+	friend_offer.pressed.emit()
+	main.act({"type": "end_turn", "force": true})
+	main.hud.open_diplomacy()
+	if TreatyRules.until(game, "friendship", 0, 1) <= game.state.turn:
+		printerr("Предложение дружбы из интерфейса не принято ИИ")
+		quit(1)
+		return true
+	print("Формы поставок и предложение дружбы из окна дипломатии работают")
 	quit(0)
 	return true

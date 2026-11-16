@@ -27,7 +27,7 @@ static func is_ranged(game: Game, u: Unit) -> bool:
 
 
 static func can_attack(game: Game, u: Unit) -> bool:
-	if Movement.layer(game, u.type) != "COMBAT":
+	if Movement.layer(game, u.type) != "COMBAT" or TreatyRules.withdrawing(game, u):
 		return false
 	return melee_strength(game, u.type) > 0 or ranged_strength(game, u.type) > 0
 

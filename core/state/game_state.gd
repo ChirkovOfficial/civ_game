@@ -3,7 +3,10 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 3
+const SAVE_VERSION := 4
+
+var treaty_data := {"active": {}, "offers": {}, "history": {}, "cooldowns": {},
+	"reputation": {}, "withdrawal": {}}
 
 ## ID первой столицы каждой державы и зафиксированный итог партии.
 var original_capitals: Dictionary = {}
@@ -176,6 +179,7 @@ func to_dict() -> Dictionary:
 		"cities": _sorted_city_ids().map(func(id): return cities[id].to_dict()),
 		"war_changed": war_changed.duplicate(),
 		"diplomacy": diplomacy.duplicate(true),
+		"treaties": treaty_data.duplicate(true),
 		"original_capitals": original_capitals.duplicate(),
 		"result": result.duplicate(true),
 		"camps": _camps_list(),
@@ -224,6 +228,17 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 	for k in d.get("war_changed", {}):
 		s.war_changed[k] = int(d["war_changed"][k])
 	s.diplomacy = d.get("diplomacy", {}).duplicate(true)
+	var saved_treaties: Dictionary = d.get("treaties", {})
+	for collection in s.treaty_data:
+		var records: Dictionary = saved_treaties.get(collection, {})
+		for key in records:
+			if collection == "history":
+				var samples := []
+				for sample in records[key]:
+					samples.append(Unit._ints_in_dict(sample))
+				s.treaty_data[collection][key] = samples
+			else:
+				s.treaty_data[collection][key] = Unit._ints_in_dict(records[key])
 	if not s.diplomacy.is_empty():
 		var majors: Array[int] = []
 		for pid in s.diplomacy.get("initial_majors", []):

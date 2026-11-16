@@ -441,10 +441,12 @@ static func _update_influence(game: Game, round_number: int, events: Array) -> v
 		var excess := 0.0
 		var route_power := 0.0
 		var supply_power := 0.0
+		var relation_power := 0.0
 		for peer_value in majors:
 			var peer := int(peer_value)
 			if peer == pid or not _major(game, peer):
 				continue
+			relation_power += TreatyRules.influence_strength(game, pid, peer)
 			excess += maxf(0.0, float(dependency(game, peer, pid).get("strategic", 0.0)) \
 					- float(dependency(game, pid, peer).get("strategic", 0.0)))
 			route_power += _average_strength(d["route_history"].get(_pair(pid, peer), []),
@@ -460,6 +462,7 @@ static func _update_influence(game: Game, round_number: int, events: Array) -> v
 		var sources := {"dependency": cfg(game, "dependency_influence_cap") * minf(1.0, excess / (cfg(game, "dependency_full_average") * n)),
 			"routes": cfg(game, "route_influence_cap") * minf(1.0, route_power / n),
 			"supplies": cfg(game, "supply_influence_cap") * minf(1.0, supply_power / n),
+			"relations": cfg(game, "relations_influence_cap") * minf(1.0, relation_power / n),
 			"living": cfg(game, "living_influence_cap") * _average_strength(
 				d["living_history"].get(str(pid), []), round_number, int(cfg(game, "demand_window")))}
 		var target := 0.0

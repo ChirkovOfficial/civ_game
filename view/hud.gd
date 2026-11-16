@@ -274,6 +274,9 @@ func refresh_top() -> void:
 			wars += 1
 	var db := Button.new()
 	db.text = "Державы" + (" (войн: %d)" % wars if wars > 0 else "")
+	var incoming := TreatyRules.offers_for(game, pid).filter(func(offer): return int(offer["to"]) == pid).size()
+	if incoming > 0:
+		db.text += " · +%d" % incoming
 	db.pressed.connect(open_diplomacy)
 	_top_box.add_child(db)
 
@@ -504,12 +507,14 @@ func open_diplomacy() -> void:
 	_label(_research_box, "Мировое влияние: %s / 1000 · цель %s" % [
 		_fmt(float(score.get("value", 0.0))), _fmt(float(score.get("target", 0.0)))], 16)
 	var sources: Dictionary = score.get("sources", {})
-	_label(_research_box, "Перевес зависимости %s · пути %s · поставки %s · жизнь городов %s" % [
+	_label(_research_box, "Перевес зависимости %s · пути %s · поставки %s · жизнь городов %s · дружба и союзы %s" % [
 		_fmt(float(sources.get("dependency", 0.0))), _fmt(float(sources.get("routes", 0.0))),
-		_fmt(float(sources.get("supplies", 0.0))), _fmt(float(sources.get("living", 0.0)))],
+		_fmt(float(sources.get("supplies", 0.0))), _fmt(float(sources.get("living", 0.0))),
+		_fmt(float(sources.get("relations", 0.0)))],
 		12, Color(0.75, 0.78, 0.85), true)
 	_label(_research_box, "Религия, туризм и международные события появятся вместе с их механиками.",
 		12, Color(0.75, 0.78, 0.85), true)
+	_show_treaty_offers(pid)
 	var any := false
 	for other in game.state.players:
 		if other.id == pid or other.is_barbarian or not me.met.has(other.id):
@@ -528,6 +533,7 @@ func open_diplomacy() -> void:
 		if not other.alive:
 			continue
 		var oid := other.id
+		_show_treaty_status(pid, oid)
 		var ours: Dictionary = d.get("dependency", {}).get("%d,%d" % [pid, oid], {})
 		var theirs: Dictionary = d.get("dependency", {}).get("%d,%d" % [oid, pid], {})
 		_label(_research_box, "Мы зависим: %s · зависит от нас: %s" % [
@@ -551,6 +557,13 @@ func open_diplomacy() -> void:
 			_research_box.add_child(actions)
 			_button(actions, "Купить ресурс", func(): open_supply_offer(oid, true))
 			_button(actions, "Продать ресурс", func(): open_supply_offer(oid, false))
+			var treaties := HBoxContainer.new()
+			_research_box.add_child(treaties)
+			for kind in TreatyRules.KINDS:
+				var error := TreatyRules.offer_error(game, kind, pid, oid)
+				_button(treaties, _treaty_label(kind),
+					func(): act.call({"type": "propose_treaty", "kind": kind, "target": oid}),
+					error != "", error)
 	if not any:
 		_label(_research_box, "Вы ещё ни с кем не встретились.")
 	var offer_ids: Array = d.get("offers", {}).keys()
@@ -585,6 +598,51 @@ func open_diplomacy() -> void:
 			int(contract["remaining"]), int(contract["escrow"])], 12, Color(0.75, 0.78, 0.85), true)
 		var contract_id := int(id)
 		_button(_research_box, "Прекратить договор", func(): act.call({"type": "cancel_supply", "id": contract_id}); open_diplomacy())
+
+
+static func _treaty_label(kind: String) -> String:
+	match kind:
+		"friendship": return "Дружба"
+		"alliance": return "Союз"
+		_: return "Запросить проход"
+
+
+func _show_treaty_status(pid: int, peer: int) -> void:
+	var alliance := TreatyRules.until(game, "alliance", pid, peer)
+	var friendship := TreatyRules.until(game, "friendship", pid, peer)
+	var passage := TreatyRules.until(game, "passage", pid, peer)
+	var reverse := TreatyRules.until(game, "passage", peer, pid)
+	if alliance > game.state.turn:
+		_label(_research_box, "Союз · взаимный проход до начала хода %d" % alliance, 13)
+	if friendship > game.state.turn:
+		_label(_research_box, "Дружба до начала хода %d" % friendship, 13)
+	if alliance <= game.state.turn and passage > game.state.turn:
+		_label(_research_box, "Наш проход через их границы до начала хода %d" % passage, 13)
+	if alliance <= game.state.turn and reverse > game.state.turn:
+		_label(_research_box, "Их проход через наши границы до начала хода %d" % reverse, 13)
+	var trust := TreatyRules.trust(game, pid, peer)
+	var reverse_trust := TreatyRules.trust(game, peer, pid)
+	if trust != 0 or reverse_trust != 0:
+		_label(_research_box, "Доверие · наше %+d · их %+d" % [trust, reverse_trust], 13)
+
+
+func _show_treaty_offers(pid: int) -> void:
+	for offer in TreatyRules.offers_for(game, pid):
+		var incoming := int(offer["to"]) == pid
+		var peer := game.state.player(int(offer["from"] if incoming else offer["to"]))
+		var kind: String = offer["kind"]
+		var title := "Право прохода" if kind == "passage" else _treaty_label(kind)
+		_label(_research_box, "%s · %s · %s" % [title, peer.name,
+			"входящее" if incoming else "ждём ответа"], 15)
+		if kind == "passage":
+			_label(_research_box, "Они просят проход через наши границы" if incoming else
+				"Мы просим проход через их границы", 12)
+		if incoming:
+			var buttons := HBoxContainer.new()
+			_research_box.add_child(buttons)
+			var key: String = offer["key"]
+			_button(buttons, "Принять", func(): act.call({"type": "respond_treaty", "offer": key, "accept": true}))
+			_button(buttons, "Отклонить", func(): act.call({"type": "respond_treaty", "offer": key, "accept": false}))
 
 
 func _supply_summary(offer: Dictionary) -> String:

@@ -12,6 +12,7 @@ const EXPLORE_RADIUS := 8
 static func take_turn(game: Game, pid: int) -> void:
 	if not game.state.result.is_empty():
 		return
+	_treaty_diplomacy(game, pid)
 	_supply_diplomacy(game, pid)
 	_choose_research(game, pid)
 	_choose_government(game, pid)
@@ -36,6 +37,32 @@ static func take_turn(game: Game, pid: int) -> void:
 	_handle_commanders(game, pid)
 	_handle_military(game, pid)
 	_equip_units(game, pid)
+
+## ИИ заключает договоры с надёжными державами и торговыми партнёрами.
+static func _treaty_diplomacy(game: Game, pid: int) -> void:
+	for offer in TreatyRules.offers_for(game, pid):
+		if int(offer["to"]) != pid:
+			continue
+		var accept := TreatyRules.trust(game, pid, int(offer["from"])) >= 0
+		game.apply_action({"type": "respond_treaty", "offer": offer["key"], "accept": accept})
+	# Державы сами закрепляют отношения с партнёрами по действующим маршрутам.
+	var partners := {}
+	for unit in game.state.units_of(pid):
+		if unit.trade_route.is_empty():
+			continue
+		var destination := game.state.city(int(unit.trade_route["destination"]))
+		if destination != null and destination.owner != pid:
+			partners[destination.owner] = true
+	var ids := partners.keys()
+	ids.sort()
+	for other in ids:
+		if TreatyRules.trust(game, pid, other) < 0:
+			continue
+		for kind in ["alliance", "friendship"]:
+			if TreatyRules.offer_error(game, kind, pid, other) == "":
+				game.apply_action({"type": "propose_treaty", "kind": kind, "target": other})
+				return
+
 
 ## ИИ принимает посильные полезные поставки и предлагает избыток ресурса.
 static func _supply_diplomacy(game: Game, pid: int) -> void:

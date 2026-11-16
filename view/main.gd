@@ -234,6 +234,12 @@ func _on_events(events: Array) -> void:
 			hud.show_message("%s объявляет войну: %s" % [game.state.player(e["player"]).name, game.state.player(e["target"]).name], 3.5)
 		elif t == "peace_made":
 			hud.show_message("Заключён мир", 3.0)
+		elif t == "treaty_accepted" and _viewer().id in [int(e["from"]), int(e["to"])]:
+			hud.show_message("Дипломатический договор принят")
+		elif t == "unit_withdrawing" and _viewer().id == int(e["player"]):
+			hud.show_message("Юниту нужно покинуть закрытую территорию")
+		elif t == "unit_relocated" and _viewer().id == int(e["player"]):
+			hud.show_message("Юнит выведен за закрытые границы")
 		elif t == "barbarian_raid":
 			var c := game.state.city(e["target"])
 			if c != null and c.owner == game.state.current_player:

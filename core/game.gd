@@ -281,6 +281,7 @@ func apply_action(action: Dictionary) -> Array:
 				events.append(_error(err))
 			else:
 				state.set_war(state.current_player, target, true)
+				TreatyRules.on_war(self, state.current_player, target, events)
 				TradeRules.cancel_invalid(self, events)
 				for u in state.units_of(target):
 					if u.orders.get("type", "") == "sleep":
@@ -300,6 +301,11 @@ func apply_action(action: Dictionary) -> Array:
 			DiplomacyRules.respond(self, action, events)
 		"cancel_supply":
 			DiplomacyRules.cancel(self, action, events)
+		"propose_treaty", "respond_treaty":
+			var err := TreatyRules.propose(self, action, events) if action["type"] == "propose_treaty" \
+				else TreatyRules.respond(self, action, events)
+			if err != "":
+				events.append(_error(err))
 		"end_turn":
 			var blocking := EmpireRules.blocking_decisions(self, state.current_player)
 			if not blocking.is_empty() and not action.get("force", false):
@@ -331,6 +337,10 @@ func _own_unit(action: Dictionary, events: Array) -> Unit:
 		return null
 	if not u.trade_route.is_empty():
 		events.append(_error("Торговец в пути"))
+		return null
+	if action.get("type", "") not in ["move_unit", "skip_unit", "sleep_unit", "cancel_orders"] \
+			and TreatyRules.withdrawing(self, u):
+		events.append(_error("Юнит должен покинуть закрытую территорию"))
 		return null
 	return u
 
@@ -551,6 +561,9 @@ func _continue_move(u: Unit, events: Array) -> void:
 			return
 		var left := Movement.moves_after_step(self, u, u.tile, next.tile, u.moves_left)
 		if left < 0.0:
+			if not TreatyRules.border_allows(self, u, u.tile, next.tile):
+				u.orders = {}
+				events.append({"type": "unit_blocked", "unit": u.id})
 			return
 		var from := u.tile
 		u.tile = next.tile
@@ -608,6 +621,7 @@ func _advance_round(events: Array) -> bool:
 	VictoryRules.check_turn_limit(self, events)
 	if not state.result.is_empty():
 		return false
+	TreatyRules.close_round(self)
 	DiplomacyRules.close_round(self, events)
 	state.turn += 1
 	events.append({"type": "new_round", "turn": state.turn})
@@ -641,6 +655,7 @@ func _begin_player_turn(pid: int, events: Array) -> void:
 	EmpireRules.process_turn_start(self, pid, events)
 	TradeRules.advance(self, pid, events)
 	UnitRules.process_units_turn_start(self, pid, events)
+	TreatyRules.process_withdrawal(self, pid, events)
 	for u in state.units_of(pid):
 		u.moves_left = Movement.max_moves(self, u) if u.trade_route.is_empty() else 0.0
 		u.acted = false

@@ -69,6 +69,8 @@ static func step_cost(game: Game, unit: Unit, from: int, to: int, known: bool = 
 		return IMPASSABLE
 	if not known:
 		return 1.0
+	if not TreatyRules.border_allows(game, unit, from, to):
+		return IMPASSABLE
 	var map := game.state.map
 	var dir := map.grid.direction_to(from, to)
 	if dom_is_land(game, unit) and map.has_river_edge(from, dir) and not _has_bridge(game, from, to):
