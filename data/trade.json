@@ -1,0 +1,37 @@
+{
+  "trader": "TRADER",
+  "unlock": "FOREIGN_TRADE",
+  "sailing": "SAILING",
+  "land_range": 15,
+  "sea_range": 30,
+  "minimum_turns": 20,
+  "post_gold": 1,
+  "raid_gold": 50,
+  "capacity_districts": ["HARBOR", "COMMERCIAL_HUB"],
+  "domestic": {
+    "CITY_CENTER": {"food": 1, "production": 1},
+    "CAMPUS": {"food": 1},
+    "HOLY_SITE": {"food": 1},
+    "THEATER_SQUARE": {"food": 1},
+    "ENTERTAINMENT_COMPLEX": {"food": 1},
+    "WATER_PARK": {"food": 1},
+    "COMMERCIAL_HUB": {"production": 1},
+    "HARBOR": {"production": 1},
+    "INDUSTRIAL_ZONE": {"production": 1},
+    "ENCAMPMENT": {"production": 1},
+    "GOVERNMENT_PLAZA": {"food": 1, "production": 1}
+  },
+  "international": {
+    "CITY_CENTER": {"gold": 3},
+    "CAMPUS": {"science": 1},
+    "HOLY_SITE": {"faith": 1},
+    "THEATER_SQUARE": {"culture": 1},
+    "ENTERTAINMENT_COMPLEX": {"food": 1},
+    "WATER_PARK": {"food": 1},
+    "COMMERCIAL_HUB": {"gold": 3},
+    "HARBOR": {"gold": 3},
+    "INDUSTRIAL_ZONE": {"production": 1},
+    "ENCAMPMENT": {"production": 1},
+    "GOVERNMENT_PLAZA": {"gold": 2}
+  }
+}

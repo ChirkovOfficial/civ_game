@@ -290,6 +290,8 @@ static func target_at(game: Game, attacker_owner: int, tile: int) -> Dictionary:
 	var best: Unit = null
 	var civilians: Array[Unit] = []
 	for u in game.state.units_at(tile):
+		if not u.trade_route.is_empty():
+			continue
 		if u.owner == attacker_owner:
 			return {"kind": ""}
 		if Movement.layer(game, u.type) == "COMBAT":
@@ -434,7 +436,7 @@ static func _advance(game: Game, u: Unit, tile: int, events: Array) -> void:
 	# Гражданских в клетке захватываем.
 	var civ: Array[Unit] = []
 	for other in game.state.units_at(tile):
-		if other.owner != u.owner:
+		if other.owner != u.owner and other.trade_route.is_empty():
 			civ.append(other)
 	if not civ.is_empty():
 		_capture_civilians(game, u, tile, civ, events)
@@ -503,7 +505,7 @@ static func capture_city(game: Game, u: Unit, city: City, events: Array) -> void
 	var map := game.state.map
 	# Юниты прежнего владельца в городе гибнут.
 	for other in game.state.units_at(city.tile):
-		if other.owner != u.owner:
+		if other.owner != u.owner and other.trade_route.is_empty():
 			events.append({"type": "unit_killed", "unit": other.id, "owner": other.owner, "by": u.owner})
 			game.state.remove_unit(other.id)
 	if game.state.player(u.owner).is_barbarian:

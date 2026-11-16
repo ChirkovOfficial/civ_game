@@ -26,7 +26,8 @@ static func domain(game: Game, unit: Unit) -> String:
 
 
 static func layer(game: Game, unit_type: String) -> String:
-	return game.data.unit_classes.get(game.data.unit_def(unit_type).get("class", ""), {}).get("layer", "COMBAT")
+	var def := game.data.unit_def(unit_type)
+	return def.get("layer", game.data.unit_classes.get(def.get("class", ""), {}).get("layer", "COMBAT"))
 
 
 ## Может ли юнит в принципе находиться на клетке (ландшафт, домен, технологии).
@@ -137,11 +138,11 @@ static func occupancy_allows(game: Game, unit: Unit, tile: int, final: bool,
 		return true
 	var my_layer := layer(game, unit.type)
 	for other in game.state.units_at(tile):
-		if other.id == unit.id:
+		if other.id == unit.id or not other.trade_route.is_empty():
 			continue
 		if other.owner != unit.owner:
 			return false   # атака — отдельное действие (веха M3)
-		if final and layer(game, other.type) == my_layer:
+		if final and my_layer != "TRADE" and layer(game, other.type) == my_layer:
 			return false
 	return true
 

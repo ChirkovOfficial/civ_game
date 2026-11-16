@@ -33,11 +33,13 @@
    "id": "TRADER",
    "name": "Торговец",
    "class": "CIVILIAN",
+   "layer": "TRADE",
    "domain": "LAND",
    "moves": 1,
    "sight": 2,
    "cost": 40,
    "civic": "FOREIGN_TRADE",
+   "cost_progression": 10,
    "abilities": [
     "TRADE_ROUTE"
    ]

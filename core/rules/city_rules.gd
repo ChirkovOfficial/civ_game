@@ -240,6 +240,7 @@ static func city_yields(game: Game, city: City, lux: Dictionary = {}) -> Diction
 		var m := all_mult * (mult if k != "food" else 1.0)
 		if m != 1.0:
 			y[k] = float(y[k]) * m
+	TradeRules.add_city_yields(game, city, y)
 	return y
 
 
@@ -596,7 +597,9 @@ static func spawn_tile(game: Game, city: City, unit_type: String) -> int:
 			continue
 		var ok := true
 		for other in game.state.units_at(t):
-			if other.owner != city.owner or Movement.layer(game, other.type) == layer_name:
+			if not other.trade_route.is_empty():
+				continue
+			if other.owner != city.owner or (layer_name != "TRADE" and Movement.layer(game, other.type) == layer_name):
 				ok = false
 				break
 		if ok:

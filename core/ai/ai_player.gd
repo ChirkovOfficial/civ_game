@@ -21,6 +21,8 @@ static func take_turn(game: Game, pid: int) -> void:
 			_handle_settler(game, u)
 		elif abilities.has("BUILD_IMPROVEMENT"):
 			_handle_builder(game, u)
+		elif abilities.has("TRADE_ROUTE") and u.trade_route.is_empty():
+			_handle_trader(game, u)
 	for city in game.state.cities_of(pid):
 		if city.queue.is_empty():
 			_choose_production(game, city)
@@ -230,6 +232,30 @@ static func _count_units(game: Game, pid: int, pred: Callable) -> int:
 	return n
 
 
+static func _handle_trader(game: Game, unit: Unit) -> void:
+	if unit.moves_left <= 0.0:
+		return
+	var city := game.state.city_at(unit.tile)
+	if city == null or city.owner != unit.owner:
+		var home := _nearest_own_city(game, unit.owner, unit.tile)
+		if home != null:
+			game.apply_action({"type": "move_unit", "unit": unit.id, "target": home.tile})
+		return
+	var best := -1
+	var best_score := -INF
+	for route in TradeRules.options(game, unit):
+		var score := 0.0
+		var yields := TradeRules.route_yields(game, route)
+		for kind in yields:
+			score += float(yields[kind]) * float(CityRules.DEFAULT_WEIGHTS.get(kind, 1.0))
+		score -= float(route["path"].size()) * 0.025
+		if score > best_score:
+			best_score = score
+			best = int(route["destination"])
+	if best >= 0:
+		game.apply_action({"type": "start_trade", "unit": unit.id, "destination": best})
+
+
 static func _queued(game: Game, pid: int, unit_id: String) -> int:
 	var n := 0
 	for city in game.state.cities_of(pid):
@@ -286,6 +312,11 @@ static func _choose_production(game: Game, city: City) -> void:
 		candidates.append_array(district_list)
 	if builders < cities.size():
 		candidates.append({"kind": "unit", "id": "BUILDER"})
+	var trader: String = game.data.trade["trader"]
+	var trade_limit := TradeRules.capacity(game, pid)
+	if trade_limit > 0 and _count_units(game, pid, func(u: Unit) -> bool: return u.type == trader) \
+			+ _queued(game, pid, trader) < trade_limit and not TradeRules.plans_from(game, city).is_empty():
+		candidates.append({"kind": "unit", "id": trader})
 	for bid in ["MONUMENT", "GRANARY", "WATER_MILL"]:
 		candidates.append({"kind": "building", "id": bid})
 	if not districts_first:
@@ -548,6 +579,9 @@ static func _tactical(game: Game, pid: int) -> void:
 			(Combat.is_ranged(game, a) == Combat.is_ranged(game, b) and a.id < b.id))
 	for u in attackers:
 		if s.unit(u.id) == null or u.moves_left <= 0.0:
+			continue
+		if TradeRules.raid_target(game, u) != null:
+			game.apply_action({"type": "raid_trade", "unit": u.id})
 			continue
 		var reach := Combat.attack_range(game, u) if Combat.is_ranged(game, u) else 1
 		var best_t := -1

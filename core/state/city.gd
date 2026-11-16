@@ -45,6 +45,8 @@ var doctrine_turns: int = 0
 var doctrine_since: int = 0
 ## Ходов эпидемии осталось (0 — эпидемии нет).
 var epidemic_turns: int = 0
+## Державы, завершившие торговый путь в этот город.
+var trade_posts: Array[int] = []
 
 
 static func item_key(item: Dictionary) -> String:
@@ -75,6 +77,7 @@ func to_dict() -> Dictionary:
 		"districts": districts.duplicate(true), "specialists": specialists.duplicate(),
 		"doctrine": doctrine, "doctrine_turns": doctrine_turns, "doctrine_since": doctrine_since,
 		"epidemic_turns": epidemic_turns,
+		"trade_posts": trade_posts.duplicate(),
 	}
 
 
@@ -117,6 +120,8 @@ static func from_dict(d: Dictionary) -> City:
 	c.doctrine_turns = int(d.get("doctrine_turns", 0))
 	c.doctrine_since = int(d.get("doctrine_since", 0))
 	c.epidemic_turns = int(d.get("epidemic_turns", 0))
+	for pid in d.get("trade_posts", []):
+		c.trade_posts.append(int(pid))
 	for q in c.queue:
 		if q.has("tile"):
 			q["tile"] = int(q["tile"])

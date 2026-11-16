@@ -28,6 +28,8 @@ var acted: bool = false
 var equipment: Dictionary = {}
 ## Объединённый командующий: {} или {"xp", "level"}.
 var commander: Dictionary = {}
+## Действующий торговый путь. Пустой словарь означает свободного торговца.
+var trade_route: Dictionary = {}
 
 
 func to_dict() -> Dictionary:
@@ -37,6 +39,7 @@ func to_dict() -> Dictionary:
 		"promotions": promotions.duplicate(), "charges": charges,
 		"fortify_turns": fortify_turns, "orders": orders.duplicate(true), "acted": acted,
 		"equipment": equipment.duplicate(), "commander": commander.duplicate(),
+		"trade_route": trade_route.duplicate(true),
 	}
 
 
@@ -57,6 +60,12 @@ static func from_dict(d: Dictionary) -> Unit:
 	u.acted = bool(d["acted"])
 	u.equipment = d.get("equipment", {}).duplicate()
 	u.commander = _ints_in_dict(d.get("commander", {}))
+	u.trade_route = _ints_in_dict(d.get("trade_route", {}))
+	if not u.trade_route.is_empty():
+		var path: Array[int] = []
+		for tile in u.trade_route["path"]:
+			path.append(int(tile))
+		u.trade_route["path"] = path
 	return u
 
 

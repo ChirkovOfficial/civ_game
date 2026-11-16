@@ -242,6 +242,10 @@ static func _move_units(game: Game, barb: int, events: Array) -> void:
 			continue
 		if s.camps.has(u.tile) and _guards(game, u):
 			continue
+		var trader := TradeRules.raid_target(game, u)
+		if trader != null:
+			TradeRules.raid(game, u, trader, events)
+			continue
 		var best_tile := -1
 		var best_score := -INF
 		for t in s.map.grid.tiles_in_radius(u.tile, 6):

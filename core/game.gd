@@ -132,6 +132,16 @@ func apply_action(action: Dictionary) -> Array:
 			_act_buy_tile(action, events)
 		"set_research":
 			_act_set_research(action, events)
+		"start_trade":
+			_act_start_trade(action, events)
+		"raid_trade":
+			var u := _own_unit(action, events)
+			if u != null:
+				var trader := TradeRules.raid_target(self, u)
+				if trader == null:
+					events.append(_error("На клетке нет вражеского торговца для разграбления"))
+				else:
+					TradeRules.raid(self, u, trader, events)
 		"set_government":
 			var player := state.player(state.current_player)
 			var id := str(action.get("id", ""))
@@ -266,6 +276,7 @@ func apply_action(action: Dictionary) -> Array:
 				events.append(_error(err))
 			else:
 				state.set_war(state.current_player, target, true)
+				TradeRules.cancel_invalid(self, events)
 				for u in state.units_of(target):
 					if u.orders.get("type", "") == "sleep":
 						u.orders = {}
@@ -302,6 +313,9 @@ func _own_unit(action: Dictionary, events: Array) -> Unit:
 		return null
 	if u.owner != state.current_player:
 		events.append(_error("Это не ваш юнит"))
+		return null
+	if not u.trade_route.is_empty():
+		events.append(_error("Торговец в пути"))
 		return null
 	return u
 
@@ -452,8 +466,24 @@ func _act_set_research(action: Dictionary, events: Array) -> void:
 func _after_combat(events: Array) -> void:
 	for e in events:
 		if e["type"] == "city_captured" or e["type"] == "city_destroyed":
+			TradeRules.cancel_invalid(self, events)
 			Visibility.recompute(self, state.current_player)
 			return
+
+
+func _act_start_trade(action: Dictionary, events: Array) -> void:
+	var unit := _own_unit(action, events)
+	if unit == null:
+		return
+	var error := TradeRules.start_error(self, unit)
+	if error != "":
+		events.append(_error(error))
+		return
+	var route := TradeRules.plan(self, state.city_at(unit.tile), state.city(int(action.get("destination", -1))))
+	if route.is_empty():
+		events.append(_error("В этот город нельзя проложить маршрут"))
+		return
+	TradeRules.start(unit, route, events)
 
 
 ## Юнит вошёл в клетку: лагерь варваров, племенное поселение.
@@ -580,10 +610,12 @@ func _next_alive_player(from: int) -> int:
 ## Начало хода игрока (ГДД 2): доходы державы, города (рост, границы, производство),
 ## восстановление ОД, исполнение постоянных приказов, пересчёт видимости.
 func _begin_player_turn(pid: int, events: Array) -> void:
+	TradeRules.cancel_invalid(self, events)
 	EmpireRules.process_turn_start(self, pid, events)
+	TradeRules.advance(self, pid, events)
 	UnitRules.process_units_turn_start(self, pid, events)
 	for u in state.units_of(pid):
-		u.moves_left = Movement.max_moves(self, u)
+		u.moves_left = Movement.max_moves(self, u) if u.trade_route.is_empty() else 0.0
 		u.acted = false
 	for u in state.units_of(pid):
 		_continue_move(u, events)
@@ -597,6 +629,6 @@ func _begin_player_turn(pid: int, events: Array) -> void:
 func units_needing_orders(pid: int) -> Array[Unit]:
 	var result: Array[Unit] = []
 	for u in state.units_of(pid):
-		if u.moves_left > 0.0 and u.orders.is_empty():
+		if u.moves_left > 0.0 and u.orders.is_empty() and u.trade_route.is_empty():
 			result.append(u)
 	return result

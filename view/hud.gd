@@ -318,6 +318,9 @@ func refresh_research() -> void:
 	if _research_kind == "government":
 		open_government()
 		return
+	if _research_kind.begins_with("trade:"):
+		open_trade(int(_research_kind.split(":")[1]))
+		return
 	if _research_kind.begins_with("equipment:"):
 		open_equipment(int(_research_kind.split(":")[1]))
 		return
@@ -438,6 +441,45 @@ func open_government() -> void:
 			_label(_research_box, description, 12, Color(0.75, 0.78, 0.85), true)
 
 
+func open_trade(unit_id: int) -> void:
+	var unit := game.state.unit(unit_id)
+	if unit == null or unit.owner != game.state.current_player or not unit.trade_route.is_empty():
+		close_research()
+		return
+	_research_kind = "trade:%d" % unit_id
+	_research_panel.visible = true
+	_clear(_research_box)
+	var head := HBoxContainer.new()
+	_research_box.add_child(head)
+	var title := _label(head, "Торговый путь", 20)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_button(head, "✕", close_research)
+	_label(_research_box, "Действующие пути · %d из %d" % [TradeRules.active_count(game, unit.owner),
+		TradeRules.capacity(game, unit.owner)])
+	var error := TradeRules.start_error(game, unit)
+	if error != "":
+		_label(_research_box, error, 0, Color.WHITE, true)
+		return
+	var routes := TradeRules.options(game, unit)
+	if routes.is_empty():
+		_label(_research_box, "Нет доступных городов назначения")
+	for route in routes:
+		var id := int(route["destination"])
+		var city := game.state.city(id)
+		var label := "%s · %s · %d х." % [city.name, game.state.player(city.owner).name, int(route["turns"])]
+		_button(_research_box, label, func(): act.call({"type": "start_trade", "unit": unit_id, "destination": id}))
+		_label(_research_box, _trade_yields_text(route), 12, Color(0.75, 0.78, 0.85), true)
+
+
+func _trade_yields_text(route: Dictionary) -> String:
+	var parts: PackedStringArray = []
+	var yields := TradeRules.route_yields(game, route)
+	for kind in Yields.TYPES:
+		if yields.has(kind):
+			parts.append("+%s %s" % [_fmt(float(yields[kind])), str(YIELD_NAMES[kind]).to_lower()])
+	return " · ".join(parts)
+
+
 func open_diplomacy() -> void:
 	_research_kind = "diplomacy"
 	_research_panel.visible = true
@@ -496,6 +538,13 @@ func show_unit(u: Unit) -> void:
 	if not u.commander.is_empty():
 		title += " — " + Army.detachment_name(game, u.owner)
 	_label(_unit_box, title, 20)
+	if not u.trade_route.is_empty():
+		var destination := game.state.city(int(u.trade_route["destination"]))
+		if u.owner == game.state.current_player and destination != null:
+			_label(_unit_box, "Путь в %s · осталось %d х." % [destination.name,
+				int(u.trade_route["turns"]) - int(u.trade_route["elapsed"])], 0, Color.WHITE, true)
+			_label(_unit_box, _trade_yields_text(u.trade_route), 0, Color.WHITE, true)
+		return
 	var lines := ["Очки движения: %s / %s" % [_fmt(u.moves_left), _fmt(Movement.max_moves(game, u))]]
 	if def.has("combat"):
 		var s := "Сила: %d" % def["combat"]
@@ -542,6 +591,10 @@ func show_unit(u: Unit) -> void:
 	if u.owner != game.state.current_player:
 		return
 	var abilities: Array = def.get("abilities", [])
+	if abilities.has("TRADE_ROUTE"):
+		_button(_unit_box, "Выбрать торговый путь", func(): open_trade(u.id))
+	if TradeRules.raid_target(game, u) != null:
+		_button(_unit_box, "Разграбить торговый путь", func(): act.call({"type": "raid_trade", "unit": u.id}))
 	if abilities.has("FOUND_CITY"):
 		var err := CityRules.found_city_error(game, u.owner, u.tile)
 		_button(_unit_box, "Основать город (B)", func(): act.call({"type": "found_city", "unit": u.id}),

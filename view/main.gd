@@ -198,6 +198,15 @@ func _on_events(events: Array) -> void:
 				_geometry_dirty[part] = true
 		if t == "error":
 			hud.show_message(e["message"])
+		elif t == "trade_completed" and e["player"] == _viewer().id:
+			hud.show_message("Торговый путь завершён. Торговец вернулся.")
+		elif t == "trade_cancelled" and e["player"] == _viewer().id:
+			hud.show_message("Торговый путь прерван")
+		elif t == "trade_raided":
+			if e["by"] == _viewer().id:
+				hud.show_message("Торговый путь разграблен · +%d золота" % int(e["gold"]))
+			elif e["player"] == _viewer().id:
+				hud.show_message("Ваш торговый путь разграблен")
 		elif t == "unit_blocked" and game.state.unit(e["unit"]) != null \
 				and game.state.unit(e["unit"]).owner == game.state.current_player:
 			hud.show_message("Путь перекрыт")
