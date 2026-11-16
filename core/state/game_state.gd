@@ -3,7 +3,9 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 5
+const SAVE_VERSION := 6
+
+var demand_data := {"next_id": 1, "pending": {}, "cooldowns": {}, "refusals": {}}
 
 var treaty_data := {"active": {}, "offers": {}, "history": {}, "cooldowns": {},
 	"reputation": {}, "withdrawal": {}}
@@ -180,6 +182,7 @@ func to_dict() -> Dictionary:
 		"war_changed": war_changed.duplicate(),
 		"diplomacy": diplomacy.duplicate(true),
 		"treaties": treaty_data.duplicate(true),
+		"demands": demand_data.duplicate(true),
 		"original_capitals": original_capitals.duplicate(),
 		"result": result.duplicate(true),
 		"camps": _camps_list(),
@@ -228,6 +231,12 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 	for k in d.get("war_changed", {}):
 		s.war_changed[k] = int(d["war_changed"][k])
 	s.diplomacy = d.get("diplomacy", {}).duplicate(true)
+	var demands: Dictionary = d.get("demands", {})
+	s.demand_data["next_id"] = int(demands.get("next_id", 1))
+	for key in demands.get("pending", {}):
+		s.demand_data["pending"][key] = Unit._ints_in_dict(demands["pending"][key])
+	for kind in ["cooldowns", "refusals"]:
+		s.demand_data[kind] = Unit._ints_in_dict(demands.get(kind, {}))
 	var saved_treaties: Dictionary = d.get("treaties", {})
 	for collection in s.treaty_data:
 		var records: Dictionary = saved_treaties.get(collection, {})

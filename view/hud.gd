@@ -275,6 +275,7 @@ func refresh_top() -> void:
 	var db := Button.new()
 	db.text = "Державы" + (" (войн: %d)" % wars if wars > 0 else "")
 	var incoming := TreatyRules.offers_for(game, pid).filter(func(offer): return int(offer["to"]) == pid).size()
+	incoming += DemandRules.pending_for(game, pid).filter(func(demand): return int(demand["recipient"]) == pid).size()
 	if incoming > 0:
 		db.text += " · +%d" % incoming
 	db.pressed.connect(open_diplomacy)
@@ -515,6 +516,7 @@ func open_diplomacy() -> void:
 	_label(_research_box, "Религия, туризм и международные события появятся вместе с их механиками.",
 		12, Color(0.75, 0.78, 0.85), true)
 	_show_treaty_offers(pid)
+	_show_demands(pid)
 	var any := false
 	for other in game.state.players:
 		if other.id == pid or other.is_barbarian or not me.met.has(other.id):
@@ -567,6 +569,10 @@ func open_diplomacy() -> void:
 				_button(treaties, _treaty_label(kind),
 					func(): act.call({"type": "propose_treaty", "kind": kind, "target": oid}),
 					error != "", error)
+			var passage_error := DemandRules.issue_error(game, pid, oid, "passage")
+			_button(_research_box, "Потребовать проход",
+				func(): act.call({"type": "issue_demand", "kind": "passage", "target": oid}),
+				passage_error != "", _demand_tooltip(passage_error))
 	if not any:
 		_label(_research_box, "Вы ещё ни с кем не встретились.")
 	var offer_ids: Array = d.get("offers", {}).keys()
@@ -586,6 +592,11 @@ func open_diplomacy() -> void:
 			var offer_id := int(id)
 			_button(controls, "Принять", func(): act.call({"type": "respond_supply", "id": offer_id, "accept": true}); open_diplomacy())
 			_button(controls, "Отказать", func(): act.call({"type": "respond_supply", "id": offer_id, "accept": false}); open_diplomacy())
+			if int(offer["buyer"]) == pid and int(offer["seller"]) == other_id:
+				var discount_error := DemandRules.issue_error(game, pid, other_id, "discount", offer_id)
+				_button(controls, "Потребовать скидку",
+					func(): act.call({"type": "issue_demand", "kind": "discount", "target": other_id, "offer": offer_id}),
+					discount_error != "", _demand_tooltip(discount_error))
 		else:
 			_label(_research_box, "Ожидаем ответа")
 	var contract_ids: Array = d.get("contracts", {}).keys()
@@ -598,10 +609,39 @@ func open_diplomacy() -> void:
 		_label(_research_box, "Договор №%s · %s" % [id, game.state.player(partner).name], 15)
 		var description: String = game.data.resources[contract["resource"]]["name"]
 		description += " · доступ к одной копии" if contract.has("source_tile") else ": %s за ход" % _fmt(float(contract["per_turn"]))
-		_label(_research_box, "%s · осталось %d ходов · в резерве %d золота" % [description,
-			int(contract["remaining"]), int(contract["escrow"])], 12, Color(0.75, 0.78, 0.85), true)
+		_label(_research_box, "%s · осталось %d ходов · в резерве %s золота" % [description,
+			int(contract["remaining"]), _fmt(DiplomacyRules.escrow_cents(contract) / 100.0)], 12, Color(0.75, 0.78, 0.85), true)
 		var contract_id := int(id)
 		_button(_research_box, "Прекратить договор", func(): act.call({"type": "cancel_supply", "id": contract_id}); open_diplomacy())
+
+
+func _demand_tooltip(error: String) -> String:
+	if error != "":
+		return error
+	return "Адресат может отказаться. При отказе наше доверие к нему снизится на %d." % int(game.data.diplomacy["demand_refusal_penalty"])
+
+
+func _show_demands(pid: int) -> void:
+	for demand in DemandRules.pending_for(game, pid):
+		var incoming := int(demand["recipient"]) == pid
+		var peer := game.state.player(int(demand["issuer"] if incoming else demand["recipient"]))
+		var title := "Право прохода" if demand["kind"] == "passage" else "Скидка %d%% на предложение №%d" % [
+			int(demand["percent"]), int(demand["offer"])]
+		_label(_research_box, "%s · %s · %s" % [title, peer.name,
+			"требование к нам" if incoming else "наше требование"], 15, Color.WHITE, true)
+		if demand["kind"] == "discount":
+			var offer: Dictionary = game.state.diplomacy.get("offers", {}).get(str(demand["offer"]), {})
+			if not offer.is_empty():
+				_label(_research_box, _supply_summary(offer), 12, Color.WHITE, true)
+		_label(_research_box, "Ходов адресата для ответа: %d · отказ снижает доверие инициатора" % int(demand["turns_left"]),
+			12, Color.WHITE, true)
+		if incoming:
+			var actions := HBoxContainer.new()
+			_research_box.add_child(actions)
+			var pair: String = demand["pair"]
+			var id: int = demand["id"]
+			_button(actions, "Согласиться", func(): act.call({"type": "respond_demand", "pair": pair, "id": id, "accept": true}))
+			_button(actions, "Отказать", func(): act.call({"type": "respond_demand", "pair": pair, "id": id, "accept": false}))
 
 
 static func _treaty_label(kind: String) -> String:
@@ -655,11 +695,14 @@ func _supply_summary(offer: Dictionary) -> String:
 	var periodic := int(offer["per_turn"])
 	var rounds := int(offer["rounds"])
 	var total := upfront + periodic * rounds
+	var gold := _fmt(total * DiplomacyRules.price_cents(offer) / 100.0)
+	var discount := int(offer.get("discount_percent", 0))
+	var suffix := " · скидка %d%%" % discount if discount > 0 else ""
 	if LuxuryTrade.is_luxury(game, offer["resource"]):
-		return "%s · доступ к одной копии на %d ходов · %d золота один раз" % [
-			resource_name, rounds, total * int(offer["unit_price"])]
-	return "%s: %d сейчас + %d за ход × %d ходов = %d ед. · %d золота один раз" % [
-		resource_name, upfront, periodic, rounds, total, total * int(offer["unit_price"])]
+		return "%s · доступ к одной копии на %d ходов · %s золота один раз%s" % [
+			resource_name, rounds, gold, suffix]
+	return "%s: %d сейчас + %d за ход × %d ходов = %d ед. · %s золота один раз%s" % [
+		resource_name, upfront, periodic, rounds, total, gold, suffix]
 
 
 func _supply_number(parent: Container, caption: String, start: int, minimum: int, maximum: int) -> SpinBox:

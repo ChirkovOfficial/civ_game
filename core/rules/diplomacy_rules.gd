@@ -5,6 +5,19 @@ extends RefCounted
 static func cfg(game: Game, key: String) -> float:
 	return float(game.data.diplomacy.get(key, 0))
 
+
+static func price_cents(deal: Dictionary) -> int:
+	return int(deal["unit_price"]) * (100 - int(deal.get("discount_percent", 0)))
+
+
+static func escrow_cents(contract: Dictionary) -> int:
+	return int(contract.get("escrow_cents", int(contract.get("escrow", 0)) * 100))
+
+
+static func _debit_escrow(contract: Dictionary, amount: int) -> void:
+	contract["escrow_cents"] = escrow_cents(contract) - amount
+	contract.erase("escrow")
+
 static func initialize(game: Game) -> void:
 	if not game.state.diplomacy.is_empty():
 		return
@@ -107,7 +120,7 @@ static func respond(game: Game, action: Dictionary, events: Array) -> void:
 	var err := _resource_error(game, seller, buyer, rid)
 	var upfront: int = offer["upfront"]
 	var total: int = upfront + int(offer["per_turn"]) * int(offer["rounds"])
-	var price: int = offer["unit_price"]
+	var price := price_cents(offer)
 	var luxury := LuxuryTrade.is_luxury(game, rid)
 	var tile := -1
 	if err == "" and luxury:
@@ -124,21 +137,22 @@ static func respond(game: Game, action: Dictionary, events: Array) -> void:
 		err = "У продавца нет ресурса для первой поставки"
 	if err == "" and not luxury and game.state.player(buyer).stockpile.get(rid, 0.0) + upfront > cap:
 		err = "Недостаточно места на складе покупателя"
-	if err == "" and game.state.player(buyer).treasury < total * price:
+	if err == "" and game.state.player(buyer).treasury < total * price / 100.0:
 		err = "Покупателю не хватает золота"
 	if err != "":
 		_error(events, err)
 		return
 	# Сначала проверены все условия; затем одна атомарная передача.
-	game.state.player(buyer).treasury -= total * price
-	game.state.player(seller).treasury += upfront * price
+	game.state.player(buyer).treasury -= total * price / 100.0
+	game.state.player(seller).treasury += upfront * price / 100.0
 	if upfront > 0:
 		_transfer(game, seller, buyer, rid, upfront)
 	d["offers"].erase(id)
 	if int(offer["rounds"]) > 0:
 		d["contracts"][id] = {"id": int(id), "seller": seller, "buyer": buyer, "resource": rid,
 			"per_turn": int(offer["per_turn"]), "remaining": int(offer["rounds"]),
-			"unit_price": price, "escrow": (total - upfront) * price,
+			"unit_price": int(offer["unit_price"]), "discount_percent": int(offer.get("discount_percent", 0)),
+			"escrow_cents": (total - upfront) * price,
 			"next_round": game.state.turn + 1, "shortfalls": 0}
 		if luxury:
 			d["contracts"][id]["source_tile"] = tile
@@ -158,7 +172,7 @@ static func _finish(game: Game, id: String, reason: String, events: Array) -> vo
 	var c: Dictionary = d["contracts"].get(id, {})
 	if c.is_empty():
 		return
-	var refund: int = c["escrow"]
+	var refund := escrow_cents(c) / 100.0
 	game.state.player(int(c["buyer"])).treasury += refund
 	d["contracts"].erase(id)
 	events.append({"type": "supply_closed", "id": int(id), "reason": reason, "refund": refund,
@@ -183,9 +197,9 @@ static func cancel_invalid_luxuries(game: Game, events: Array) -> void:
 
 
 static func _settle_luxury(game: Game, id: String, contract: Dictionary, new_round: int, events: Array) -> void:
-	var price: int = contract["unit_price"]
-	game.state.player(int(contract["seller"])).treasury += price
-	contract["escrow"] -= price
+	var price := price_cents(contract)
+	game.state.player(int(contract["seller"])).treasury += price / 100.0
+	_debit_escrow(contract, price)
 	contract["remaining"] -= 1
 	contract["next_round"] = new_round + 1
 	events.append({"type": "supply_settled", "id": int(id), "delivered": 1, "refunded": 0})
@@ -299,10 +313,11 @@ static func close_round(game: Game, events: Array) -> void:
 		delivered = maxi(0, delivered)
 		var direct := _transfer(game, seller, buyer, rid, delivered)
 		available[stock_key] = seller_stock - delivered
-		var period_price: int = int(c["per_turn"]) * int(c["unit_price"])
-		game.state.player(seller).treasury += delivered * int(c["unit_price"])
-		game.state.player(buyer).treasury += period_price - delivered * int(c["unit_price"])
-		c["escrow"] = int(c["escrow"]) - period_price
+		var period_price := int(c["per_turn"]) * price_cents(c)
+		var paid := delivered * price_cents(c)
+		game.state.player(seller).treasury += paid / 100.0
+		game.state.player(buyer).treasury += (period_price - paid) / 100.0
+		_debit_escrow(c, period_price)
 		c["remaining"] = int(c["remaining"]) - 1
 		c["next_round"] = new_round + 1
 		c["shortfalls"] = int(c["shortfalls"]) + 1 if delivered < int(c["per_turn"]) and seller_stock < int(c["per_turn"]) else 0
@@ -312,7 +327,7 @@ static func close_round(game: Game, events: Array) -> void:
 				d["delivery_history"][pair] = []
 			d["delivery_history"][pair].append({"round": new_round, "amount": direct})
 		events.append({"type": "supply_settled", "id": int(id), "delivered": delivered,
-			"refunded": period_price - delivered * int(c["unit_price"])})
+			"refunded": (period_price - paid) / 100.0})
 		if int(c["remaining"]) <= 0:
 			_finish(game, id, "completed", events)
 		elif int(c["shortfalls"]) >= 3:
@@ -432,8 +447,7 @@ static func _update_dependency(game: Game, round_number: int, events: Array) -> 
 				events.append({"type": "dependency_changed", "dependent": buyer, "provider": seller, "value": value + goods})
 
 static func dependency(game: Game, dependent: int, provider: int) -> Dictionary:
-	initialize(game)
-	var item: Dictionary = game.state.diplomacy["dependency"].get(_pair(dependent, provider), {})
+	var item: Dictionary = game.state.diplomacy.get("dependency", {}).get(_pair(dependent, provider), {})
 	return item.duplicate(true)
 
 

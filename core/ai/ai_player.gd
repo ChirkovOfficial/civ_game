@@ -12,6 +12,7 @@ const EXPLORE_RADIUS := 8
 static func take_turn(game: Game, pid: int) -> void:
 	if not game.state.result.is_empty():
 		return
+	_answer_demands(game, pid)
 	_treaty_diplomacy(game, pid)
 	_supply_diplomacy(game, pid)
 	_choose_research(game, pid)
@@ -37,6 +38,17 @@ static func take_turn(game: Game, pid: int) -> void:
 	_handle_commanders(game, pid)
 	_handle_military(game, pid)
 	_equip_units(game, pid)
+
+static func _answer_demands(game: Game, pid: int) -> void:
+	for demand in DemandRules.pending_for(game, pid):
+		if int(demand["recipient"]) != pid:
+			continue
+		var issuer: int = demand["issuer"]
+		var dependence := DiplomacyRules.dependency_value(DiplomacyRules.dependency(game, pid, issuer))
+		var reverse := DiplomacyRules.dependency_value(DiplomacyRules.dependency(game, issuer, pid))
+		var accept := dependence > reverse and TreatyRules.trust(game, pid, issuer) >= 0
+		game.apply_action({"type": "respond_demand", "pair": demand["pair"], "id": demand["id"], "accept": accept})
+
 
 ## ИИ заключает договоры с надёжными державами и торговыми партнёрами.
 static func _treaty_diplomacy(game: Game, pid: int) -> void:
@@ -75,7 +87,7 @@ static func _supply_diplomacy(game: Game, pid: int) -> void:
 		if int(offer.get("responder", offer["buyer"])) != pid:
 			continue
 		var rid: String = offer["resource"]
-		var total: int = (int(offer["upfront"]) + int(offer["per_turn"]) * int(offer["rounds"])) * int(offer["unit_price"])
+		var total := (int(offer["upfront"]) + int(offer["per_turn"]) * int(offer["rounds"])) * DiplomacyRules.price_cents(offer) / 100.0
 		if LuxuryTrade.is_luxury(game, rid):
 			var price := DiplomacyRules.cfg(game, "luxury_ai_price")
 			var accept_luxury := not LuxuryTrade.kinds(game, pid).has(rid) \

@@ -72,6 +72,23 @@ func _process(_delta: float) -> bool:
 		printerr("Предложение дружбы из интерфейса не принято ИИ")
 		quit(1)
 		return true
-	print("Предложения покупки мрамора и дружбы из окна дипломатии работают")
+	game.state.diplomacy["dependency"]["1,0"] = {"strategic": 25.0}
+	main.hud.open_diplomacy()
+	var demand: Button = null
+	for node in box.find_children("*", "Button", true, false):
+		if node.text == "Потребовать проход" and not node.disabled:
+			demand = node
+			break
+	if demand == null:
+		printerr("В окне нет доступного требования прохода")
+		quit(1)
+		return true
+	demand.pressed.emit()
+	main.act({"type": "end_turn", "force": true})
+	if TreatyRules.until(game, "passage", 0, 1) <= game.state.turn:
+		printerr("ИИ не ответил на требование прохода")
+		quit(1)
+		return true
+	print("Покупка мрамора, предложение дружбы и требование прохода работают")
 	quit(0)
 	return true

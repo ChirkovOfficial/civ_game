@@ -1,5 +1,11 @@
 {
   "max_offer_response_rounds": 10,
+  "minor_demand_threshold": 20,
+  "discount_demand_max": 10,
+  "demand_response_turns": 2,
+  "demand_cooldown": 10,
+  "demand_refusal_penalty": 5,
+  "demand_refusal_duration": 10,
   "treaty_offer_rounds": 5,
   "treaty_reoffer_rounds": 5,
   "treaty_renewal_window": 5,

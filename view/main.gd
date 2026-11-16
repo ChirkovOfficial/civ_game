@@ -236,9 +236,13 @@ func _on_events(events: Array) -> void:
 			hud.show_message("Заключён мир", 3.0)
 		elif t == "treaty_accepted" and _viewer().id in [int(e["from"]), int(e["to"])]:
 			hud.show_message("Дипломатический договор принят")
+		elif t == "demand_accepted" and _viewer().id in [int(e["issuer"]), int(e["recipient"])]:
+			hud.show_message("Дипломатическое требование принято")
+		elif t == "demand_refused" and _viewer().id in [int(e["issuer"]), int(e["recipient"])]:
+			hud.show_message("Дипломатическое требование отклонено")
 		elif t == "supply_closed" and e["reason"] == "luxury_access_lost" \
 				and _viewer().id in [int(e["buyer"]), int(e["seller"])]:
-			hud.show_message("Доступ к редкому ресурсу прекращён · возврат покупателю %d золота" % int(e["refund"]))
+			hud.show_message("Доступ к редкому ресурсу прекращён · возврат покупателю %s золота" % Hud._fmt(float(e["refund"])))
 		elif t == "unit_withdrawing" and _viewer().id == int(e["player"]):
 			hud.show_message("Юниту нужно покинуть закрытую территорию")
 		elif t == "unit_relocated" and _viewer().id == int(e["player"]):

@@ -29,7 +29,8 @@ static func until(game: Game, kind: String, from: int, to: int) -> int:
 
 static func trust(game: Game, viewer: int, subject: int) -> int:
 	var record := _entry(game, "reputation", _key("trust", viewer, subject))
-	return int(record["value"]) if _active(record, game.state.turn) else 0
+	var value := int(record["value"]) if _active(record, game.state.turn) else 0
+	return value + DemandRules.trust_penalty(game, viewer, subject)
 
 
 static func _valid_pair(game: Game, a: int, b: int) -> bool:
@@ -79,6 +80,26 @@ static func _rounds(game: Game, key: String) -> int:
 
 static func _offer_event(type: String, record: Dictionary) -> Dictionary:
 	return {"type": type, "kind": record["kind"], "from": record["from"], "to": record["to"]}
+
+
+static func passage_error(game: Game, visitor: int, host: int) -> String:
+	var error := _treaty_error(game, "passage", visitor, host)
+	if error != "":
+		return error
+	if until(game, "passage", visitor, host) > game.state.turn:
+		return "Право прохода уже действует"
+	return ""
+
+
+static func grant_passage(game: Game, visitor: int, host: int, events: Array) -> void:
+	var key := _key("passage", visitor, host)
+	var expiry := game.state.turn + _rounds(game, "passage_rounds")
+	var treaty := {"kind": "passage", "from": visitor, "to": host, "since": game.state.turn, "until": expiry}
+	game.state.treaty_data["active"][key] = treaty
+	game.state.treaty_data["offers"].erase(key)
+	var event := _offer_event("treaty_accepted", treaty)
+	event["until"] = expiry
+	events.append(event)
 
 
 static func propose(game: Game, action: Dictionary, events: Array) -> String:

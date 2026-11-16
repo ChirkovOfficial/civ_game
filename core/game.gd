@@ -306,6 +306,11 @@ func apply_action(action: Dictionary) -> Array:
 				else TreatyRules.respond(self, action, events)
 			if err != "":
 				events.append(_error(err))
+		"issue_demand", "respond_demand":
+			var err := DemandRules.issue(self, action, events) if action["type"] == "issue_demand" \
+				else DemandRules.respond(self, action, events)
+			if err != "":
+				events.append(_error(err))
 		"end_turn":
 			var blocking := EmpireRules.blocking_decisions(self, state.current_player)
 			if not blocking.is_empty() and not action.get("force", false):
@@ -585,6 +590,7 @@ func _continue_move(u: Unit, events: Array) -> void:
 
 func _act_end_turn(events: Array) -> void:
 	var finished := state.current_player
+	DemandRules.end_turn(self, finished, events)
 	events.append({"type": "turn_ended", "player": finished})
 	var next := _next_alive_player(finished)
 	if next <= finished:
@@ -607,6 +613,7 @@ func _act_end_turn(events: Array) -> void:
 		if not state.result.is_empty():
 			return
 		var ai_id := state.current_player
+		DemandRules.end_turn(self, ai_id, events)
 		events.append({"type": "turn_ended", "player": ai_id})
 		var n2 := _next_alive_player(ai_id)
 		if n2 <= ai_id:
