@@ -20,6 +20,18 @@ func _process(_delta: float) -> bool:
 	main.hud.open_diplomacy()
 	main.hud.open_supply_offer(1, true)
 	var box: VBoxContainer = main.hud.get("_research_box")
+	var chooser: OptionButton = box.find_children("*", "OptionButton", true, false)[0]
+	var marble := -1
+	for index in chooser.item_count:
+		if chooser.get_item_text(index).begins_with("Мрамор"):
+			marble = index
+			break
+	if marble < 0:
+		printerr("Мрамор не появился в окне покупки")
+		quit(1)
+		return true
+	chooser.select(marble)
+	chooser.item_selected.emit(marble)
 	var submit: Button = null
 	for node in box.find_children("*", "Button", true, false):
 		if node.text == "Отправить предложение":
@@ -31,6 +43,11 @@ func _process(_delta: float) -> bool:
 	submit.pressed.emit()
 	if game.state.diplomacy["offers"].size() != 1:
 		printerr("Предложение покупки не создано")
+		quit(1)
+		return true
+	var offer: Dictionary = game.state.diplomacy["offers"].values()[0]
+	if offer["resource"] != "MARBLE" or int(offer["per_turn"]) != 1:
+		printerr("Форма не отправила предложение доступа к одной копии мрамора")
 		quit(1)
 		return true
 	main.hud.open_supply_offer(1, false)
@@ -55,6 +72,6 @@ func _process(_delta: float) -> bool:
 		printerr("Предложение дружбы из интерфейса не принято ИИ")
 		quit(1)
 		return true
-	print("Формы поставок и предложение дружбы из окна дипломатии работают")
+	print("Предложения покупки мрамора и дружбы из окна дипломатии работают")
 	quit(0)
 	return true

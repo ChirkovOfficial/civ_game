@@ -3,7 +3,7 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 4
+const SAVE_VERSION := 5
 
 var treaty_data := {"active": {}, "offers": {}, "history": {}, "cooldowns": {},
 	"reputation": {}, "withdrawal": {}}

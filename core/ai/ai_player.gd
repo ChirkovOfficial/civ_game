@@ -76,6 +76,16 @@ static func _supply_diplomacy(game: Game, pid: int) -> void:
 			continue
 		var rid: String = offer["resource"]
 		var total: int = (int(offer["upfront"]) + int(offer["per_turn"]) * int(offer["rounds"])) * int(offer["unit_price"])
+		if LuxuryTrade.is_luxury(game, rid):
+			var price := DiplomacyRules.cfg(game, "luxury_ai_price")
+			var accept_luxury := not LuxuryTrade.kinds(game, pid).has(rid) \
+				and not game.state.cities_of(pid).is_empty() \
+				and game.state.player(pid).treasury >= total + 30.0 and int(offer["unit_price"]) <= price
+			if int(offer["seller"]) == pid:
+				accept_luxury = LuxuryTrade.available_sources(game, pid, rid).size() > 1 \
+					and int(offer["unit_price"]) >= price
+			game.apply_action({"type": "respond_supply", "id": int(id), "accept": accept_luxury})
+			continue
 		var need := DiplomacyRules._resource_need(game, pid, rid, game.state.turn)
 		var supply: float = UnitRules.strategic_income(game, pid).get(rid, 0.0)
 		var accept := need > supply and game.state.player(pid).treasury >= total + 30.0

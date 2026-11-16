@@ -315,6 +315,11 @@ func apply_action(action: Dictionary) -> Array:
 		_:
 			events.append(_error("Неизвестное действие: %s" % action.get("type", "")))
 	for event in events:
+		if event["type"] in ["war_declared", "pillaged", "city_captured", "city_destroyed",
+				"city_founded", "harvested", "improvement_built"]:
+			DiplomacyRules.cancel_invalid_luxuries(self, events)
+			break
+	for event in events:
 		if event["type"] in ["city_founded", "city_captured", "player_eliminated"]:
 			VictoryRules.check_capitals(self, events)
 			break

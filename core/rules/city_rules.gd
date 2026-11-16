@@ -165,18 +165,16 @@ static func amenities_needed(city: City) -> int:
 ## Довольство от редких ресурсов по городам державы: city_id -> число.
 ## Каждый вид улучшенного люкса даёт +1 четырём самым нуждающимся городам (ГДД 3.6).
 static func luxury_amenities(game: Game, pid: int) -> Dictionary:
+	return distribute_luxuries(game, pid, LuxuryTrade.kinds(game, pid))
+
+
+static func distribute_luxuries(game: Game, pid: int, kinds: Dictionary) -> Dictionary:
 	var result := {}
 	var cities := game.state.cities_of(pid)
 	for city in cities:
 		result[city.id] = 0
 	if cities.is_empty():
 		return result
-	var kinds := {}
-	for city in cities:
-		for t in owned_tiles(game, city):
-			var rid := game.state.map.resource[t]
-			if rid != "" and game.data.resources[rid].get("class", "") == "luxury" and resource_improved(game, t):
-				kinds[rid] = true
 	var kind_list := kinds.keys()
 	kind_list.sort()
 	var per_kind: int = int(c(game, "luxury_amenity_cities", 4))

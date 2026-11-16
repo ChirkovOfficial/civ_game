@@ -537,16 +537,19 @@ func open_diplomacy() -> void:
 		var ours: Dictionary = d.get("dependency", {}).get("%d,%d" % [pid, oid], {})
 		var theirs: Dictionary = d.get("dependency", {}).get("%d,%d" % [oid, pid], {})
 		_label(_research_box, "Мы зависим: %s · зависит от нас: %s" % [
-			_fmt(float(ours.get("strategic", 0.0))), _fmt(float(theirs.get("strategic", 0.0)))],
+			_fmt(DiplomacyRules.dependency_value(ours)), _fmt(DiplomacyRules.dependency_value(theirs))],
 			12, Color(0.75, 0.78, 0.85), true)
+		if float(ours.get("goods", 0.0)) > 0.0 or float(theirs.get("goods", 0.0)) > 0.0:
+			_label(_research_box, "Из них редкие ресурсы · мы %s · они %s" % [
+				_fmt(float(ours.get("goods", 0.0))), _fmt(float(theirs.get("goods", 0.0)))], 12, Color.WHITE, true)
 		if not ours.is_empty() and float(ours.get("strategic", 0.0)) > 0.0:
 			_label(_research_box, "Наш источник: %s · целевой уровень %s" % [
 				str(game.data.resources.get(ours.get("main_resource", ""), {}).get("name", "ресурс")),
-				_fmt(float(ours.get("target", 0.0)))], 12, Color(0.75, 0.78, 0.85), true)
+				_fmt(float(ours.get("target", 0.0)) - float(ours.get("goods_target", 0.0)))], 12, Color(0.75, 0.78, 0.85), true)
 		if not theirs.is_empty() and float(theirs.get("strategic", 0.0)) > 0.0:
 			_label(_research_box, "Их источник: %s · целевой уровень %s" % [
 				str(game.data.resources.get(theirs.get("main_resource", ""), {}).get("name", "ресурс")),
-				_fmt(float(theirs.get("target", 0.0)))], 12, Color(0.75, 0.78, 0.85), true)
+				_fmt(float(theirs.get("target", 0.0)) - float(theirs.get("goods_target", 0.0)))], 12, Color(0.75, 0.78, 0.85), true)
 		if war:
 			var e := UnitRules.make_peace_error(game, pid, oid)
 			_button(row, "Заключить мир", func(): act.call({"type": "make_peace", "target": oid}); open_diplomacy(), e != "", e)
@@ -593,8 +596,9 @@ func open_diplomacy() -> void:
 			continue
 		var partner := int(contract["buyer"]) if int(contract["seller"]) == pid else int(contract["seller"])
 		_label(_research_box, "Договор №%s · %s" % [id, game.state.player(partner).name], 15)
-		_label(_research_box, "%s: %s за ход · осталось %d ходов · предоплата %d золота" % [
-			str(game.data.resources[contract["resource"]]["name"]), _fmt(float(contract["per_turn"])),
+		var description: String = game.data.resources[contract["resource"]]["name"]
+		description += " · доступ к одной копии" if contract.has("source_tile") else ": %s за ход" % _fmt(float(contract["per_turn"]))
+		_label(_research_box, "%s · осталось %d ходов · в резерве %d золота" % [description,
 			int(contract["remaining"]), int(contract["escrow"])], 12, Color(0.75, 0.78, 0.85), true)
 		var contract_id := int(id)
 		_button(_research_box, "Прекратить договор", func(): act.call({"type": "cancel_supply", "id": contract_id}); open_diplomacy())
@@ -651,6 +655,9 @@ func _supply_summary(offer: Dictionary) -> String:
 	var periodic := int(offer["per_turn"])
 	var rounds := int(offer["rounds"])
 	var total := upfront + periodic * rounds
+	if LuxuryTrade.is_luxury(game, offer["resource"]):
+		return "%s · доступ к одной копии на %d ходов · %d золота один раз" % [
+			resource_name, rounds, total * int(offer["unit_price"])]
 	return "%s: %d сейчас + %d за ход × %d ходов = %d ед. · %d золота один раз" % [
 		resource_name, upfront, periodic, rounds, total, total * int(offer["unit_price"])]
 
@@ -690,14 +697,18 @@ func open_supply_offer(partner: int, buying: bool) -> void:
 	_research_box.add_child(options)
 	var ids: Array[String] = []
 	for rid in game.data.resource_ids:
-		if game.data.resources[rid].get("class", "") != "strategic":
+		var resource_class: String = game.data.resources[rid]["class"]
+		if resource_class not in ["strategic", "luxury"]:
 			continue
 		if not Yields.resource_visible(game.data, rid, game.state.player(pid)):
 			continue
+		if resource_class == "luxury" and not buying and LuxuryTrade.available_sources(game, pid, rid).is_empty():
+			continue
 		ids.append(rid)
-		options.add_item(game.data.resources[rid]["name"])
+		var name: String = game.data.resources[rid]["name"]
+		options.add_item(name + (" · редкий" if resource_class == "luxury" else ""))
 	if ids.is_empty():
-		_label(_research_box, "Пока нет известных стратегических ресурсов")
+		_label(_research_box, "Пока нет доступных для сделки ресурсов")
 		return
 	var upfront := _supply_number(_research_box, "Сразу, ед.", 0, 0, 50)
 	var periodic := _supply_number(_research_box, "За ход, ед.", 2, 0, 50)
@@ -705,16 +716,26 @@ func open_supply_offer(partner: int, buying: bool) -> void:
 	var price := _supply_number(_research_box, "Золото за единицу", 2, 0, 1000)
 	var preview := _label(_research_box, "", 13, Color(0.75, 0.78, 0.85), true)
 	var update := func():
+		var luxury := LuxuryTrade.is_luxury(game, ids[options.selected])
+		upfront.get_parent().visible = not luxury
+		periodic.get_parent().visible = not luxury
+		var caption: Label = price.get_parent().get_child(0)
+		caption.text = "Золото за ход" if luxury else "Золото за единицу"
+		if luxury:
+			preview.text = "Доступ к одной копии · %d золота за весь срок" % (int(rounds.value) * int(price.value))
+			return
 		var amount := int(upfront.value) + int(periodic.value) * int(rounds.value)
 		preview.text = "Всего %d ед. · разовая оплата %d золота" % [amount, amount * int(price.value)]
 	for field in [upfront, periodic, rounds, price]:
 		field.value_changed.connect(func(_value): update.call())
+	options.item_selected.connect(func(_index): update.call())
 	update.call()
 	_label(_research_box, "Оплата будущих поставок хранится до исполнения. Отправка предложения ничего не списывает.",
 		12, Color(0.75, 0.78, 0.85), true)
 	_button(_research_box, "Отправить предложение", func():
+		var luxury := LuxuryTrade.is_luxury(game, ids[options.selected])
 		var action := {"type": "propose_supply", "resource": ids[options.selected],
-			"upfront": int(upfront.value), "per_turn": int(periodic.value),
+			"upfront": 0 if luxury else int(upfront.value), "per_turn": 1 if luxury else int(periodic.value),
 			"rounds": int(rounds.value), "unit_price": int(price.value)}
 		if buying:
 			action["seller"] = partner

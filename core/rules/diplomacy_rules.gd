@@ -43,8 +43,8 @@ static func _resource_error(game: Game, seller: int, buyer: int, rid: String) ->
 		return "Державы ещё не встретились"
 	if game.state.at_war(seller, buyer):
 		return "Во время войны поставки невозможны"
-	if not game.data.resources.has(rid) or game.data.resources[rid].get("class", "") != "strategic":
-		return "Пока доступны только стратегические ресурсы"
+	if game.data.resources.get(rid, {}).get("class", "") not in ["strategic", "luxury"]:
+		return "Можно торговать стратегическими и редкими ресурсами"
 	return ""
 
 static func propose(game: Game, action: Dictionary, events: Array) -> void:
@@ -62,6 +62,17 @@ static func propose(game: Game, action: Dictionary, events: Array) -> void:
 	if err != "":
 		_error(events, err)
 		return
+	var offered_source := -1
+	if LuxuryTrade.is_luxury(game, rid):
+		if upfront != 0 or periodic != 1 or periods < 1 or periods > int(cfg(game, "luxury_max_rounds")):
+			_error(events, "Редкий ресурс передаётся по одной копии на выбранный срок")
+			return
+		if game.state.current_player == seller:
+			var sources := LuxuryTrade.available_sources(game, seller, rid)
+			if sources.is_empty():
+				_error(events, "Нет свободной улучшенной копии ресурса")
+				return
+			offered_source = sources[0]
 	if upfront < 0 or periodic < 0 or periods < 0 or price < 0 or upfront + periodic * periods <= 0 \
 			or (periodic == 0 and periods != 0) or (periodic > 0 and periods == 0) \
 			or upfront + periodic * periods > 10000 or price > 100000:
@@ -74,6 +85,8 @@ static func propose(game: Game, action: Dictionary, events: Array) -> void:
 		"responder": buyer if seller == game.state.current_player else seller, "resource": rid,
 		"upfront": upfront, "per_turn": periodic, "rounds": periods, "unit_price": price,
 		"created": game.state.turn}
+	if offered_source >= 0:
+		d["offers"][str(id)]["source_tile"] = offered_source
 	events.append({"type": "supply_proposed", "id": id, "seller": seller, "buyer": buyer})
 
 static func respond(game: Game, action: Dictionary, events: Array) -> void:
@@ -95,10 +108,21 @@ static func respond(game: Game, action: Dictionary, events: Array) -> void:
 	var upfront: int = offer["upfront"]
 	var total: int = upfront + int(offer["per_turn"]) * int(offer["rounds"])
 	var price: int = offer["unit_price"]
+	var luxury := LuxuryTrade.is_luxury(game, rid)
+	var tile := -1
+	if err == "" and luxury:
+		var fixed := int(offer.get("source_tile", -1))
+		var sources := LuxuryTrade.available_sources(game, seller, rid, fixed >= 0)
+		if fixed >= 0 and fixed in sources:
+			tile = fixed
+		elif fixed < 0 and not sources.is_empty():
+			tile = sources[0]
+		else:
+			err = "Нет свободной улучшенной копии ресурса"
 	var cap: float = float(game.data.const_value("strategic_cap", 50))
-	if err == "" and game.state.player(seller).stockpile.get(rid, 0.0) < upfront:
+	if err == "" and not luxury and game.state.player(seller).stockpile.get(rid, 0.0) < upfront:
 		err = "У продавца нет ресурса для первой поставки"
-	if err == "" and game.state.player(buyer).stockpile.get(rid, 0.0) + upfront > cap:
+	if err == "" and not luxury and game.state.player(buyer).stockpile.get(rid, 0.0) + upfront > cap:
 		err = "Недостаточно места на складе покупателя"
 	if err == "" and game.state.player(buyer).treasury < total * price:
 		err = "Покупателю не хватает золота"
@@ -116,6 +140,8 @@ static func respond(game: Game, action: Dictionary, events: Array) -> void:
 			"per_turn": int(offer["per_turn"]), "remaining": int(offer["rounds"]),
 			"unit_price": price, "escrow": (total - upfront) * price,
 			"next_round": game.state.turn + 1, "shortfalls": 0}
+		if luxury:
+			d["contracts"][id]["source_tile"] = tile
 	events.append({"type": "supply_accepted", "id": int(id), "upfront": upfront, "total": total})
 
 static func cancel(game: Game, action: Dictionary, events: Array) -> void:
@@ -135,7 +161,36 @@ static func _finish(game: Game, id: String, reason: String, events: Array) -> vo
 	var refund: int = c["escrow"]
 	game.state.player(int(c["buyer"])).treasury += refund
 	d["contracts"].erase(id)
-	events.append({"type": "supply_closed", "id": int(id), "reason": reason, "refund": refund})
+	events.append({"type": "supply_closed", "id": int(id), "reason": reason, "refund": refund,
+		"buyer": c["buyer"], "seller": c["seller"]})
+
+
+static func cancel_invalid_luxuries(game: Game, events: Array) -> void:
+	for id in LuxuryTrade.invalid_contracts(game):
+		_finish(game, id, "luxury_access_lost", events)
+	var offers: Dictionary = game.state.diplomacy.get("offers", {})
+	var ids := offers.keys()
+	ids.sort()
+	for id in ids:
+		var offer: Dictionary = offers[id]
+		if not LuxuryTrade.is_luxury(game, offer["resource"]):
+			continue
+		if _resource_error(game, int(offer["seller"]), int(offer["buyer"]), offer["resource"]) != "" \
+				or (offer.has("source_tile") and not LuxuryTrade.valid_source(
+					game, int(offer["seller"]), offer["resource"], int(offer["source_tile"]))):
+			offers.erase(id)
+			events.append({"type": "supply_expired", "id": int(id)})
+
+
+static func _settle_luxury(game: Game, id: String, contract: Dictionary, new_round: int, events: Array) -> void:
+	var price: int = contract["unit_price"]
+	game.state.player(int(contract["seller"])).treasury += price
+	contract["escrow"] -= price
+	contract["remaining"] -= 1
+	contract["next_round"] = new_round + 1
+	events.append({"type": "supply_settled", "id": int(id), "delivered": 1, "refunded": 0})
+	if int(contract["remaining"]) == 0:
+		_finish(game, id, "completed", events)
 
 ## Приводит происхождение к фактическому складу после добычи и обычного расхода.
 static func _sync_origin(game: Game, pid: int, rid: String) -> Dictionary:
@@ -185,6 +240,7 @@ static func close_round(game: Game, events: Array) -> void:
 	if int(d["last_round"]) >= round_number:
 		return
 	var new_round := round_number + 1
+	cancel_invalid_luxuries(game, events)
 	var offer_ids: Array = d["offers"].keys()
 	offer_ids.sort_custom(func(a: String, b: String) -> bool: return int(a) < int(b))
 	for id in offer_ids:
@@ -216,6 +272,8 @@ static func close_round(game: Game, events: Array) -> void:
 	var available := {}
 	for id in ids:
 		var contract: Dictionary = d["contracts"][id]
+		if contract.has("source_tile"):
+			continue
 		var stock_key := _pair(int(contract["seller"]), 0) + ":" + str(contract["resource"])
 		if not available.has(stock_key):
 			available[stock_key] = float(game.state.player(int(contract["seller"])).stockpile.get(contract["resource"], 0.0))
@@ -223,6 +281,9 @@ static func close_round(game: Game, events: Array) -> void:
 	for id in ids:
 		var c: Dictionary = d["contracts"].get(id, {})
 		if c.is_empty() or int(c["next_round"]) > new_round:
+			continue
+		if c.has("source_tile"):
+			_settle_luxury(game, id, c, new_round, events)
 			continue
 		var seller: int = c["seller"]
 		var buyer: int = c["buyer"]
@@ -266,7 +327,7 @@ static func _proportional_allocations(contracts: Dictionary, ids: Array, availab
 	var groups := {}
 	for id in ids:
 		var c: Dictionary = contracts[id]
-		if int(c["next_round"]) > due_round:
+		if c.has("source_tile") or int(c["next_round"]) > due_round:
 			continue
 		var key := _pair(int(c["seller"]), 0) + ":" + str(c["resource"])
 		if not groups.has(key):
@@ -357,19 +418,27 @@ static func _update_dependency(game: Game, round_number: int, events: Array) -> 
 					best = exposure
 					best_rid = rid
 			var target := cfg(game, "strategic_cap") * best
+			var goods_target := cfg(game, "goods_dependency_cap") * LuxuryTrade.affected_share(game, buyer, seller)
 			var key := _pair(buyer, seller)
 			var old: Dictionary = d["dependency"].get(key, {"strategic": 0.0})
 			var current: float = old.get("strategic", 0.0)
 			var value := current + clampf(target - current, -cfg(game, "dependency_fall"), cfg(game, "dependency_growth"))
-			d["dependency"][key] = {"strategic": value, "goods": 0.0, "religion": 0.0,
-				"target": target, "main_resource": best_rid}
-			if not is_equal_approx(value, current):
-				events.append({"type": "dependency_changed", "dependent": buyer, "provider": seller, "value": value})
+			var previous_goods: float = old.get("goods", 0.0)
+			var step := cfg(game, "goods_dependency_step")
+			var goods := previous_goods + clampf(goods_target - previous_goods, -step, step)
+			d["dependency"][key] = {"strategic": value, "goods": goods, "religion": 0.0,
+				"target": target + goods_target, "goods_target": goods_target, "main_resource": best_rid}
+			if not is_equal_approx(value, current) or not is_equal_approx(goods, previous_goods):
+				events.append({"type": "dependency_changed", "dependent": buyer, "provider": seller, "value": value + goods})
 
 static func dependency(game: Game, dependent: int, provider: int) -> Dictionary:
 	initialize(game)
 	var item: Dictionary = game.state.diplomacy["dependency"].get(_pair(dependent, provider), {})
 	return item.duplicate(true)
+
+
+static func dependency_value(record: Dictionary) -> float:
+	return float(record.get("strategic", 0.0)) + float(record.get("goods", 0.0)) + float(record.get("religion", 0.0))
 
 static func influence(game: Game, pid: int) -> Dictionary:
 	initialize(game)
@@ -447,8 +516,8 @@ static func _update_influence(game: Game, round_number: int, events: Array) -> v
 			if peer == pid or not _major(game, peer):
 				continue
 			relation_power += TreatyRules.influence_strength(game, pid, peer)
-			excess += maxf(0.0, float(dependency(game, peer, pid).get("strategic", 0.0)) \
-					- float(dependency(game, pid, peer).get("strategic", 0.0)))
+			excess += maxf(0.0, dependency_value(dependency(game, peer, pid)) \
+					- dependency_value(dependency(game, pid, peer)))
 			route_power += _average_strength(d["route_history"].get(_pair(pid, peer), []),
 				round_number, int(cfg(game, "demand_window")))
 			var peer_supply := 0.0
