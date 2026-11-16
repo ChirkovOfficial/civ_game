@@ -11,6 +11,7 @@ const EXPLORE_RADIUS := 8
 
 static func take_turn(game: Game, pid: int) -> void:
 	_choose_research(game, pid)
+	_choose_government(game, pid)
 	_tactical(game, pid)
 	for u in game.state.units_of(pid):
 		if game.state.unit(u.id) == null:
@@ -133,8 +134,11 @@ static func settle_score(game: Game, pid: int, tile: int) -> float:
 static func _handle_settler(game: Game, u: Unit) -> void:
 	if u.moves_left <= 0.0:
 		return
-	# Рядом враг — отступить к ближайшему своему городу.
+	# Под угрозой закрепляемся на подходящем месте или отступаем.
 	if not _enemies_near(game, u.owner, u.tile, 2).is_empty():
+		if CityRules.found_city_error(game, u.owner, u.tile) == "":
+			game.apply_action({"type": "found_city", "unit": u.id})
+			return
 		var home := _nearest_own_city(game, u.owner, u.tile)
 		if home != null and home.tile != u.tile:
 			game.apply_action({"type": "move_unit", "unit": u.id, "target": home.tile})
@@ -386,14 +390,32 @@ static func _district_pick(game: Game, city: City, type: String) -> Dictionary:
 
 
 ## Губернаторы: в самые большие города; доктрина по обстановке.
+static func _choose_government(game: Game, pid: int) -> void:
+	var p := game.state.player(pid)
+	var tier := int(GovernmentRules.active_government(game, p)["tier"])
+	var best := ""
+	for def in game.data.governments.values():
+		if int(def["tier"]) > tier and GovernmentRules.government_error(game, p, def["id"]) == "":
+			best = def["id"]
+			tier = int(def["tier"])
+	if best != "":
+		game.apply_action({"type": "set_government", "id": best})
+	var slots := GovernmentRules.slots(GovernmentRules.active_government(game, p))
+	for index in slots.size():
+		if GovernmentRules.policy_at(p, index) != "":
+			continue
+		for id in game.data.policies:
+			if GovernmentRules.policy_error(game, p, index, id) == "":
+				game.apply_action({"type": "set_policy", "slot": index, "id": id})
+				break
+
+
 static func _choose_doctrines(game: Game, pid: int) -> void:
 	var p := game.state.player(pid)
 	var cities := game.state.cities_of(pid)
 	cities.sort_custom(func(a: City, b: City) -> bool:
 		return a.population > b.population or (a.population == b.population and a.id < b.id))
 	for city in cities:
-		if CityLife.governors_used(game, pid) >= CityLife.governors_total(game, pid) and city.doctrine == "":
-			break
 		if city.population < int(game.data.const_value("city_life_threshold_pop", 10)) - 2:
 			continue
 		var want := "PERSUASION"

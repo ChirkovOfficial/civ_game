@@ -39,6 +39,7 @@ var districts: Array = []
 var specialists: Dictionary = {}
 ## Губернатор и его доктрина ("" — губернатора нет), ходов до вступления в должность,
 ## ход начала действия доктрины.
+## У каждого города свой губернатор. Пустая доктрина означает отсутствие специализации.
 var doctrine: String = ""
 var doctrine_turns: int = 0
 var doctrine_since: int = 0

@@ -15,6 +15,9 @@ var units: Dictionary = {}
 var unit_classes: Dictionary = {}
 var techs: Dictionary = {}
 var civics: Dictionary = {}
+var government_setup: Dictionary = {}
+var governments: Dictionary = {}
+var policies: Dictionary = {}
 var buildings: Dictionary = {}
 var districts: Dictionary = {}
 var improvements: Dictionary = {}
@@ -100,6 +103,9 @@ func load_all(dir: String = DATA_DIR) -> void:
 	civics = _index(civic_list)
 	for x in civic_list:
 		civic_ids.append(x["id"])
+	government_setup = _read(dir + "governments.json")
+	governments = _index(government_setup.get("governments", []))
+	policies = _index(government_setup.get("policies", []))
 	setup = _read(dir + "game_setup.json")
 
 
@@ -269,6 +275,7 @@ func validate() -> PackedStringArray:
 		if not units.has(uid):
 			errors.append("Стартовый юнит %s не существует" % uid)
 	errors.append_array(_validate_tree(techs, "Технология"))
+	errors.append_array(GovernmentRules.validate_data(self))
 	errors.append_array(_validate_tree(civics, "Институт"))
 	return errors
 

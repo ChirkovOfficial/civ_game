@@ -43,32 +43,16 @@ static func doctrine_effect(game: Game, city: City) -> Dictionary:
 	return d
 
 
-static func governors_total(game: Game, pid: int) -> int:
-	return int(k(game, "governors_base", 1)) + game.state.cities_of(pid).size() / maxi(1, int(k(game, "governors_per_cities", 3)))
-
-
-static func governors_used(game: Game, pid: int) -> int:
-	var n := 0
-	for c in game.state.cities_of(pid):
-		if c.doctrine != "":
-			n += 1
-	return n
-
-
-## Пустая строка — можно назначить доктрину (или снять губернатора: doctrine == "").
+## Каждый город имеет губернатора. Пустой идентификатор снимает специализацию.
 static func set_doctrine_error(game: Game, city: City, doctrine: String) -> String:
-	if doctrine == "":
-		return "" if city.doctrine != "" else "В городе нет губернатора"
-	if doctrine_def(game, doctrine).is_empty():
-		return "Нет такой доктрины"
 	if doctrine == city.doctrine:
 		return "Эта доктрина уже выбрана"
-	if city.doctrine == "" and governors_used(game, city.owner) >= governors_total(game, city.owner):
-		return "Нет свободных губернаторов (%d из %d заняты)" % [governors_used(game, city.owner), governors_total(game, city.owner)]
+	if doctrine != "" and doctrine_def(game, doctrine).is_empty():
+		return "Нет такой доктрины"
 	return ""
 
 
-## Назначение губернатора или смена доктрины: губернатор вступает в должность за несколько ходов.
+## Выбранная доктрина начинает действовать через несколько ходов.
 static func set_doctrine(game: Game, city: City, doctrine: String) -> void:
 	city.doctrine = doctrine
 	city.doctrine_turns = int(k(game, "governor_appoint_turns", 5)) if doctrine != "" else 0
@@ -110,7 +94,9 @@ static func sanitation(game: Game, city: City, totals: Dictionary = {}) -> Dicti
 
 static func order(game: Game, city: City) -> Dictionary:
 	var sources := []
-	var supply := 0.0
+	var supply := float(k(game, "governor_base_order", 0))
+	if supply != 0.0:
+		sources.append(["Губернатор", supply])
 	for d in city.districts:
 		var o := DistrictRules.output(game, city, d)
 		if float(o["order"]) != 0.0:

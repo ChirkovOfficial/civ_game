@@ -352,7 +352,7 @@ func test_city_life() -> void:
 	var san := CityLife.sanitation(g, city)
 	check_near(float(san["need"]), 3.125)
 	check_near(CityLife.epidemic_chance(g, city), 3.125 * 0.02)
-	check_near(CityLife.unrest_penalty(g, city), 1.5 * 0.05)
+	check_near(CityLife.unrest_penalty(g, city), (1.5 - 1.0) * 0.05)
 	# Термы: +2 санитарии.
 	_build(g, city, "BATHS", _ring1(grid, city.tile)[0])
 	check_near(float(CityLife.sanitation(g, city)["supply"]), 2.0)
@@ -372,30 +372,41 @@ func test_governors_and_doctrines() -> void:
 	var r := _setup()
 	var g: Game = r[0]
 	var city: City = r[1]
-	check_eq(CityLife.governors_total(g, 0), 1)
+	check_eq(city.doctrine, "")
+	check_near(float(CityLife.order(g, city)["supply"]), 1.0)
 	var ev := g.apply_action({"type": "set_doctrine", "city": city.id, "doctrine": "AUTOCRACY"})
 	check_eq(ev[0]["type"], "city_updated")
-	check(not CityLife.doctrine_active(city), "губернатор вступает в должность не сразу")
-	for i in 5:
+	check(not CityLife.doctrine_active(city), "доктрина вступает в силу через пять ходов")
+	for i in 4:
 		CityLife.process_city(g, city, [])
+	check(not CityLife.doctrine_active(city))
+	CityLife.process_city(g, city, [])
 	check(CityLife.doctrine_active(city))
-	check_near(float(CityLife.order(g, city)["supply"]), 6.0)
+	check_near(float(CityLife.order(g, city)["supply"]), 7.0)
 	check_near(CityLife.growth_mult(g, city), 0.75)
 	# Усталость автократии через 20 ходов.
 	g.state.turn += 25
-	check_near(float(CityLife.order(g, city)["supply"]), 4.0)
-	# Второго губернатора нет.
+	check_near(float(CityLife.order(g, city)["supply"]), 5.0)
+	# Второй город может одновременно выбрать свою доктрину.
 	var c2 := City.new()
 	c2.id = 99
 	c2.owner = 0
 	c2.tile = 0
 	g.state.cities[99] = c2
-	check(CityLife.set_doctrine_error(g, c2, "PERSUASION") != "")
+	var second := g.apply_action({"type": "set_doctrine", "city": c2.id, "doctrine": "PERSUASION"})
+	check_eq(second[0]["type"], "city_updated")
+	check_eq(c2.doctrine, "PERSUASION")
+	check_eq(city.doctrine, "AUTOCRACY")
 	# Убеждение стоит золота: 0.5 за жителя.
 	g.apply_action({"type": "set_doctrine", "city": city.id, "doctrine": "PERSUASION"})
+	check_eq(city.doctrine_turns, 5)
+	check_near(float(CityLife.order(g, city)["supply"]), 1.0)
 	city.doctrine_turns = 0
 	city.population = 6
 	check_near(float(CityLife.doctrine_upkeep(g, city)["gold"]), 3.0)
+	g.apply_action({"type": "set_doctrine", "city": city.id, "doctrine": ""})
+	check_eq(city.doctrine, "")
+	check_near(float(CityLife.order(g, city)["supply"]), 1.0)
 
 
 func test_district_save_roundtrip() -> void:

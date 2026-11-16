@@ -22,6 +22,8 @@ var treasury: float = 0.0
 var faith: float = 0.0
 var known_techs: Dictionary = {}   # id -> true
 var known_civics: Dictionary = {}
+var government: String = ""
+var policy_slots: Array[String] = []
 ## Текущее исследование и накопленный прогресс по технологиям/институтам (ГДД 4.4, 4.5).
 var current_tech: String = ""
 var tech_progress: Dictionary = {}    # id -> 🔬
@@ -69,6 +71,7 @@ func to_dict() -> Dictionary:
 		"known_civics": _sorted_keys(known_civics), "revealed": Marshalls.raw_to_base64(revealed),
 		"current_tech": current_tech, "tech_progress": tech_progress.duplicate(),
 		"current_civic": current_civic, "civic_progress": civic_progress.duplicate(),
+		"government": government, "policy_slots": policy_slots.duplicate(),
 		"produced": produced.duplicate(), "city_names_used": city_names_used,
 		"is_barbarian": is_barbarian, "met": _sorted_keys(met), "stockpile": stockpile.duplicate(),
 		"best_strength": best_strength.duplicate(),
@@ -98,6 +101,8 @@ static func from_dict(d: Dictionary) -> Player:
 	p.faith = float(d.get("faith", 0.0))
 	p.current_tech = d.get("current_tech", "")
 	p.current_civic = d.get("current_civic", "")
+	p.government = d.get("government", "")
+	p.policy_slots.assign(d.get("policy_slots", []))
 	for k in d.get("tech_progress", {}):
 		p.tech_progress[k] = float(d["tech_progress"][k])
 	for k in d.get("civic_progress", {}):

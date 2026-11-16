@@ -266,6 +266,7 @@ func refresh_top() -> void:
 	var has_cities := not game.state.cities_of(pid).is_empty()
 	_research_button("science", "tech", p.current_tech, float(y["science"]), has_cities)
 	_research_button("culture", "civic", p.current_civic, float(y["culture"]), has_cities)
+	_button(_top_box, "Правительство", open_government)
 	var wars := 0
 	for other in game.state.players:
 		if other.id != pid and not other.is_barbarian and game.state.at_war(pid, other.id):
@@ -313,6 +314,9 @@ func refresh_research() -> void:
 		return
 	if _research_kind == "diplomacy":
 		open_diplomacy()
+		return
+	if _research_kind == "government":
+		open_government()
 		return
 	if _research_kind.begins_with("equipment:"):
 		open_equipment(int(_research_kind.split(":")[1]))
@@ -379,6 +383,59 @@ func open_equipment(unit_id: int) -> void:
 			_button(_research_box, "%s%s — %s%s" % ["✓ " if on else "", od.get("name", opt), od.get("text", ""), "" if on else " (%s)" % price],
 				func(): act.call({"type": "equip", "unit": u.id, "slot": s, "option": o}); open_equipment(u.id), on or err != "", err)
 	_label(_research_box, "Регулярные армии — войска держав; иррегулярные — варвары. Сменить снаряжение можно только на своей территории.", 12, Color(0.75, 0.78, 0.85), true)
+
+
+func open_government() -> void:
+	_research_kind = "government"
+	_research_panel.visible = true
+	_clear(_research_box)
+	var p := game.state.player(game.state.current_player)
+	var active := GovernmentRules.active_government(game, p)
+	var head := HBoxContainer.new()
+	_research_box.add_child(head)
+	var title := _label(head, "Правительство · %s" % active["name"], 20)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_button(head, "✕", close_research)
+	var slot_names: Dictionary = game.data.government_setup["slot_names"]
+	var slots := GovernmentRules.slots(active)
+	for index in slots.size():
+		var row := HBoxContainer.new()
+		_research_box.add_child(row)
+		_label(row, slot_names[slots[index]])
+		var options := OptionButton.new()
+		options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(options)
+		var ids: Array[String] = [""]
+		options.add_item("Пусто")
+		var current := GovernmentRules.policy_at(p, index)
+		for id in game.data.policies:
+			if id != current and GovernmentRules.policy_error(game, p, index, id) != "":
+				continue
+			var policy: Dictionary = game.data.policies[id]
+			options.add_item(policy["name"])
+			options.set_item_tooltip(ids.size(), GovernmentRules.effect_text(policy))
+			ids.append(id)
+		options.select(ids.find(current))
+		options.item_selected.connect(func(choice: int):
+			act.call({"type": "set_policy", "slot": index, "id": ids[choice]}))
+		if current != "":
+			_label(_research_box, GovernmentRules.effect_text(game.data.policies[current]), 12, Color(0.75, 0.78, 0.85), true)
+	var current_tier := -1
+	for def in game.data.governments.values():
+		if int(def["tier"]) != current_tier:
+			current_tier = int(def["tier"])
+			_label(_research_box, "Ступень %d" % current_tier if current_tier > 0 else "Начальная форма", 16)
+		var id: String = def["id"]
+		var err := GovernmentRules.government_error(game, p, id)
+		var description := GovernmentRules.effect_text(def)
+		var label: String = def["name"]
+		if id == active["id"]:
+			label += " · действует"
+		elif err != "":
+			label += " · " + game.data.civics[def["civic"]]["name"]
+		_button(_research_box, label, func(): act.call({"type": "set_government", "id": id}), err != "", description)
+		if description != "":
+			_label(_research_box, description, 12, Color(0.75, 0.78, 0.85), true)
 
 
 func open_diplomacy() -> void:
@@ -737,14 +794,12 @@ func _city_life(city: City) -> void:
 		col = Color(1.0, 0.6, 0.5)
 	_label(_city_box, "\n".join(lines), 0, col, true)
 	# Губернатор.
-	var gov_text := "Губернатор: нет"
+	var gov_text := "Губернатор без специализации"
 	if city.doctrine != "":
 		var dd := CityLife.doctrine_def(game, city.doctrine)
 		gov_text = "Губернатор: %s" % dd.get("name", city.doctrine)
 		if city.doctrine_turns > 0:
-			gov_text += " (вступит в должность через %d х.)" % city.doctrine_turns
-	gov_text += " · свободно %d из %d" % [CityLife.governors_total(game, city.owner) - CityLife.governors_used(game, city.owner),
-		CityLife.governors_total(game, city.owner)]
+			gov_text += " (доктрина вступит в силу через %d х.)" % city.doctrine_turns
 	_label(_city_box, gov_text, 0, Color(0.9, 0.9, 0.95), true)
 	if city.owner != game.state.current_player:
 		return
@@ -756,7 +811,7 @@ func _city_life(city: City) -> void:
 		_button(row, str(dd2["name"]), func(): act.call({"type": "set_doctrine", "city": city.id, "doctrine": did}),
 			err != "", "%s%s" % [dd2.get("text", ""), ("\n(%s)" % err) if err != "" else ""])
 	if city.doctrine != "":
-		_button(row, "Отозвать", func(): act.call({"type": "set_doctrine", "city": city.id, "doctrine": ""}))
+		_button(row, "Снять доктрину", func(): act.call({"type": "set_doctrine", "city": city.id, "doctrine": ""}))
 
 
 ## Подсказка в режиме размещения района: соседство и урбанизация на клетке под курсором.

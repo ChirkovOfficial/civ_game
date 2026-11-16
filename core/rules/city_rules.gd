@@ -231,6 +231,7 @@ static func city_yields(game: Game, city: City, lux: Dictionary = {}) -> Diction
 	Yields.add_into(y, DistrictRules.city_totals(game, city)["yields"])
 	y["science"] = float(y.get("science", 0)) + city.population * float(c(game, "science_per_pop", 0.5))
 	y["culture"] = float(y.get("culture", 0)) + city.population * float(c(game, "culture_per_pop", 0.3))
+	GovernmentRules.apply_city_yields(game, city, y)
 	var st: Dictionary = amenity_info(game, city, lux)["state"]
 	var life := CityLife.yield_mults(game, city)
 	var mult := float(st.get("yields", 1.0)) * float(life["non_food"])

@@ -295,8 +295,7 @@
  "order_unrest_yield_penalty_per_point": 0.05,
  "order_unrest_max_penalty": 0.5,
  "governor_appoint_turns": 5,
- "governors_base": 1,
- "governors_per_cities": 3,
+ "governor_base_order": 1,
  "doctrines": [
   {
    "id": "RELIGIOUS",

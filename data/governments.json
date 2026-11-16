@@ -1,0 +1,34 @@
+{
+  "default": "CHIEFDOM",
+  "slot_names": {
+    "military": "Военный",
+    "economic": "Экономический",
+    "diplomatic": "Дипломатический",
+    "wildcard": "Универсальный"
+  },
+  "governments": [
+    {"id": "CHIEFDOM", "name": "Вождество", "tier": 0, "slots": {"military": 1, "economic": 1}},
+    {"id": "ANCIENT_REPUBLIC", "name": "Античная республика", "tier": 1, "civic": "POLITICAL_PHILOSOPHY", "slots": {"economic": 2, "diplomatic": 1, "wildcard": 1}, "yields": {"culture": 1}},
+    {"id": "AUTOCRACY", "name": "Автократия", "tier": 1, "civic": "POLITICAL_PHILOSOPHY", "slots": {"military": 2, "economic": 1, "wildcard": 1}, "yields": {"production": 1}},
+    {"id": "OLIGARCHY", "name": "Олигархия", "tier": 1, "civic": "POLITICAL_PHILOSOPHY", "slots": {"military": 1, "economic": 1, "diplomatic": 1, "wildcard": 1}, "unit_upkeep": -0.5},
+    {"id": "MONARCHY", "name": "Монархия", "tier": 2, "civic": "DIVINE_RIGHT", "slots": {"military": 3, "economic": 1, "diplomatic": 1, "wildcard": 1}, "yields": {"production": 2}},
+    {"id": "MERCHANT_REPUBLIC", "name": "Торговая республика", "tier": 2, "civic": "EXPLORATION", "slots": {"military": 1, "economic": 2, "diplomatic": 2, "wildcard": 1}, "yields": {"gold": 3}},
+    {"id": "THEOCRACY", "name": "Теократия", "tier": 2, "civic": "REFORMED_CHURCH", "slots": {"military": 2, "economic": 2, "diplomatic": 1, "wildcard": 1}, "yields": {"faith": 2}},
+    {"id": "DEMOCRACY", "name": "Демократия", "tier": 3, "civic": "SUFFRAGE", "slots": {"military": 1, "economic": 3, "diplomatic": 2, "wildcard": 2}, "yields": {"culture": 3}},
+    {"id": "COMMUNISM", "name": "Коммунизм", "tier": 3, "civic": "CLASS_STRUGGLE", "slots": {"military": 3, "economic": 3, "diplomatic": 1, "wildcard": 1}, "yields": {"production": 3}},
+    {"id": "PARLIAMENTARY_MONARCHY", "name": "Парламентская монархия", "tier": 3, "civic": "TOTALITARIANISM", "slots": {"military": 2, "economic": 2, "diplomatic": 3, "wildcard": 1}, "yields": {"gold": 2, "culture": 2}},
+    {"id": "LIBERTARIANISM", "name": "Либертарианство", "tier": 4, "civic": "VENTURE_POLITICS", "slots": {"military": 2, "economic": 4, "diplomatic": 2, "wildcard": 2}, "yields": {"gold": 5}},
+    {"id": "DIGITAL_DEMOCRACY", "name": "Цифровая демократия", "tier": 4, "civic": "DISTRIBUTED_SOVEREIGNTY", "slots": {"military": 1, "economic": 3, "diplomatic": 3, "wildcard": 3}, "yields": {"science": 2, "culture": 3}},
+    {"id": "NEO_COMMUNISM", "name": "Неокоммунизм", "tier": 4, "civic": "OPTIMIZATION_IMPERATIVE", "slots": {"military": 3, "economic": 4, "diplomatic": 1, "wildcard": 2}, "yields": {"production": 4, "science": 1}}
+  ],
+  "policies": [
+    {"id": "DISCIPLINE", "name": "Дисциплина", "slot": "military", "civic": "CODE_OF_LAWS", "barbarian_strength": 5},
+    {"id": "URBAN_PLANNING", "name": "Городское планирование", "slot": "economic", "civic": "CODE_OF_LAWS", "yields": {"production": 1}},
+    {"id": "GOD_KING", "name": "Бог-царь", "slot": "economic", "civic": "CODE_OF_LAWS", "capital_only": true, "yields": {"gold": 1, "faith": 1}},
+    {"id": "CONSCRIPTION", "name": "Воинская повинность", "slot": "military", "civic": "STATE_WORKFORCE", "unit_upkeep": -1},
+    {"id": "INSPIRATION", "name": "Меценатство", "slot": "wildcard", "civic": "MYSTICISM", "yields": {"culture": 1}},
+    {"id": "DIPLOMATIC_MISSIONS", "name": "Дипломатические миссии", "slot": "diplomatic", "civic": "POLITICAL_PHILOSOPHY", "capital_only": true, "yields": {"culture": 2}},
+    {"id": "ACADEMIC_EXCHANGES", "name": "Академические обмены", "slot": "diplomatic", "civic": "CIVIL_SERVICE", "capital_only": true, "yields": {"science": 2}},
+    {"id": "RATIONALISM", "name": "Рационализм", "slot": "economic", "civic": "THE_ENLIGHTENMENT", "yields": {"science": 2}}
+  ]
+}

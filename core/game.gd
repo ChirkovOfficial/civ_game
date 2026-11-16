@@ -132,6 +132,25 @@ func apply_action(action: Dictionary) -> Array:
 			_act_buy_tile(action, events)
 		"set_research":
 			_act_set_research(action, events)
+		"set_government":
+			var player := state.player(state.current_player)
+			var id := str(action.get("id", ""))
+			var err := GovernmentRules.government_error(self, player, id)
+			if err != "":
+				events.append(_error(err))
+			else:
+				GovernmentRules.change_government(self, player, id)
+				events.append({"type": "government_changed", "player": player.id, "id": id})
+		"set_policy":
+			var player := state.player(state.current_player)
+			var slot := int(action.get("slot", -1))
+			var id := str(action.get("id", ""))
+			var err := GovernmentRules.policy_error(self, player, slot, id)
+			if err != "":
+				events.append(_error(err))
+			else:
+				GovernmentRules.set_policy(player, slot, id)
+				events.append({"type": "policy_changed", "player": player.id, "slot": slot, "id": id})
 		"attack":
 			var u := _own_unit(action, events)
 			if u != null:

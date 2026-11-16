@@ -45,10 +45,9 @@ static func unit_maintenance(game: Game, unit_type: String) -> float:
 
 static func maintenance(game: Game, pid: int) -> float:
 	var m := 0.0
+	var delta := GovernmentRules.upkeep_delta(game, pid)
 	for u in game.state.units_of(pid):
-		m += unit_maintenance(game, u.type)
-		if not u.commander.is_empty():
-			m += unit_maintenance(game, "COMMANDER")
+		m += _effective_unit_upkeep(game, u, delta)
 	for city in game.state.cities_of(pid):
 		for bid in city.buildings:
 			m += float(game.data.buildings.get(bid, {}).get("maintenance", 0))
@@ -56,6 +55,13 @@ static func maintenance(game: Game, pid: int) -> float:
 			m += DistrictRules.maintenance(game, d)
 		m += float(CityLife.doctrine_upkeep(game, city)["gold"])
 	return m
+
+
+static func _effective_unit_upkeep(game: Game, u: Unit, delta: float) -> float:
+	var upkeep := maxf(0.0, unit_maintenance(game, u.type) + delta)
+	if not u.commander.is_empty():
+		upkeep += maxf(0.0, unit_maintenance(game, "COMMANDER") + delta)
+	return upkeep
 
 
 # --- Исследования -----------------------------------------------------------------------------
@@ -193,8 +199,9 @@ static func process_turn_start(game: Game, pid: int, events: Array) -> void:
 static func _bankruptcy(game: Game, pid: int, events: Array) -> void:
 	var worst: Unit = null
 	var worst_cost := 0.0
+	var delta := GovernmentRules.upkeep_delta(game, pid)
 	for u in game.state.units_of(pid):
-		var m := unit_maintenance(game, u.type)
+		var m := _effective_unit_upkeep(game, u, delta)
 		if m > worst_cost:
 			worst_cost = m
 			worst = u

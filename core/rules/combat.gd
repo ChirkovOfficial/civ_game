@@ -153,6 +153,10 @@ static func add_xp(game: Game, u: Unit, amount: int, vs_barbarian: bool) -> void
 ## Модификаторы обороны/атаки юнита. Возвращает [[подпись, значение], ...].
 static func unit_mods(game: Game, u: Unit, role: String, ctx: Dictionary) -> Array:
 	var mods: Array = []
+	if ctx.get("vs_irregular", false):
+		for effect in GovernmentRules.effects(game, game.state.player(u.owner)):
+			if effect.has("barbarian_strength"):
+				mods.append([effect["name"], int(effect["barbarian_strength"])])
 	var map := game.state.map
 	var lost := 100 - u.hp
 	if lost > 0:
