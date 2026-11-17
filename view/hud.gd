@@ -669,6 +669,12 @@ func open_religion() -> void:
 		if int(breach["victim"]) == pid:
 			_label(_research_box, "Нарушение обещания державой %s, круг %d" % [
 				game.state.player(int(breach["offender"])).name, int(breach["round"])], 13)
+	for proof in CongressRules.evidence_for(game, pid):
+		if str(proof.get("kind", "")) == "religious":
+			_label(_research_box, "Есть основание для обращения в ООН против державы %s" %
+				game.state.player(int(proof["offender"])).name, 13)
+			_button(_research_box, "Перейти к делу в ООН", open_congress)
+			break
 	if game.state.religions.size() > 0:
 		_label(_research_box, "Основанные религии", 16)
 		for rid in game.state.religions:
@@ -888,6 +894,8 @@ func open_congress() -> void:
 		var heading := "Учреждение ООН"
 		if not founding:
 			var intent := "Предписание соблюдать поставки"
+			if item["mode"] == "religious":
+				intent = "Предписание прекратить активную проповедь на 20 кругов"
 			if item.get("recommendation", false):
 				intent = "Рекомендация соблюдать поставки"
 			elif item["mode"] == "sanctions":
@@ -926,11 +934,15 @@ func open_congress() -> void:
 			recent["id"], "принято" if recent["passed"] else "отклонено", recent["yes"], recent["eligible"]], 13, Color.WHITE, true)
 	for order in data["orders"].values():
 		if int(order["ends"]) > game.state.turn:
-			_label(_research_box, "Решение №%d · %s · до начала хода %d" % [
-				order["id"], game.state.player(int(order["accused"])).name, order["ends"]], 13, Color.WHITE, true)
+			var subject := "прекратить активную проповедь" if order.get("kind", "supply") == "religious" else "соблюдать поставки"
+			_label(_research_box, "Решение №%d · %s: %s · до начала хода %d" % [
+				order["id"], game.state.player(int(order["accused"])).name, subject, order["ends"]], 13, Color.WHITE, true)
 
 
 func _evidence_text(record: Dictionary) -> String:
+	if str(record.get("kind", "")) == "religious":
+		var reason := "отказ прекратить проповедь" if record["reason"] == "protest_refused" else "нарушение обещания прекратить проповедь"
+		return "%s · круг %d" % [reason, int(record["turn"])]
 	var resource: String = game.data.resources.get(record["resource"], {}).get("name", str(record["resource"]))
 	var reason := "продавец отменил договор" if record["reason"] == "seller_cancelled" else "недопоставка · %d ед." % int(record["missing"])
 	return "%s · %s · ход %d" % [resource, reason, int(record["turn"])]
@@ -941,17 +953,18 @@ func _show_congress_cases(pid: int) -> void:
 		var id: int = proof["id"]
 		_label(_research_box, "%s · %s" % [game.state.player(int(proof["offender"])).name,
 			_evidence_text(proof)], 14, Color.WHITE, true)
-		var names := {"ordinary": "В повестку", "emergency": "Внеочередное дело", "sanctions": "Эмбарго"}
+		var names := {"religious": "Потребовать прекращения проповеди"} if str(proof.get("kind", "")) == "religious" else {"ordinary": "В повестку", "emergency": "Внеочередное дело", "sanctions": "Эмбарго"}
 		var row := HBoxContainer.new()
 		_research_box.add_child(row)
 		for mode in names:
 			var error := CongressRules.proposal_error(game, pid, id, mode)
 			_button(row, names[mode], func(): act.call({"type": "congress_propose", "evidence": id, "mode": mode}),
 				error != "", error)
-		var error := CongressRules.proposal_error(game, pid, id, "ordinary")
-		_button(_research_box, "В повестку как рекомендацию",
-			func(): act.call({"type": "congress_propose", "mode": "ordinary", "evidence": id, "recommendation": true}),
-			error != "", error)
+		if str(proof.get("kind", "")) != "religious":
+			var error := CongressRules.proposal_error(game, pid, id, "ordinary")
+			_button(_research_box, "В повестку как рекомендацию",
+				func(): act.call({"type": "congress_propose", "mode": "ordinary", "evidence": id, "recommendation": true}),
+				error != "", error)
 
 
 func open_strong_demands(peer: int) -> void:
@@ -1278,6 +1291,9 @@ func show_unit(u: Unit) -> void:
 			var pair := "%d,%d" % [target_city.owner, u.owner]
 			if game.state.religious_conflicts["promises"].has(pair):
 				warning = " (нарушит обещание)"
+			var order := CongressRules.religious_order(game, target_city.owner, u.owner)
+			if not order.is_empty():
+				warning = " (нарушит решение ООН)" if not order["grace"] else " (ООН: льготный срок)"
 		_button(_unit_box, "Распространить религию%s" % warning, func(): act.call({"type": "spread_religion", "unit": u.id}),
 			spread_error != "", spread_error)
 	if abilities.has("START_INQUISITION") and ReligionRules.inquisition_error(game, u) == "":

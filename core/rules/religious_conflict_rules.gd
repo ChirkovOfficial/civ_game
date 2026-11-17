@@ -23,6 +23,8 @@ static func record_spread(game: Game, offender: int, city: City, events: Array) 
 			"round": game.state.turn}
 		events.append({"type": "religious_promise_breached", "id": breach_id,
 			"offender": offender, "victim": city.owner})
+		CongressRules.note_religious_evidence(game, city.owner, offender, breach_id, "promise_breached", events)
+	CongressRules.note_religious_spread(game, city.owner, offender, events)
 
 
 static func _pair(victim: int, offender: int) -> String:
@@ -84,6 +86,9 @@ static func respond(game: Game, offender: int, request_id: int, accept: bool, ev
 		data["promises"][_pair(int(request["victim"]), offender)] = {"request": request_id,
 			"victim": int(request["victim"]), "offender": offender,
 			"until_round": game.state.turn + 9}
+	else:
+		CongressRules.note_religious_evidence(game, int(request["victim"]), offender,
+			request_id, "protest_refused", events)
 	events.append({"type": "religious_protest_answered", "id": request_id,
 		"offender": offender, "victim": int(request["victim"]), "accept": accept})
 	return ""
@@ -98,6 +103,8 @@ static func end_turn(game: Game, pid: int, events: Array) -> void:
 			request["resolved_round"] = game.state.turn
 			events.append({"type": "religious_protest_answered", "id": int(request["id"]),
 				"offender": pid, "victim": int(request["victim"]), "accept": false})
+			CongressRules.note_religious_evidence(game, int(request["victim"]), pid,
+				int(request["id"]), "protest_refused", events)
 
 
 static func close_round(game: Game) -> void:

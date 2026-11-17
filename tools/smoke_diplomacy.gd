@@ -138,6 +138,27 @@ func _process(_delta: float) -> bool:
 		printerr("ООН не учреждена после голосов игрока и ИИ")
 		quit(1)
 		return true
-	print("Формы дипломатии, сильные требования и учреждение ООН работают в игровой сцене")
+	var proof_id: int = game.state.congress_data["next_id"]
+	game.state.congress_data["next_id"] = proof_id + 1
+	game.state.congress_data["evidence"][str(proof_id)] = {"id": proof_id, "kind": "religious",
+		"victim": 0, "offender": 1, "source": 1, "reason": "protest_refused",
+		"turn": game.state.turn, "available_round": game.state.turn, "filed": false}
+	game.state.diplomacy["influence"]["0"] = {"value": 500.0, "target": 500.0, "sources": {}}
+	main.hud.open_congress()
+	var religious_case: Button = null
+	for node in box.find_children("*", "Button", true, false):
+		if node.text == "Потребовать прекращения проповеди":
+			religious_case = node
+			break
+	if religious_case == null or religious_case.disabled:
+		printerr("Религиозное дело не доступно в окне ООН")
+		quit(1)
+		return true
+	religious_case.pressed.emit()
+	if CongressRules.polls(game).is_empty() or CongressRules.polls(game)[0]["mode"] != "religious":
+		printerr("Кнопка религиозного дела не открыла голосование")
+		quit(1)
+		return true
+	print("Дипломатия, учреждение ООН и религиозное дело работают в игровой сцене")
 	quit(0)
 	return true

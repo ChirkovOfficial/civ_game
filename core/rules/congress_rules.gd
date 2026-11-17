@@ -61,6 +61,7 @@ static func evidence_for(game: Game, pid: int) -> Array[Dictionary]:
 	for key in _ordered_keys(records):
 		var record: Dictionary = records[key]
 		if int(record["victim"]) == pid and not record["filed"] \
+				and game.state.turn >= int(record.get("available_round", record["turn"])) \
 				and game.state.turn - int(record["turn"]) < _duration(game, "evidence_rounds"):
 			result.append(record.duplicate())
 	return result
@@ -70,23 +71,29 @@ static func proposal_error(game: Game, pid: int, example: int, mode: String) -> 
 	var data := game.state.congress_data
 	if not data["founded"] or not _members(game).has(pid):
 		return "Международная организация ещё не действует"
-	if mode not in ["ordinary", "emergency", "sanctions"]:
+	if mode not in ["ordinary", "emergency", "sanctions", "religious"]:
 		return "Неизвестный вид обращения"
 	if _members(game).size() < setting(game, "minimum_members"):
 		return "Недостаточно держав для голосования"
 	var evidence: Dictionary = data["evidence"].get(str(example), {})
 	if evidence.is_empty() or int(evidence["victim"]) != pid or evidence["filed"] \
+			or game.state.turn < int(evidence.get("available_round", evidence.get("turn", 0))) \
 			or game.state.turn - int(evidence["turn"]) >= _duration(game, "evidence_rounds"):
-		return "Нужно недавнее незаявленное нарушение договора против вашей державы"
+		return "Нужно недавнее подтверждённое нарушение против вашей державы"
+	var religious: bool = str(evidence.get("kind", "")) == "religious"
+	if religious != (mode == "religious"):
+		return "Для этого доказательства нужен соответствующий вид обращения"
 	var accused: int = evidence["offender"]
 	if not _members(game).has(accused):
 		return "Адресат больше не участвует в партии"
-	var power := setting(game, mode + "_influence")
+	var power := setting(game, "emergency_influence" if religious else mode + "_influence")
 	if _rating(game, pid) < power:
 		return "Нужно не менее %d мирового влияния" % power
 	for group in ["polls", "docket", "orders"]:
 		for entry in data[group].values():
+			var entry_kind := str(entry.get("kind", entry.get("proof", {}).get("kind", "supply")))
 			if int(entry["issuer"]) == pid and int(entry["accused"]) == accused \
+					and entry_kind == ("religious" if religious else "supply") \
 					and (group != "orders" or game.state.turn < int(entry["ends"])):
 				return "На этот спор уже заведено дело"
 			if group == "polls" and mode != "ordinary" and entry["mode"] != "ordinary" and int(entry["issuer"]) == pid:
@@ -231,7 +238,8 @@ static func _finish_if_ready(game: Game, item: Dictionary, events: Array) -> voi
 		var order := {"id": item["id"], "mode": item["mode"], "issuer": item["issuer"],
 			"accused": item["accused"], "supporters": supporters, "approved": game.state.turn,
 			"ends": game.state.turn + _duration(game, "order_rounds"),
-			"grace": true, "embargo_until": 0, "last_breach": -1, "damage": 0, "trust_until": 0}
+			"grace": true, "embargo_until": 0, "last_breach": -1, "damage": 0, "trust_until": 0,
+			"kind": str(item["proof"].get("kind", "supply"))}
 		if item["mode"] == "sanctions":
 			order["ends"] = game.state.turn + _duration(game, "embargo_rounds")
 			order["embargo_until"] = order["ends"]
@@ -277,10 +285,43 @@ static func note_supply_breach(game: Game, evidence: Dictionary, events: Array) 
 	var orders: Dictionary = data["orders"]
 	for key in _ordered_keys(orders):
 		var order: Dictionary = orders[key]
-		if order["mode"] != "sanctions" and not order["grace"] and int(order["ends"]) > game.state.turn \
+		if order.get("kind", "supply") == "supply" and order["mode"] != "sanctions" and not order["grace"] and int(order["ends"]) > game.state.turn \
 				and int(order["accused"]) == int(record["offender"]) and int(order["issuer"]) == int(record["victim"]):
 			_penalize(game, order, events)
 			return
+
+
+static func note_religious_evidence(game: Game, victim: int, offender: int, source: int, reason: String, events: Array) -> void:
+	var id := _id(game)
+	var available_round := game.state.turn + (1 if victim < offender else 0)
+	game.state.congress_data["evidence"][str(id)] = {"id": id, "kind": "religious",
+		"victim": victim, "offender": offender, "source": source, "reason": reason,
+		"turn": game.state.turn, "available_round": available_round, "filed": false}
+	events.append({"type": "religious_evidence_recorded", "evidence": id,
+		"victim": victim, "offender": offender})
+
+
+static func note_religious_spread(game: Game, victim: int, offender: int, events: Array) -> void:
+	var orders: Dictionary = game.state.congress_data["orders"]
+	for key in _ordered_keys(orders):
+		var order: Dictionary = orders[key]
+		if _religious_order_applies(game, order, victim, offender) and not order["grace"]:
+			_penalize(game, order, events)
+			return
+
+
+static func religious_order(game: Game, victim: int, offender: int) -> Dictionary:
+	var orders: Dictionary = game.state.congress_data["orders"]
+	for key in _ordered_keys(orders):
+		var order: Dictionary = orders[key]
+		if _religious_order_applies(game, order, victim, offender):
+			return order
+	return {}
+
+
+static func _religious_order_applies(game: Game, order: Dictionary, victim: int, offender: int) -> bool:
+	return order.get("kind", "supply") == "religious" and int(order["ends"]) > game.state.turn \
+		and int(order["issuer"]) == victim and int(order["accused"]) == offender
 
 
 static func _penalize(game: Game, order: Dictionary, events: Array) -> void:
@@ -293,8 +334,7 @@ static func _penalize(game: Game, order: Dictionary, events: Array) -> void:
 	order["damage"] += amount
 	order["last_breach"] = turn
 	order["embargo_until"] = turn + _duration(game, "embargo_rounds")
-	if former < 0:
-		order["trust_until"] = turn + _duration(game, "damage_hold_rounds")
+	order["trust_until"] = turn + _duration(game, "damage_hold_rounds")
 	var rating: Dictionary = game.state.diplomacy.get("influence", {}).get(str(order["accused"]), {})
 	if not rating.is_empty():
 		rating["value"] = maxf(0.0, float(rating["value"]) - amount)

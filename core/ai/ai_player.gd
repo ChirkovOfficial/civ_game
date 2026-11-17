@@ -167,7 +167,8 @@ static func _religion(game: Game, pid: int) -> void:
 		if unit.moves_left <= 0.0:
 			continue
 		var city := game.state.city_at(unit.tile)
-		if city != null and ReligionRules.majority(game, city) != player.religion_id:
+		if city != null and ReligionRules.majority(game, city) != player.religion_id \
+				and not _preaching_restricted(game, pid, city.owner):
 			if ReligionRules.spread_error(game, unit) == "":
 				game.apply_action({"type": "spread_religion", "unit": unit.id})
 			continue
@@ -177,6 +178,8 @@ static func _religion(game: Game, pid: int) -> void:
 			if ReligionRules.majority(game, candidate) == player.religion_id or game.state.at_war(pid, candidate.owner):
 				continue
 			if candidate.owner != pid and not player.met.has(candidate.owner):
+				continue
+			if _preaching_restricted(game, pid, candidate.owner):
 				continue
 			var d := game.state.map.grid.distance(unit.tile, candidate.tile)
 			if d < distance:
@@ -195,11 +198,23 @@ static func _religion(game: Game, pid: int) -> void:
 				break
 
 
+static func _preaching_restricted(game: Game, pid: int, target: int) -> bool:
+	if pid == target:
+		return false
+	return game.state.religious_conflicts["promises"].has("%d,%d" % [target, pid]) \
+		or not CongressRules.religious_order(game, target, pid).is_empty()
+
+
 static func _congress(game: Game, pid: int) -> void:
 	if CongressRules.founding_error(game, pid) == "":
 		game.apply_action({"type": "congress_found"})
 	for evidence in CongressRules.evidence_for(game, pid):
 		var id: int = evidence["id"]
+		if str(evidence.get("kind", "")) == "religious":
+			if CongressRules.proposal_error(game, pid, id, "religious") == "":
+				game.apply_action({"type": "congress_propose", "evidence": id, "mode": "religious"})
+				break
+			continue
 		if CongressRules.proposal_error(game, pid, id, "emergency") == "":
 			game.apply_action({"type": "congress_propose", "evidence": id, "mode": "emergency"})
 			break

@@ -269,6 +269,8 @@ func _on_events(events: Array) -> void:
 			hud.show_message("Нарушено обещание прекратить проповедь", 4.0)
 		elif t == "religious_promise_breached" and e["offender"] == game.state.current_player:
 			hud.show_message("Вы нарушили обещание прекратить проповедь", 4.0)
+		elif t == "religious_evidence_recorded" and e["victim"] == game.state.current_player:
+			hud.show_message("Есть основание для обращения в ООН: откройте раздел «Религия»", 4.0)
 		elif t == "village_reward" and e["player"] == game.state.current_player:
 			hud.show_message("Племенное поселение: %s" % e["text"], 3.0)
 		elif t == "camp_cleared" and e["player"] == game.state.current_player:
@@ -289,6 +291,8 @@ func _on_events(events: Array) -> void:
 			hud.show_message("Дипломатическое требование отклонено")
 		elif t == "congress_result":
 			hud.show_message("ООН · голосование №%d %s" % [int(e["id"]), "принято" if e["passed"] else "отклонено"])
+		elif t == "congress_violation" and e["accused"] == game.state.current_player:
+			hud.show_message("Нарушение решения ООН · потеря мирового влияния и эмбарго", 4.0)
 		elif t == "supply_closed" and e["reason"] == "luxury_access_lost" \
 				and _viewer().id in [int(e["buyer"]), int(e["seller"])]:
 			hud.show_message("Доступ к редкому ресурсу прекращён · возврат покупателю %s золота" % Hud._fmt(float(e["refund"])))
