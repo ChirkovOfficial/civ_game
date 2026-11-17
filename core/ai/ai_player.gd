@@ -21,6 +21,7 @@ static func take_turn(game: Game, pid: int) -> void:
 	_choose_research(game, pid)
 	_choose_government(game, pid)
 	_religion(game, pid)
+	_recruit_great_people(game, pid)
 	_tactical(game, pid)
 	if not game.state.result.is_empty():
 		return
@@ -495,6 +496,8 @@ static func _improvement_gain(game: Game, u: Unit, tile: int) -> Array:
 	for iid in ImprovementRules.valid_improvements(game, probe):
 		var y: Dictionary = game.data.improvements[iid].get("yields", {})
 		var gain := Yields.total(y) + float(game.data.improvements[iid].get("housing", 0)) * 2.0
+		if iid == "SEASIDE_RESORT":
+			gain += CultureRules.appeal(game, tile) * 1.5
 		var power := int(game.data.improvements[iid].get("renewable_power", 0))
 		var city := game.state.city_owning(tile)
 		if power > 0 and city != null:
@@ -604,6 +607,15 @@ static func _choose_production(game: Game, city: City) -> void:
 	var pid := city.owner
 	if _science_production(game, city):
 		return
+	if _enemies_near(game, pid, city.tile, 5).is_empty():
+		for wonder_id in game.data.wonder_ids:
+			if WonderRules.type_error(game, city, wonder_id) != "":
+				continue
+			var tiles := WonderRules.valid_tiles(game, city, wonder_id)
+			if not tiles.is_empty():
+				game.apply_action({"type": "set_production", "city": city.id,
+					"kind": "wonder", "id": wonder_id, "tile": tiles[0]})
+				return
 	if CultureRules.commission_error(game, city) == "" and _enemies_near(game, pid, city.tile, 5).is_empty():
 		game.apply_action({"type": "set_production", "city": city.id,
 			"kind": "cultural_project", "id": "GREAT_WORK"})
@@ -670,6 +682,14 @@ static func _choose_production(game: Game, city: City) -> void:
 			game.apply_action({"type": "set_production", "city": city.id, "kind": item["kind"], "id": item["id"],
 				"tile": int(item.get("tile", -1))})
 			return
+
+
+static func _recruit_great_people(game: Game, pid: int) -> void:
+	for kind in game.data.great_person_ids:
+		for city in game.state.cities_of(pid):
+			if GreatPeopleRules.recruit_error(game, pid, city, kind) == "":
+				game.apply_action({"type": "recruit_great_person", "city": city.id, "kind": kind})
+				break
 
 
 static func _science_production(game: Game, city: City) -> bool:

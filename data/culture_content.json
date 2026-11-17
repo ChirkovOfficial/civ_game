@@ -1,0 +1,33 @@
+{
+  "great_people": [
+    {"id": "SCIENTIST", "name": "Великий учёный", "district": "CAMPUS", "effect": "science", "amount": 80, "description": "+80 науки к исследованию"},
+    {"id": "ENGINEER", "name": "Великий инженер", "district": "INDUSTRIAL_ZONE", "effect": "production", "amount": 120, "description": "+120 производства городу"},
+    {"id": "MERCHANT", "name": "Великий торговец", "district": "COMMERCIAL_HUB", "effect": "gold", "amount": 200, "description": "+200 золота"},
+    {"id": "WRITER", "name": "Великий писатель", "district": "THEATER_SQUARE", "effect": "work", "work": "WRITING", "description": "Шедевр литературы"},
+    {"id": "ARTIST", "name": "Великий художник", "district": "THEATER_SQUARE", "effect": "work", "work": "ART", "description": "Шедевр живописи"},
+    {"id": "MUSICIAN", "name": "Великий музыкант", "district": "THEATER_SQUARE", "effect": "work", "work": "MUSIC", "description": "Шедевр музыки"}
+  ],
+  "great_person_base_cost": 60,
+  "great_person_cost_step": 30,
+  "great_person_district_points": 1,
+  "great_person_building_points": 1,
+  "great_person_tier_points": 1,
+  "great_person_patronage_gold_per_point": 8,
+  "works": {
+    "WRITING": {"culture": 2, "tourism": 4},
+    "ART": {"culture": 3, "tourism": 5},
+    "MUSIC": {"culture": 4, "tourism": 6}
+  },
+  "wonders": [
+    {"id": "PYRAMIDS", "name": "Пирамиды", "tech": "MASONRY", "cost": 220, "terrain": ["DESERT"], "yields": {"culture": 2}, "tourism": 3},
+    {"id": "GREAT_LIBRARY", "name": "Великая библиотека", "tech": "WRITING", "cost": 300, "adjacent": "CAMPUS", "yields": {"science": 4, "culture": 2}, "tourism": 3},
+    {"id": "COLOSSEUM", "name": "Колизей", "civic": "GAMES_RECREATION", "cost": 340, "adjacent": "ENTERTAINMENT_COMPLEX", "yields": {"culture": 3}, "tourism": 4},
+    {"id": "NOTRE_DAME", "name": "Собор Парижской Богоматери", "civic": "THEOLOGY", "cost": 420, "adjacent": "HOLY_SITE", "yields": {"faith": 4, "culture": 2}, "tourism": 5},
+    {"id": "UFFICIZI", "name": "Галерея Уффици", "civic": "HUMANISM", "cost": 500, "adjacent": "THEATER_SQUARE", "yields": {"culture": 4}, "tourism": 6},
+    {"id": "BOLSHOI_THEATRE", "name": "Большой театр", "civic": "OPERA_BALLET", "cost": 680, "adjacent": "THEATER_SQUARE", "yields": {"culture": 5}, "tourism": 8}
+  ],
+  "wonder_loser_gold_fraction": 0.5,
+  "wonder_tourism_per_era": 1,
+  "resort_min_appeal": 4,
+  "resort_tourism_per_appeal": 1
+}

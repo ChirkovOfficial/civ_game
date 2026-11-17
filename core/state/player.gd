@@ -25,6 +25,8 @@ var culture_total: float = 0.0
 var tourism_points: Dictionary = {}
 var pantheon: String = ""
 var prophet_points: float = 0.0
+## Очки великих людей по типам; пророки остаются отдельной религиозной системой.
+var great_person_points: Dictionary = {}
 var religion_id: String = ""
 var known_techs: Dictionary = {}   # id -> true
 var known_civics: Dictionary = {}
@@ -77,6 +79,7 @@ func to_dict() -> Dictionary:
 		"civ_trait_id": civ_trait_id, "is_ai": is_ai, "alive": alive,
 		"treasury": treasury, "faith": faith, "culture_total": culture_total,
 		"tourism_points": tourism_points.duplicate(), "pantheon": pantheon, "prophet_points": prophet_points,
+		"great_person_points": great_person_points.duplicate(),
 		"religion_id": religion_id, "known_techs": _sorted_keys(known_techs),
 		"known_civics": _sorted_keys(known_civics), "revealed": Marshalls.raw_to_base64(revealed),
 		"current_tech": current_tech, "tech_progress": tech_progress.duplicate(),
@@ -115,6 +118,8 @@ static func from_dict(d: Dictionary) -> Player:
 		p.tourism_points[str(other)] = float(d["tourism_points"][other])
 	p.pantheon = str(d.get("pantheon", ""))
 	p.prophet_points = float(d.get("prophet_points", 0.0))
+	for kind in d.get("great_person_points", {}):
+		p.great_person_points[str(kind)] = float(d["great_person_points"][kind])
 	p.religion_id = str(d.get("religion_id", ""))
 	p.current_tech = d.get("current_tech", "")
 	p.current_civic = d.get("current_civic", "")

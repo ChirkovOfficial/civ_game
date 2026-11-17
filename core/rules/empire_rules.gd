@@ -246,6 +246,7 @@ static func process_turn_start(game: Game, pid: int, events: Array) -> void:
 	p.treasury += float(sum["net_gold"])
 	p.faith += float(y.get("faith", 0.0))
 	ReligionRules.process_turn(game, pid)
+	GreatPeopleRules.process_turn(game, pid)
 	if not cities.is_empty():
 		apply_research_boosts(game, pid, events)
 		add_research(game, pid, "tech", float(y.get("science", 0.0)), events)

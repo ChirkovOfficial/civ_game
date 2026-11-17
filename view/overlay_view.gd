@@ -119,15 +119,20 @@ func show_placement(game: Game, city: City, type: String, cam_x: float) -> void:
 	mat.albedo_color = Color(0.45, 1.0, 0.55, 0.9)
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	var mesh := _hex_outline_mesh()
-	var main: String = DistrictRules.ddef(game, type).get("main_yield", "")
+	var wonder_mode := type.begins_with("WONDER:")
+	var main: String = "" if wonder_mode else DistrictRules.ddef(game, type).get("main_yield", "")
 	var nero_ab := DistrictRules.city_ability(game, city.owner, "NERO_URBANIZATION")
-	for t in DistrictRules.valid_tiles(game, city, type):
+	var valid := WonderRules.valid_tiles(game, city, type.substr(7)) if wonder_mode \
+		else DistrictRules.valid_tiles(game, city, type)
+	for t in valid:
 		var pos := map_view.tile_world(t, cam_x)
 		var mi := MeshInstance3D.new()
 		mi.mesh = mesh
 		mi.material_override = mat
 		mi.position = pos + Vector3(0, 0.03, 0)
 		_place_root.add_child(mi)
+		if wonder_mode:
+			continue
 		var adj := DistrictRules.adjacency(game, city.owner, type, t)
 		var parts := []
 		var keys := adj.keys()

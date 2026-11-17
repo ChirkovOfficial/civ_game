@@ -36,6 +36,38 @@ static func active_works(game: Game, city: City) -> int:
 	return mini(city.great_works, work_slots(game, city))
 
 
+static func work_culture(game: Game, city: City) -> float:
+	var amount := active_works(game, city) * config(game, "work_culture")
+	for i in mini(active_works(game, city), city.great_work_types.size()):
+		var def: Dictionary = game.data.culture_content.get("works", {}).get(city.great_work_types[i], {})
+		amount += float(def.get("culture", config(game, "work_culture"))) - config(game, "work_culture")
+	return amount
+
+
+static func work_tourism(game: Game, city: City) -> float:
+	var amount := active_works(game, city) * config(game, "work_tourism")
+	for i in mini(active_works(game, city), city.great_work_types.size()):
+		var def: Dictionary = game.data.culture_content.get("works", {}).get(city.great_work_types[i], {})
+		amount += float(def.get("tourism", config(game, "work_tourism"))) - config(game, "work_tourism")
+	return amount
+
+
+static func appeal(game: Game, tile: int) -> int:
+	var map := game.state.map
+	var score := 2
+	if map.has_river(tile):
+		score += 1
+	for neighbor in map.grid.neighbors(tile):
+		if map.is_mountain(neighbor) or map.feature[neighbor] == "WOODS":
+			score += 1
+		if map.district[neighbor].begins_with("WONDER:"):
+			var owner_city := game.state.city_owning(neighbor)
+			if owner_city != null and WonderRules.entry_at(owner_city, neighbor).get("complete", false):
+				score += 1
+		score += int(game.data.improvements.get(map.improvement[neighbor], {}).get("appeal", 0))
+	return maxi(0, score)
+
+
 static func commission_error(game: Game, city: City) -> String:
 	if not game.state.player(city.owner).has_civic("HUMANISM"):
 		return "Нужен институт «Гуманизм»"
@@ -45,7 +77,10 @@ static func commission_error(game: Game, city: City) -> String:
 
 
 static func complete_commission(game: Game, city: City, events: Array) -> void:
+	while city.great_work_types.size() < city.great_works:
+		city.great_work_types.append("")
 	city.great_works += 1
+	city.great_work_types.append("")
 	events.append({"type": "great_work_created", "player": city.owner, "city": city.id,
 		"count": city.great_works})
 
@@ -83,7 +118,12 @@ static func tourism_per_turn(game: Game, pid: int) -> float:
 	var amount := 0.0
 	var player := game.state.player(pid)
 	for city in game.state.cities_of(pid):
-		amount += active_works(game, city) * config(game, "work_tourism")
+		amount += work_tourism(game, city)
+		amount += WonderRules.tourism(game, city)
+		for tile in game.state.map.grid.tiles_in_radius(city.tile, 3):
+			if game.state.map.owner_city[tile] == city.id and game.state.map.improvement[tile] == "SEASIDE_RESORT" \
+					and game.state.map.pillaged[tile] == 0:
+				amount += appeal(game, tile) * float(game.data.culture_content.get("resort_tourism_per_appeal", 1))
 		for religion in game.state.religions.values():
 			if int(religion.get("holy_city", -1)) == city.id:
 				amount += config(game, "holy_city_tourism")

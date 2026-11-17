@@ -545,6 +545,10 @@ static func capture_city(game: Game, u: Unit, city: City, events: Array) -> void
 		if not d["complete"]:
 			game.state.map.district[int(d["tile"])] = ""
 			city.districts.erase(d)
+	for wonder in city.wonders.duplicate():
+		if not wonder["complete"]:
+			game.state.map.district[int(wonder["tile"])] = ""
+			city.wonders.erase(wonder)
 	var was_capital := city.is_capital
 	city.is_capital = false
 	for bid in city.buildings.duplicate():

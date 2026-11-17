@@ -16,6 +16,10 @@ var founded_turn: int = 1
 var buildings: Array[String] = []
 ## Созданные городом шедевры в ячейках Театральной площади.
 var great_works: int = 0
+## Типы шедевров, созданных великими людьми; старые безымянные шедевры остаются в great_works.
+var great_work_types: Array[String] = []
+## Чудеса: {"id", "tile", "complete"}. Заложенный объект сохраняет клетку при смене производства.
+var wonders: Array = []
 ## Обрабатываемые жителями клетки (без центра — он обрабатывается бесплатно).
 var worked_tiles: Array[int] = []
 ## Клетки, закреплённые игроком вручную (автоуправляющий их не снимает).
@@ -73,6 +77,7 @@ func to_dict() -> Dictionary:
 		"tile": tile, "population": population, "religion_pressure": religion_pressure.duplicate(), "food_stored": food_stored,
 		"is_capital": is_capital, "founded_turn": founded_turn,
 		"buildings": buildings.duplicate(), "great_works": great_works,
+		"great_work_types": great_work_types.duplicate(), "wonders": wonders.duplicate(true),
 		"worked_tiles": worked_tiles.duplicate(),
 		"locked_tiles": locked_tiles.duplicate(), "queue": queue.duplicate(true),
 		"progress": progress.duplicate(), "overflow": overflow,
@@ -101,6 +106,12 @@ static func from_dict(d: Dictionary) -> City:
 	c.founded_turn = int(d["founded_turn"])
 	c.buildings.assign(d["buildings"])
 	c.great_works = int(d.get("great_works", 0))
+	c.great_work_types.assign(d.get("great_work_types", []))
+	while c.great_work_types.size() < c.great_works:
+		c.great_work_types.append("")
+	for wonder in d.get("wonders", []):
+		c.wonders.append({"id": str(wonder["id"]), "tile": int(wonder["tile"]),
+			"complete": bool(wonder.get("complete", false)), "built_era": int(wonder.get("built_era", 0))})
 	for t in d["worked_tiles"]:
 		c.worked_tiles.append(int(t))
 	for t in d["locked_tiles"]:

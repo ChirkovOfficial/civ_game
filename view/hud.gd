@@ -12,6 +12,7 @@ signal reveal_toggled(on: bool)
 signal city_closed
 ## Игрок выбрал район в списке производства — нужно указать клетку на карте.
 signal place_district(type: String)
+signal place_wonder(id: String)
 
 const ICON_DIR := "res://art/icons/placeholder/"
 const YIELD_NAMES := {"food": "Пища", "production": "Производство", "gold": "Золото",
@@ -1595,10 +1596,35 @@ func refresh_city() -> void:
 	_city_districts(city)
 	if CultureRules.work_slots(game, city) > 0 or city.great_works > 0:
 		_label(_city_box, "Шедевры: %d/%d · туризм %.1f за круг" % [city.great_works,
-			CultureRules.work_slots(game, city), CultureRules.active_works(game, city) * CultureRules.config(game, "work_tourism")])
+			CultureRules.work_slots(game, city), CultureRules.work_tourism(game, city)])
+	if not city.wonders.is_empty():
+		var wonder_names := []
+		for wonder in city.wonders:
+			if wonder["complete"]:
+				wonder_names.append(str(game.data.wonders.get(wonder["id"], {}).get("name", wonder["id"])))
+		if not wonder_names.is_empty():
+			_label(_city_box, "Чудеса: " + ", ".join(wonder_names))
 	_city_life(city)
 	if city.owner != game.state.current_player:
 		return
+	_label(_city_box, "Великие люди", 16)
+	var person_income := GreatPeopleRules.points_per_turn(game, city.owner)
+	for person_id in game.data.great_person_ids:
+		var person: Dictionary = game.data.great_people[person_id]
+		var points := float(game.state.player(city.owner).great_person_points.get(person_id, 0.0))
+		var cost_gp := GreatPeopleRules.cost(game, person_id)
+		var gp_row := HBoxContainer.new()
+		_city_box.add_child(gp_row)
+		_label(gp_row, "%s: %.0f/%.0f (+%.0f) · %s" % [person["name"], points, cost_gp,
+			float(person_income.get(person_id, 0.0)), person.get("description", "")], 12)
+		if GreatPeopleRules.recruit_error(game, city.owner, city, person_id) == "":
+			var kind_gp := person_id
+			_button(gp_row, "Призвать", func(): act.call({"type": "recruit_great_person", "city": city.id, "kind": kind_gp}))
+		elif GreatPeopleRules.recruit_error(game, city.owner, city, person_id, true) == "":
+			var patron_kind := person_id
+			var missing := maxf(0.0, cost_gp - points)
+			_button(gp_row, "Покровительство %d зол." % ceili(missing * GreatPeopleRules.cfg(game, "great_person_patronage_gold_per_point")),
+				func(): act.call({"type": "recruit_great_person", "city": city.id, "kind": patron_kind, "patronage": true}))
 	_label(_city_box, "Производство", 18)
 	var item := city.current_item()
 	if item.is_empty():
@@ -1615,16 +1641,16 @@ func refresh_city() -> void:
 		pb.custom_minimum_size = Vector2(0, 8)
 		_city_box.add_child(pb)
 	var treasury := game.state.player(city.owner).treasury
-	var groups := {"unit": [], "building": [], "district": [], "in_district": [], "project": [],
+	var groups := {"unit": [], "building": [], "district": [], "wonder": [], "in_district": [], "project": [],
 		"cultural_project": []}
 	for it in CityRules.buildable_items(game, city):
 		var g: String = it["kind"]
-		if it.has("tile") and g != "district":
+		if it.has("tile") and g not in ["district", "wonder"]:
 			g = "in_district"
 		groups[g].append(it)
-	var titles := {"unit": "Юниты", "building": "Здания в центре", "district": "Районы", "in_district": "Улучшение районов", "project": "Космические проекты",
+	var titles := {"unit": "Юниты", "building": "Здания в центре", "district": "Районы", "wonder": "Чудеса света", "in_district": "Улучшение районов", "project": "Космические проекты",
 		"cultural_project": "Культурные проекты"}
-	for g in ["unit", "building", "district", "in_district", "project", "cultural_project"]:
+	for g in ["unit", "building", "district", "wonder", "in_district", "project", "cultural_project"]:
 		if groups[g].is_empty():
 			continue
 		_label(_city_box, titles[g], 14, Color(0.8, 0.85, 1.0))
@@ -1644,6 +1670,13 @@ func refresh_city() -> void:
 				bd.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				bd.alignment = HORIZONTAL_ALIGNMENT_LEFT
 				continue
+			if kind == "wonder" and tile < 0:
+				label_text = "%s — %s ⚙ · выбрать клетку" % [label_text, _fmt(CityRules.item_cost(game, city, it))]
+				var wonder_id := id
+				var wonder_button := _button(line, label_text, func(): place_wonder.emit(wonder_id))
+				wonder_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				wonder_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+				continue
 			var t := CityRules.turns_to_build(game, city, it)
 			if kind == "district":
 				label_text += " (продолжить)"
@@ -1654,7 +1687,7 @@ func refresh_city() -> void:
 				func(): act.call({"type": "set_production", "city": city.id, "kind": kind, "id": id, "tile": tile}))
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			if kind in ["district", "district_upgrade", "project", "cultural_project"]:
+			if kind in ["district", "district_upgrade", "project", "cultural_project", "wonder"]:
 				continue
 			var price := CityRules.purchase_cost(game, city, it)
 			var buy := _button(line, "%d" % price, func(): act.call({"type": "purchase", "city": city.id, "kind": kind, "id": id, "tile": tile}),
@@ -1776,6 +1809,19 @@ func show_district_preview(city: City, type: String, tile: int) -> void:
 	_tile_label.text = "\n".join(lines)
 
 
+func show_wonder_preview(city: City, id: String, tile: int) -> void:
+	if tile < 0:
+		return
+	_tile_panel.visible = true
+	var lines := [_tile_label.text, ""]
+	var name: String = game.data.wonders.get(id, {}).get("name", id)
+	var err := WonderRules.placement_error(game, city, id, tile)
+	lines.append("%s: %s" % [name, "можно построить" if err == "" else err])
+	if err == "":
+		lines.append("ЛКМ — заложить, ПКМ или Esc — отмена")
+	_tile_label.text = "\n".join(lines)
+
+
 # --- Клетка под курсором ------------------------------------------------------------------------
 
 func show_tile(viewer: Player, tile: int, reveal_all: bool) -> void:
@@ -1801,12 +1847,20 @@ func show_tile(viewer: Player, tile: int, reveal_all: bool) -> void:
 	if map.improvement[tile] != "":
 		lines.append("Улучшение: %s" % game.data.improvements.get(map.improvement[tile], {}).get("name", ""))
 	if map.district[tile] != "" and map.district[tile] != DistrictRules.CENTER:
-		var a := DistrictRules.at(game, tile)
-		if not a.is_empty():
-			var dc: City = a[0]
-			var de: Dictionary = a[1]
-			lines.append("Район: %s%s" % [DistrictRules.display_name(game, dc.owner, de["type"], int(de["tier"])),
-				"" if de["complete"] else " (строится)"])
+		if map.district[tile].begins_with("WONDER:"):
+			var wonder_city := game.state.city_owning(tile)
+			if wonder_city != null:
+				var wonder := WonderRules.entry_at(wonder_city, tile)
+				if not wonder.is_empty():
+					lines.append("Чудо: %s%s" % [game.data.wonders.get(wonder["id"], {}).get("name", wonder["id"]),
+						"" if wonder["complete"] else " (строится)"])
+		else:
+			var a := DistrictRules.at(game, tile)
+			if not a.is_empty():
+				var dc: City = a[0]
+				var de: Dictionary = a[1]
+				lines.append("Район: %s%s" % [DistrictRules.display_name(game, dc.owner, de["type"], int(de["tier"])),
+					"" if de["complete"] else " (строится)"])
 	if map.has_river(tile):
 		lines.append("Река")
 	var owner_city := game.state.city_owning(tile)

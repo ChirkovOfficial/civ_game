@@ -78,6 +78,7 @@ func _ready() -> void:
 	hud.reveal_toggled.connect(_set_reveal)
 	hud.city_closed.connect(func(): _select_city(null))
 	hud.place_district.connect(_start_placement)
+	hud.place_wonder.connect(func(id: String): _start_placement("WONDER:" + id))
 	if initial_game != null:
 		_attach_game(initial_game)
 		initial_game = null
@@ -348,7 +349,10 @@ func _update_hover() -> void:
 		hover_tile = tile
 		hud.show_tile(_viewer(), tile, map_view.reveal_all)
 		if placing_district != "" and selected_city != null:
-			hud.show_district_preview(selected_city, placing_district, tile)
+			if placing_district.begins_with("WONDER:"):
+				hud.show_wonder_preview(selected_city, placing_district.substr(7), tile)
+			else:
+				hud.show_district_preview(selected_city, placing_district, tile)
 		if selected != null and tile >= 0 and game.state.unit(selected.id) != null and Combat.can_attack(game, selected):
 			var tgt := Combat.target_at(game, selected.owner, tile)
 			if tgt["kind"] == "unit" or tgt["kind"] == "city":
@@ -416,13 +420,16 @@ func _click_tile(tile: int) -> void:
 	if tile < 0:
 		return
 	if placing_district != "" and selected_city != null:
-		var err := DistrictRules.placement_error(game, selected_city, placing_district, tile)
+		var wonder_mode := placing_district.begins_with("WONDER:")
+		var err := WonderRules.placement_error(game, selected_city, placing_district.substr(7), tile) if wonder_mode \
+			else DistrictRules.placement_error(game, selected_city, placing_district, tile)
 		if err != "":
 			hud.show_message(err)
 			return
 		var type := placing_district
 		_stop_placement()
-		act({"type": "set_production", "city": selected_city.id, "kind": "district", "id": type, "tile": tile})
+		act({"type": "set_production", "city": selected_city.id, "kind": "wonder" if wonder_mode else "district",
+			"id": type.substr(7) if wonder_mode else type, "tile": tile})
 		return
 	# В режиме города щелчок по ничьей клетке рядом — покупка.
 	if selected_city != null and game.state.map.owner_city[tile] < 0 \
@@ -453,8 +460,9 @@ func _start_placement(type: String) -> void:
 	placing_district = type
 	overlay.clear_city()
 	overlay.show_placement(game, selected_city, type, camera_rig.position.x)
-	hud.show_message("Выберите клетку для района «%s» (ПКМ или Esc — отмена)" %
-		DistrictRules.display_name(game, selected_city.owner, type), 4.0)
+	var label := str(game.data.wonders[type.substr(7)]["name"]) if type.begins_with("WONDER:") \
+		else DistrictRules.display_name(game, selected_city.owner, type)
+	hud.show_message("Выберите клетку для «%s» (ПКМ или Esc — отмена)" % label, 4.0)
 
 
 func _stop_placement() -> void:

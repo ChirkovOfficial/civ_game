@@ -144,6 +144,13 @@
    "placements": [{"terrain": ["DESERT", "PLAINS"], "relief": "FLAT"}]
   },
   {
+   "id": "SEASIDE_RESORT",
+   "name": "Морской курорт",
+   "civic": "CONSERVATION",
+   "yields": {"gold": 2},
+   "placements": [{"terrain": ["GRASS", "PLAINS", "DESERT", "TUNDRA", "SNOW"], "relief": "FLAT"}]
+  },
+  {
    "id": "FORT",
    "name": "Форт",
    "tech": "METAL_CASTING",

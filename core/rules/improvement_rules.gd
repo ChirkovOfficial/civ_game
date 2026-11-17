@@ -53,8 +53,16 @@ static func build_error(game: Game, u: Unit, imp_id: String) -> String:
 		return "Здесь район"
 	if def.has("tech") and not p.has_tech(def["tech"]):
 		return "Нужна технология: %s" % game.data.techs.get(def["tech"], {}).get("name", def["tech"])
+	if def.has("civic") and not p.has_civic(def["civic"]):
+		return "Нужен институт: %s" % game.data.civics.get(def["civic"], {}).get("name", def["civic"])
 	if map.improvement[tile] == imp_id:
 		return "Уже построено"
+	if imp_id == "SEASIDE_RESORT":
+		if map.improvement[tile] != "" or map.resource[tile] != "" or map.feature[tile] != "" \
+				or map.relief[tile] != GameMap.RELIEF_FLAT or not map.is_coastal_land(tile):
+			return "Нужна свободная ровная прибрежная клетка"
+		if CultureRules.appeal(game, tile) < int(game.data.culture_content.get("resort_min_appeal", 4)):
+			return "Недостаточная привлекательность клетки"
 	var rid := map.resource[tile]
 	if rid != "" and Yields.resource_visible(game.data, rid, p):
 		if game.data.resources[rid].get("improvement", "") == imp_id:

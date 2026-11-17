@@ -165,6 +165,13 @@ func apply_action(action: Dictionary) -> Array:
 					events.append(_error(err))
 		"set_production":
 			_act_set_production(action, events)
+		"recruit_great_person":
+			var recruit_city := _own_city(action, events)
+			if recruit_city != null:
+				var recruit_err := GreatPeopleRules.recruit(self, state.current_player, recruit_city,
+					str(action.get("kind", "")), bool(action.get("patronage", false)), events)
+				if recruit_err != "":
+					events.append(_error(recruit_err))
 		"purchase":
 			_act_purchase(action, events)
 		"set_doctrine":
@@ -478,6 +485,8 @@ func _act_set_production(action: Dictionary, events: Array) -> void:
 	var err := CityRules.build_error(self, c, item)
 	if err == "" and item["kind"] == "district" and not item.has("tile"):
 		err = "Выберите клетку для района"
+	if err == "" and item["kind"] == "wonder" and not item.has("tile"):
+		err = "Выберите клетку для чуда света"
 	if err != "":
 		events.append(_error(err))
 		return
@@ -485,6 +494,9 @@ func _act_set_production(action: Dictionary, events: Array) -> void:
 		DistrictRules.place(self, c, item["id"], int(item["tile"]))
 		CityRules.assign_citizens(self, c)
 		events.append({"type": "district_placed", "city": c.id, "district": item["id"], "tile": int(item["tile"])})
+	if item["kind"] == "wonder" and WonderRules.entry_at(c, int(item["tile"])).is_empty():
+		WonderRules.place(self, c, item["id"], int(item["tile"]))
+		events.append({"type": "wonder_placed", "city": c.id, "wonder": item["id"], "tile": int(item["tile"])})
 	# В очереди один объект: новый выбор заменяет текущий; прогресс прежнего сохраняется.
 	c.queue = [item]
 	events.append({"type": "city_updated", "city": c.id})
@@ -496,7 +508,7 @@ func _act_purchase(action: Dictionary, events: Array) -> void:
 		return
 	var item := _item_from(action)
 	var err := CityRules.build_error(self, c, item)
-	if item["kind"] in ["project", "cultural_project"]:
+	if item["kind"] in ["project", "cultural_project", "wonder"]:
 		err = "Проекты нельзя купить за золото"
 	if err == "" and (item["kind"] == "district" or item["kind"] == "district_upgrade"):
 		err = "Районы за золото не покупаются"

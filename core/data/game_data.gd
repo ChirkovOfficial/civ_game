@@ -24,6 +24,11 @@ var religion_setup: Dictionary = {}
 var science_setup: Dictionary = {}
 var energy_setup: Dictionary = {}
 var culture_setup: Dictionary = {}
+var culture_content: Dictionary = {}
+var great_people: Dictionary = {}
+var wonders: Dictionary = {}
+var great_person_ids: Array[String] = []
+var wonder_ids: Array[String] = []
 var finance_setup: Dictionary = {}
 var visibility_setup: Dictionary = {}
 var science_projects: Dictionary = {}
@@ -128,6 +133,15 @@ func load_all(dir: String = DATA_DIR) -> void:
 	science_setup = _read(dir + "science_projects.json")
 	energy_setup = _read(dir + "energy.json")
 	culture_setup = _read(dir + "culture_victory.json")
+	culture_content = _read(dir + "culture_content.json")
+	var great_person_list: Array = culture_content.get("great_people", [])
+	great_people = _index(great_person_list)
+	for entry in great_person_list:
+		great_person_ids.append(str(entry["id"]))
+	var wonder_list: Array = culture_content.get("wonders", [])
+	wonders = _index(wonder_list)
+	for entry in wonder_list:
+		wonder_ids.append(str(entry["id"]))
 	finance_setup = _read(dir + "finance_victory.json")
 	visibility_setup = _read(dir + "diplomatic_visibility.json")
 	var project_list: Array = science_setup.get("projects", [])
@@ -309,6 +323,8 @@ func validate() -> PackedStringArray:
 	errors.append_array(ScienceRules.validate_data(self))
 	errors.append_array(EnergyRules.validate_data(self))
 	errors.append_array(CultureRules.validate_data(self))
+	errors.append_array(GreatPeopleRules.validate_data(self))
+	errors.append_array(WonderRules.validate_data(self))
 	errors.append_array(FinanceRules.validate_data(self))
 	errors.append_array(DiplomaticVisibility.validate_data(self))
 	errors.append_array(TreatyRules.validate_data(self))

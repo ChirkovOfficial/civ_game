@@ -231,8 +231,9 @@ static func city_yields(game: Game, city: City, lux: Dictionary = {}) -> Diction
 	for bid in city.buildings:
 		Yields.add_into(y, game.data.buildings.get(bid, {}).get("yields", {}))
 	Yields.add_into(y, DistrictRules.city_totals(game, city)["yields"])
+	Yields.add_into(y, WonderRules.yields(game, city))
 	Yields.add_into(y, ReligionRules.city_follower_yields(game, city))
-	y["culture"] = float(y.get("culture", 0.0)) + CultureRules.active_works(game, city) * CultureRules.config(game, "work_culture")
+	y["culture"] = float(y.get("culture", 0.0)) + CultureRules.work_culture(game, city)
 	y["science"] = float(y.get("science", 0)) + city.population * float(c(game, "science_per_pop", 0.5))
 	y["culture"] = float(y.get("culture", 0)) + city.population * float(c(game, "culture_per_pop", 0.3))
 	GovernmentRules.apply_city_yields(game, city, y)
@@ -376,6 +377,8 @@ static func _score(y: Dictionary, w: Dictionary) -> float:
 # --- Производство (ГДД 4.2, 5.3) -----------------------------------------------------------------
 
 static func item_name(game: Game, item: Dictionary, owner: int = -1) -> String:
+	if item.get("kind", "") == "wonder":
+		return str(game.data.wonders.get(item.get("id", ""), {}).get("name", item.get("id", "")))
 	if item.get("kind", "") == "cultural_project":
 		return "Создать шедевр"
 	if item.get("kind", "") == "project":
@@ -407,6 +410,8 @@ static func item_cost(game: Game, city: City, item: Dictionary) -> float:
 		return roundf(base * speed_mult(game))
 	if item["kind"] == "cultural_project":
 		return roundf(CultureRules.config(game, "commission_cost") * speed_mult(game))
+	if item["kind"] == "wonder":
+		return roundf(float(game.data.wonders.get(item["id"], {}).get("cost", 0)) * speed_mult(game))
 	if item["kind"] == "unit":
 		var def := game.data.unit_def(item["id"])
 		var made: int = int(game.state.player(city.owner).produced.get(item["id"], 0))
@@ -433,6 +438,10 @@ static func build_error(game: Game, city: City, item: Dictionary) -> String:
 		return ScienceRules.project_error(game, city, id)
 	if kind == "cultural_project":
 		return CultureRules.commission_error(game, city) if id == "GREAT_WORK" else "Неизвестный культурный проект"
+	if kind == "wonder":
+		if not item.has("tile"):
+			return WonderRules.type_error(game, city, id)
+		return WonderRules.placement_error(game, city, id, int(item["tile"]))
 	if kind == "unit":
 		var def := game.data.unit_def(id)
 		if def.is_empty():
@@ -518,6 +527,12 @@ static func buildable_items(game: Game, city: City) -> Array:
 			result.append({"kind": "project", "id": project_id})
 	if CultureRules.commission_error(game, city) == "":
 		result.append({"kind": "cultural_project", "id": "GREAT_WORK"})
+	for id in game.data.wonder_ids:
+		if WonderRules.type_error(game, city, id) == "" and not WonderRules.valid_tiles(game, city, id).is_empty():
+			result.append({"kind": "wonder", "id": id})
+	for wonder in city.wonders:
+		if not wonder["complete"] and WonderRules.built_city(game, wonder["id"]) == null:
+			result.append({"kind": "wonder", "id": wonder["id"], "tile": wonder["tile"]})
 	return result
 
 
@@ -593,6 +608,8 @@ static func complete_item(game: Game, city: City, item: Dictionary, events: Arra
 		ScienceRules.complete(game, city, str(item["id"]), events)
 	elif item["kind"] == "cultural_project":
 		CultureRules.complete_commission(game, city, events)
+	elif item["kind"] == "wonder":
+		WonderRules.complete(game, city, item, events)
 	elif item["kind"] == "district":
 		var e := DistrictRules.entry_at(city, int(item["tile"]))
 		e["complete"] = true
@@ -646,6 +663,8 @@ static func process_production(game: Game, city: City, per_turn: float, events: 
 		return
 	var item: Dictionary = city.queue[0]
 	if build_error(game, city, item) != "":
+		if item["kind"] == "wonder" and WonderRules.built_city(game, item["id"]) != null:
+			WonderRules.resolve_lost(game, city, item, events)
 		events.append({"type": "production_invalid", "city": city.id, "item": item})
 		city.queue.pop_front()
 		return

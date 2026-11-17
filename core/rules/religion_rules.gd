@@ -109,7 +109,7 @@ static func choose_pantheon(game: Game, pid: int, id: String, events: Array) -> 
 
 
 static func pantheon_tile_yields(game: Game, tile: int, player: Player) -> Dictionary:
-	if player.pantheon == "":
+	if player == null or player.pantheon == "":
 		return {}
 	var option := belief(game, "pantheons", player.pantheon)
 	if option.is_empty():

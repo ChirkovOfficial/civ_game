@@ -3,7 +3,7 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 17
+const SAVE_VERSION := 18
 
 ## Основанные религии: id -> {name, founder, holy_city, follower_belief, founder_belief, cult_belief, enhancer_belief}.
 var religions: Dictionary = {}
@@ -13,6 +13,8 @@ var religious_conflicts := {"next_id": 1, "incidents": {}, "requests": {}, "prom
 var science_data: Dictionary = {}
 ## Распределение энергии и сожжённое топливо за текущий ход каждой державы.
 var energy_data: Dictionary = {}
+## Глобальное число завербованных великих людей каждого вида.
+var culture_data := {"great_people_recruited": {}}
 ## Глобальное открытие биржи, серии финансовой гегемонии и последний засчитанный ход.
 var finance_data := {"unlocked": false, "streaks": {}, "last_counted": {}}
 ## Направленные делегации и взаимные посольства.
@@ -202,6 +204,7 @@ func to_dict() -> Dictionary:
 		"religious_conflicts": religious_conflicts.duplicate(true),
 		"science": science_data.duplicate(true),
 		"energy": energy_data.duplicate(true),
+		"culture_content": culture_data.duplicate(true),
 		"finance": finance_data.duplicate(true),
 		"diplomatic_visibility": visibility_data.duplicate(true),
 		"treaties": treaty_data.duplicate(true),
@@ -288,6 +291,9 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 					progress["laser_sites"][str(city.id)] = int(progress["lasers"])
 					break
 	s.energy_data = _restore_congress(d.get("energy", {}))
+	s.culture_data = _restore_congress(d.get("culture_content", {"great_people_recruited": {}}))
+	if not s.culture_data.has("great_people_recruited"):
+		s.culture_data["great_people_recruited"] = {}
 	for key in d.get("finance", {}):
 		s.finance_data[key] = _restore_congress(d["finance"][key])
 	for key in d.get("diplomatic_visibility", {}):
