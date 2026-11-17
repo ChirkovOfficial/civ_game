@@ -732,6 +732,12 @@ func open_diplomacy() -> void:
 		if not other.alive:
 			continue
 		var oid := other.id
+		var sight := DiplomaticVisibility.sources(game, pid, oid)
+		_label(_research_box, "Видимость: наша %d/3 · их %d/3 · представительство %s · путь %s · союз %s · Книгопечатание %s" % [
+			DiplomaticVisibility.level(game, pid, oid), DiplomaticVisibility.level(game, oid, pid),
+			"да" if sight["representation"] else "нет", "да" if sight["route"] else "нет",
+			"да" if sight["alliance"] else "нет", "да" if sight["printing"] else "нет"],
+			12, Color(0.75, 0.78, 0.85), true)
 		if CongressRules.embargoed(game, pid, oid):
 			_label(_research_box, "Эмбарго до начала хода %d" % CongressRules.embargo_until(game, pid, oid), 13)
 		_show_treaty_status(pid, oid)
@@ -760,6 +766,14 @@ func open_diplomacy() -> void:
 		else:
 			var e2 := UnitRules.declare_war_error(game, pid, oid)
 			_button(row, "Объявить войну", func(): act.call({"type": "declare_war", "target": oid}); open_diplomacy(), e2 != "", e2)
+			var delegation_error := DiplomaticVisibility.delegation_error(game, pid, oid)
+			_button(_research_box, "Отправить делегацию · %d золота" % int(game.data.visibility_setup["delegation_cost"]),
+				func(): act.call({"type": "send_delegation", "target": oid}),
+				delegation_error != "", delegation_error)
+			var embassy_error := DiplomaticVisibility.embassy_error(game, pid, oid)
+			_button(_research_box, "Обменяться посольствами",
+				func(): act.call({"type": "establish_embassy", "target": oid}),
+				embassy_error != "", embassy_error)
 			var actions := HBoxContainer.new()
 			_research_box.add_child(actions)
 			var embargo := CongressRules.embargoed(game, pid, oid)
@@ -1191,6 +1205,10 @@ func open_finance() -> void:
 		if other.id == pid:
 			_label(_research_box, "%s · %.1f золота/ход · серия %d" % [other.name, row["income"],
 				int(game.state.finance_data["streaks"].get(str(other.id), 0))], 14)
+		elif game.state.player(pid).met.has(other.id) \
+				and DiplomaticVisibility.level(game, pid, other.id) >= int(game.data.visibility_setup["finance_exact_level"]):
+			_label(_research_box, "%s · %.1f золота/ход · точные сведения · серия %d" % [other.name,
+				row["income"], int(game.state.finance_data["streaks"].get(str(other.id), 0))], 14)
 		elif game.state.player(pid).met.has(other.id):
 			var delta := absf(float(row["income"])) * float(game.data.finance_setup["public_estimate_variance"])
 			_label(_research_box, "%s · около %.1f…%.1f золота/ход · серия %d" % [other.name,
@@ -1198,7 +1216,7 @@ func open_finance() -> void:
 				int(game.state.finance_data["streaks"].get(str(other.id), 0))], 14)
 		else:
 			_label(_research_box, "Неизвестная держава · доход не раскрыт", 14)
-	_label(_research_box, "Точная чужая экономическая статистика появится вместе с дипломатической видимостью.",
+	_label(_research_box, "Точный доход соперника открывается при дипломатической видимости от 2.",
 		12, Color(0.75, 0.78, 0.85), true)
 	_button(_research_box, "Победы и счёт", open_victory)
 

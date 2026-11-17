@@ -153,6 +153,10 @@ static func add_xp(game: Game, u: Unit, amount: int, vs_barbarian: bool) -> void
 ## Модификаторы обороны/атаки юнита. Возвращает [[подпись, значение], ...].
 static func unit_mods(game: Game, u: Unit, role: String, ctx: Dictionary) -> Array:
 	var mods: Array = []
+	if ctx.has("vs_player"):
+		var visibility_bonus := DiplomaticVisibility.combat_bonus(game, u.owner, int(ctx["vs_player"]))
+		if visibility_bonus > 0:
+			mods.append(["Дипломатическая видимость", visibility_bonus])
 	if ctx.get("vs_irregular", false):
 		for effect in GovernmentRules.effects(game, game.state.player(u.owner)):
 			if effect.has("barbarian_strength"):
@@ -356,11 +360,16 @@ static func preview(game: Game, u: Unit, tile: int) -> Dictionary:
 	var def_mods: Array = []
 	if t["kind"] == "city":
 		ctx["vs_district"] = true
+		ctx["vs_player"] = t["city"].owner
 		var cs: Array = city_strength(game, t["city"])
 		def_base = int(cs[0])
 		def_mods = cs[1]
+		var city_visibility := DiplomaticVisibility.combat_bonus(game, t["city"].owner, u.owner)
+		if city_visibility > 0:
+			def_mods.append(["Дипломатическая видимость", city_visibility])
 	elif t["kind"] == "unit":
 		var d: Unit = t["unit"]
+		ctx["vs_player"] = d.owner
 		ctx["vs_irregular"] = d.owner == barb
 		ctx["vs_class"] = unit_class(game, d)
 		ctx["vs_domain"] = Movement.domain(game, d)
@@ -368,7 +377,7 @@ static func preview(game: Game, u: Unit, tile: int) -> Dictionary:
 		ctx["vs_fortified"] = d.fortify_turns > 0
 		def_base = melee_strength(game, d.type)
 		def_mods = unit_mods(game, d, "defense", {"vs_class": unit_class(game, u), "vs_ranged": ranged,
-			"vs_domain": Movement.domain(game, u), "vs_irregular": u.owner == barb})
+			"vs_domain": Movement.domain(game, u), "vs_irregular": u.owner == barb, "vs_player": u.owner})
 	var att_mods := unit_mods(game, u, "attack", ctx)
 	if not ranged:
 		var dir := map.grid.direction_to(u.tile, tile)
@@ -612,8 +621,9 @@ static func city_attack(game: Game, city: City, tile: int, events: Array) -> voi
 	var t := target_at(game, city.owner, tile)
 	var d: Unit = t["unit"]
 	var def := melee_strength(game, d.type) + _sum(unit_mods(game, d, "defense", {"vs_ranged": true,
-		"vs_irregular": game.state.player(city.owner).is_barbarian}))
-	var dmg := damage(game, city_ranged_strength(game, city) - def, _roll(game))
+		"vs_irregular": game.state.player(city.owner).is_barbarian, "vs_player": city.owner}))
+	var visibility_bonus := DiplomaticVisibility.combat_bonus(game, city.owner, d.owner)
+	var dmg := damage(game, city_ranged_strength(game, city) + visibility_bonus - def, _roll(game))
 	d.hp -= dmg
 	city.has_attacked = true
 	events.append({"type": "combat", "city_attacker": city.id, "defender": d.id, "tile": tile, "dmg_to_def": dmg, "ranged": true})

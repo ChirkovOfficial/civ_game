@@ -1,0 +1,8 @@
+{
+  "delegation_cost": 25,
+  "embassy_civic": "DIPLOMATIC_SERVICE",
+  "printing_tech": "PRINTING",
+  "max_level": 3,
+  "finance_exact_level": 2,
+  "combat_per_level": 3
+}

@@ -126,6 +126,11 @@ func _run() -> void:
 	finance_game.data.buildings["SMOKE_MINT"] = {"yields": {"gold": 700}, "maintenance": 0}
 	finance_city.buildings.append("SMOKE_MINT")
 	finance_game.state.player(1).known_techs["BANKING"] = true
+	finance_game.state.player(0).known_techs["PRINTING"] = true
+	finance_game.state.player(0).met[1] = true
+	finance_game.state.player(1).met[0] = true
+	finance_game.state.player(0).treasury = 100.0
+	fifth.act({"type": "send_delegation", "target": 1})
 	finance_game.state.finance_data["unlocked"] = true
 	finance_game.state.finance_data["streaks"]["0"] = FinanceRules.required_turns(finance_game) - 1
 	finance_game.state.settings["turn_limit"] = 3
@@ -133,6 +138,14 @@ func _run() -> void:
 	finance_hud.open_finance()
 	if not finance_hud.is_modal_open() or finance_hud.get("_research_kind") != "finance":
 		printerr("Окно Мировой биржи не открылось")
+		quit(1)
+		return
+	shown = false
+	for label in finance_hud.get("_research_box").find_children("*", "Label", true, false):
+		if label.text.contains("точные сведения"):
+			shown = true
+	if not shown:
+		printerr("Биржа не показала точный доход при видимости 2")
 		quit(1)
 		return
 	finance_hud.close_research()

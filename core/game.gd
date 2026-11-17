@@ -173,6 +173,12 @@ func apply_action(action: Dictionary) -> Array:
 			_act_buy_tile(action, events)
 		"set_research":
 			_act_set_research(action, events)
+		"send_delegation", "establish_embassy":
+			var target := int(action.get("target", -1))
+			var error := DiplomaticVisibility.send_delegation(self, state.current_player, target, events) \
+				if action["type"] == "send_delegation" else DiplomaticVisibility.establish_embassy(self, state.current_player, target, events)
+			if error != "":
+				events.append(_error(error))
 		"start_trade":
 			_act_start_trade(action, events)
 		"raid_trade":
@@ -384,6 +390,7 @@ func _error(msg: String) -> Dictionary:
 ## Общие последствия объявления войны после проверки права на действие.
 func declare_war(issuer: int, target: int, events: Array) -> void:
 	state.set_war(issuer, target, true)
+	DiplomaticVisibility.on_war(self, issuer, target)
 	TreatyRules.on_war(self, issuer, target, events)
 	ConcessionRules.update_loans(self, state.turn, events)
 	TradeRules.cancel_invalid(self, events)

@@ -16,6 +16,7 @@ static func take_turn(game: Game, pid: int) -> void:
 	_religious_conflicts(game, pid)
 	_congress(game, pid)
 	_treaty_diplomacy(game, pid)
+	_visibility_diplomacy(game, pid)
 	_supply_diplomacy(game, pid)
 	_choose_research(game, pid)
 	_choose_government(game, pid)
@@ -262,6 +263,23 @@ static func _treaty_diplomacy(game: Game, pid: int) -> void:
 			if TreatyRules.offer_error(game, kind, pid, other) == "":
 				game.apply_action({"type": "propose_treaty", "kind": kind, "target": other})
 				return
+
+
+static func _visibility_diplomacy(game: Game, pid: int) -> void:
+	var partners := game.state.player(pid).met.keys()
+	partners.sort()
+	for other in partners:
+		if TreatyRules.trust(game, pid, other) < 0 or game.state.at_war(pid, other):
+			continue
+		if DiplomaticVisibility.embassy_error(game, pid, other) == "":
+			game.apply_action({"type": "establish_embassy", "target": other})
+			return
+		if game.state.player(pid).treasury >= 75.0 \
+				and (DiplomaticVisibility._has_route(game, pid, other) \
+				or TreatyRules.until(game, "friendship", pid, other) > game.state.turn) \
+				and DiplomaticVisibility.delegation_error(game, pid, other) == "":
+			game.apply_action({"type": "send_delegation", "target": other})
+			return
 
 
 ## ИИ принимает посильные полезные поставки и предлагает избыток ресурса.
