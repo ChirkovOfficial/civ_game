@@ -489,8 +489,8 @@ func _act_purchase(action: Dictionary, events: Array) -> void:
 		return
 	var item := _item_from(action)
 	var err := CityRules.build_error(self, c, item)
-	if item["kind"] == "project":
-		err = "Космические проекты нельзя купить за золото"
+	if item["kind"] in ["project", "cultural_project"]:
+		err = "Проекты нельзя купить за золото"
 	if err == "" and (item["kind"] == "district" or item["kind"] == "district_upgrade"):
 		err = "Районы за золото не покупаются"
 	var p := state.player(c.owner)
@@ -703,8 +703,10 @@ func _advance_round(events: Array) -> bool:
 	TreatyRules.close_round(self)
 	ReligionRules.process_round(self)
 	ScienceRules.process_round(self, events)
+	CultureRules.process_round(self)
 	VictoryRules.check_religion(self, events)
 	VictoryRules.check_science(self, events)
+	VictoryRules.check_culture(self, events)
 	VictoryRules.check_turn_limit(self, events)
 	if not state.result.is_empty():
 		return false

@@ -82,5 +82,38 @@ func _run() -> void:
 		printerr("На экране итогов нет причины научной победы")
 		quit(1)
 		return
-	print("Экраны очковой, религиозной и научной победы открываются автоматически")
+	third.queue_free()
+	var fourth: Node = load("res://view/main.tscn").instantiate()
+	fourth.map_size = "DUEL"
+	fourth.fixed_seed = 20
+	root.add_child(fourth)
+	var culture_game: Game = fourth.game
+	var culture_city := CityRules.found_city(culture_game, 0, culture_game.state.start_positions[0])
+	CityRules.found_city(culture_game, 1, culture_game.state.start_positions[1])
+	var theater_tile := culture_game.state.map.grid.neighbors(culture_city.tile)[0]
+	culture_city.districts.append({"type": "THEATER_SQUARE", "tile": theater_tile,
+		"tier": 2, "buildings": [], "complete": true, "cost": 200.0})
+	culture_game.state.map.district[theater_tile] = "THEATER_SQUARE"
+	culture_city.great_works = 1
+	culture_game.state.player(0).met[1] = true
+	culture_game.state.player(1).met[0] = true
+	culture_game.state.player(0).tourism_points["1"] = 796.0
+	culture_game.state.player(1).culture_total = 100.0
+	culture_game.state.settings["turn_limit"] = 1
+	fourth.act({"type": "end_turn", "force": true})
+	var culture_hud: Hud = fourth.hud
+	if culture_game.state.result.get("kind") != "culture" or not culture_hud.is_modal_open() \
+			or culture_hud.get("_research_kind") != "victory":
+		printerr("Экран культурной победы не открылся")
+		quit(1)
+		return
+	shown = false
+	for label in culture_hud.get("_research_box").find_children("*", "Label", true, false):
+		if label.text.contains("Приезжих туристов больше"):
+			shown = true
+	if not shown:
+		printerr("На экране итогов нет причины культурной победы")
+		quit(1)
+		return
+	print("Экраны очковой, религиозной, научной и культурной победы открываются автоматически")
 	quit()

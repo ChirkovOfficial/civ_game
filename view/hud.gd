@@ -1190,6 +1190,8 @@ func open_victory() -> void:
 				reason = "Распространение религии %s" % religion_name
 			"science":
 				reason = "Экспедиция достигла экзопланеты"
+			"culture":
+				reason = "Приезжих туристов больше, чем внутренних у каждой другой державы"
 		_label(_research_box, "%s · ход %d" % [reason, int(result["turn"])])
 	else:
 		var own := VictoryRules.capital_progress(game, pid)
@@ -1218,6 +1220,13 @@ func open_victory() -> void:
 				15, Color.WHITE, true)
 		else:
 			_label(_research_box, "Научная победа · завершено проектов: %d/4" % science["completed"].size(), 15)
+		var visitors := CultureRules.foreign_tourists(game, pid)
+		var target := 0
+		for other in game.state.players:
+			if other.id != pid and other.alive and not other.is_barbarian:
+				target = maxi(target, CultureRules.domestic_tourists(game, other.id))
+		_label(_research_box, "Культурная победа · приезжие туристы %d · нужно больше %d · туризм/круг %.1f" % [
+			visitors, target, CultureRules.tourism_per_turn(game, pid)], 15, Color.WHITE, true)
 	_label(_research_box, "Счёт держав", 17)
 	for row in VictoryRules.standings(game):
 		var player := game.state.player(int(row["player"]))
@@ -1455,6 +1464,9 @@ func refresh_city() -> void:
 			names.append(game.data.buildings[bid]["name"])
 		_label(_city_box, "Здания: " + ", ".join(names), 0, Color(0.85, 0.85, 0.9), true)
 	_city_districts(city)
+	if CultureRules.work_slots(game, city) > 0 or city.great_works > 0:
+		_label(_city_box, "Шедевры: %d/%d · туризм %.1f за круг" % [city.great_works,
+			CultureRules.work_slots(game, city), CultureRules.active_works(game, city) * CultureRules.config(game, "work_tourism")])
 	_city_life(city)
 	if city.owner != game.state.current_player:
 		return
@@ -1474,14 +1486,16 @@ func refresh_city() -> void:
 		pb.custom_minimum_size = Vector2(0, 8)
 		_city_box.add_child(pb)
 	var treasury := game.state.player(city.owner).treasury
-	var groups := {"unit": [], "building": [], "district": [], "in_district": [], "project": []}
+	var groups := {"unit": [], "building": [], "district": [], "in_district": [], "project": [],
+		"cultural_project": []}
 	for it in CityRules.buildable_items(game, city):
 		var g: String = it["kind"]
 		if it.has("tile") and g != "district":
 			g = "in_district"
 		groups[g].append(it)
-	var titles := {"unit": "Юниты", "building": "Здания в центре", "district": "Районы", "in_district": "Улучшение районов", "project": "Космические проекты"}
-	for g in ["unit", "building", "district", "in_district", "project"]:
+	var titles := {"unit": "Юниты", "building": "Здания в центре", "district": "Районы", "in_district": "Улучшение районов", "project": "Космические проекты",
+		"cultural_project": "Культурные проекты"}
+	for g in ["unit", "building", "district", "in_district", "project", "cultural_project"]:
 		if groups[g].is_empty():
 			continue
 		_label(_city_box, titles[g], 14, Color(0.8, 0.85, 1.0))
@@ -1511,7 +1525,7 @@ func refresh_city() -> void:
 				func(): act.call({"type": "set_production", "city": city.id, "kind": kind, "id": id, "tile": tile}))
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			if kind in ["district", "district_upgrade", "project"]:
+			if kind in ["district", "district_upgrade", "project", "cultural_project"]:
 				continue
 			var price := CityRules.purchase_cost(game, city, it)
 			var buy := _button(line, "%d" % price, func(): act.call({"type": "purchase", "city": city.id, "kind": kind, "id": id, "tile": tile}),

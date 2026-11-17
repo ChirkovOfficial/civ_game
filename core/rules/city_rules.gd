@@ -232,6 +232,7 @@ static func city_yields(game: Game, city: City, lux: Dictionary = {}) -> Diction
 		Yields.add_into(y, game.data.buildings.get(bid, {}).get("yields", {}))
 	Yields.add_into(y, DistrictRules.city_totals(game, city)["yields"])
 	Yields.add_into(y, ReligionRules.city_follower_yields(game, city))
+	y["culture"] = float(y.get("culture", 0.0)) + CultureRules.active_works(game, city) * CultureRules.config(game, "work_culture")
 	y["science"] = float(y.get("science", 0)) + city.population * float(c(game, "science_per_pop", 0.5))
 	y["culture"] = float(y.get("culture", 0)) + city.population * float(c(game, "culture_per_pop", 0.3))
 	GovernmentRules.apply_city_yields(game, city, y)
@@ -375,6 +376,8 @@ static func _score(y: Dictionary, w: Dictionary) -> float:
 # --- Производство (ГДД 4.2, 5.3) -----------------------------------------------------------------
 
 static func item_name(game: Game, item: Dictionary, owner: int = -1) -> String:
+	if item.get("kind", "") == "cultural_project":
+		return "Создать шедевр"
 	if item.get("kind", "") == "project":
 		return str(game.data.science_projects.get(item.get("id", ""), {}).get("name", item.get("id", "")))
 	if item.get("kind", "") == "unit":
@@ -402,6 +405,8 @@ static func item_cost(game: Game, city: City, item: Dictionary) -> float:
 	if item["kind"] == "project":
 		base = float(game.data.science_projects.get(item["id"], {}).get("cost", 0))
 		return roundf(base * speed_mult(game))
+	if item["kind"] == "cultural_project":
+		return roundf(CultureRules.config(game, "commission_cost") * speed_mult(game))
 	if item["kind"] == "unit":
 		var def := game.data.unit_def(item["id"])
 		var made: int = int(game.state.player(city.owner).produced.get(item["id"], 0))
@@ -426,6 +431,8 @@ static func build_error(game: Game, city: City, item: Dictionary) -> String:
 	var id: String = item.get("id", "")
 	if kind == "project":
 		return ScienceRules.project_error(game, city, id)
+	if kind == "cultural_project":
+		return CultureRules.commission_error(game, city) if id == "GREAT_WORK" else "Неизвестный культурный проект"
 	if kind == "unit":
 		var def := game.data.unit_def(id)
 		if def.is_empty():
@@ -509,6 +516,8 @@ static func buildable_items(game: Game, city: City) -> Array:
 	for project_id in game.data.science_project_ids:
 		if build_error(game, city, {"kind": "project", "id": project_id}) == "":
 			result.append({"kind": "project", "id": project_id})
+	if CultureRules.commission_error(game, city) == "":
+		result.append({"kind": "cultural_project", "id": "GREAT_WORK"})
 	return result
 
 
@@ -582,6 +591,8 @@ static func complete_item(game: Game, city: City, item: Dictionary, events: Arra
 		events.append({"type": "unit_created", "unit": u.id, "city": city.id})
 	elif item["kind"] == "project":
 		ScienceRules.complete(game, city, str(item["id"]), events)
+	elif item["kind"] == "cultural_project":
+		CultureRules.complete_commission(game, city, events)
 	elif item["kind"] == "district":
 		var e := DistrictRules.entry_at(city, int(item["tile"]))
 		e["complete"] = true

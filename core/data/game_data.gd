@@ -22,6 +22,7 @@ var trade: Dictionary = {}
 var diplomacy: Dictionary = {}
 var religion_setup: Dictionary = {}
 var science_setup: Dictionary = {}
+var culture_setup: Dictionary = {}
 var science_projects: Dictionary = {}
 var science_project_ids: Array[String] = []
 var buildings: Dictionary = {}
@@ -122,6 +123,7 @@ func load_all(dir: String = DATA_DIR) -> void:
 	diplomacy = _read(dir + "diplomacy.json")
 	religion_setup = _read(dir + "religions.json")
 	science_setup = _read(dir + "science_projects.json")
+	culture_setup = _read(dir + "culture_victory.json")
 	var project_list: Array = science_setup.get("projects", [])
 	science_projects = _index(project_list)
 	for project in project_list:
@@ -299,6 +301,7 @@ func validate() -> PackedStringArray:
 	errors.append_array(TradeRules.validate_data(self))
 	errors.append_array(ReligionRules.validate_data(self))
 	errors.append_array(ScienceRules.validate_data(self))
+	errors.append_array(CultureRules.validate_data(self))
 	errors.append_array(_validate_tree(civics, "Институт"))
 	return errors
 

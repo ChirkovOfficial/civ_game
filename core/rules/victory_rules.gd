@@ -107,6 +107,27 @@ static func check_science(game: Game, events: Array) -> void:
 			return
 
 
+static func check_culture(game: Game, events: Array) -> void:
+	if not game.state.result.is_empty():
+		return
+	for player in game.state.players:
+		if player.is_barbarian or not player.alive or game.state.cities_of(player.id).is_empty():
+			continue
+		var rivals := 0
+		var visitors := CultureRules.foreign_tourists(game, player.id)
+		var won := true
+		for other in game.state.players:
+			if other.id == player.id or other.is_barbarian or not other.alive:
+				continue
+			rivals += 1
+			if game.state.cities_of(other.id).is_empty() or visitors <= CultureRules.domestic_tourists(game, other.id):
+				won = false
+				break
+		if rivals > 0 and won:
+			_finish(game, "culture", [player.id], events)
+			return
+
+
 static func check_capitals(game: Game, events: Array) -> void:
 	if not game.state.result.is_empty():
 		return

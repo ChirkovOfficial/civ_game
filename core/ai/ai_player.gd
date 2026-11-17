@@ -577,6 +577,10 @@ static func _choose_production(game: Game, city: City) -> void:
 	var pid := city.owner
 	if _science_production(game, city):
 		return
+	if CultureRules.commission_error(game, city) == "" and _enemies_near(game, pid, city.tile, 5).is_empty():
+		game.apply_action({"type": "set_production", "city": city.id,
+			"kind": "cultural_project", "id": "GREAT_WORK"})
+		return
 	var cities := game.state.cities_of(pid)
 	var military := _count_units(game, pid, func(u: Unit) -> bool: return Movement.layer(game, u.type) == "COMBAT")
 	var settlers := _count_units(game, pid, func(u: Unit) -> bool:

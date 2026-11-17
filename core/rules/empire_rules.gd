@@ -191,6 +191,8 @@ static func turns_left(cost: float, progress: float, per_turn: float) -> int:
 ## под ключом "_overflow" до выбора). kind: "tech" | "civic".
 static func add_research(game: Game, pid: int, kind: String, amount: float, events: Array) -> void:
 	var p := game.state.player(pid)
+	if kind == "civic":
+		p.culture_total += maxf(0.0, amount)
 	var progress: Dictionary = p.tech_progress if kind == "tech" else p.civic_progress
 	var current: String = p.current_tech if kind == "tech" else p.current_civic
 	if current == "":

@@ -14,6 +14,8 @@ var food_stored: float = 0.0
 var is_capital: bool = false
 var founded_turn: int = 1
 var buildings: Array[String] = []
+## Созданные городом шедевры в ячейках Театральной площади.
+var great_works: int = 0
 ## Обрабатываемые жителями клетки (без центра — он обрабатывается бесплатно).
 var worked_tiles: Array[int] = []
 ## Клетки, закреплённые игроком вручную (автоуправляющий их не снимает).
@@ -70,7 +72,8 @@ func to_dict() -> Dictionary:
 		"id": id, "owner": owner, "original_owner": original_owner, "name": name,
 		"tile": tile, "population": population, "religion_pressure": religion_pressure.duplicate(), "food_stored": food_stored,
 		"is_capital": is_capital, "founded_turn": founded_turn,
-		"buildings": buildings.duplicate(), "worked_tiles": worked_tiles.duplicate(),
+		"buildings": buildings.duplicate(), "great_works": great_works,
+		"worked_tiles": worked_tiles.duplicate(),
 		"locked_tiles": locked_tiles.duplicate(), "queue": queue.duplicate(true),
 		"progress": progress.duplicate(), "overflow": overflow,
 		"culture_stored": culture_stored, "border_tiles_acquired": border_tiles_acquired,
@@ -97,6 +100,7 @@ static func from_dict(d: Dictionary) -> City:
 	c.is_capital = bool(d["is_capital"])
 	c.founded_turn = int(d["founded_turn"])
 	c.buildings.assign(d["buildings"])
+	c.great_works = int(d.get("great_works", 0))
 	for t in d["worked_tiles"]:
 		c.worked_tiles.append(int(t))
 	for t in d["locked_tiles"]:

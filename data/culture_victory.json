@@ -1,0 +1,16 @@
+{
+  "domestic_culture_divisor": 100,
+  "domestic_divisor_per_extra_major": 25,
+  "tourism_divisor_per_major": 200,
+  "commission_cost": 180,
+  "work_culture": 2,
+  "work_tourism": 4,
+  "holy_city_tourism": 8,
+  "wall_tourism": 2,
+  "trade_route_bonus": 0.25,
+  "open_borders_bonus": 0.25,
+  "different_religion_penalty": 0.5,
+  "different_tier3_government_penalty": 0.25,
+  "computers_bonus": 0.25,
+  "social_media_bonus": 0.25
+}
