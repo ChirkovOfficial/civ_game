@@ -144,6 +144,12 @@
    "placements": [{"terrain": ["DESERT", "PLAINS"], "relief": "FLAT"}]
   },
   {
+   "id": "NATIONAL_PARK",
+   "name": "Национальный парк",
+   "special": true,
+   "yields": {}
+  },
+  {
    "id": "SEASIDE_RESORT",
    "name": "Морской курорт",
    "civic": "CONSERVATION",

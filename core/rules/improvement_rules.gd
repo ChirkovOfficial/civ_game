@@ -51,6 +51,8 @@ static func build_error(game: Game, u: Unit, imp_id: String) -> String:
 		return "В центре города улучшения не строятся"
 	if map.district[tile] != "":
 		return "Здесь район"
+	if map.improvement[tile] == "NATIONAL_PARK":
+		return "Национальный парк нельзя застроить улучшением"
 	if def.has("tech") and not p.has_tech(def["tech"]):
 		return "Нужна технология: %s" % game.data.techs.get(def["tech"], {}).get("name", def["tech"])
 	if def.has("civic") and not p.has_civic(def["civic"]):

@@ -85,6 +85,36 @@ static func complete_commission(game: Game, city: City, events: Array) -> void:
 		"count": city.great_works})
 
 
+static func move_work_error(game: Game, pid: int, source: City, target: City, index: int) -> String:
+	if source == null or target == null or source.owner != pid or target.owner != pid:
+		return "Нужны два своих города"
+	if source.id == target.id:
+		return "Выберите другой город"
+	if index < 0 or index >= source.great_works:
+		return "Такого шедевра нет"
+	if target.great_works >= work_slots(game, target):
+		return "В другом городе нет свободной ячейки шедевра"
+	return ""
+
+
+static func move_work(game: Game, pid: int, source: City, target: City, index: int, events: Array) -> String:
+	var err := move_work_error(game, pid, source, target, index)
+	if err != "":
+		return err
+	while source.great_work_types.size() < source.great_works:
+		source.great_work_types.append("")
+	while target.great_work_types.size() < target.great_works:
+		target.great_work_types.append("")
+	var kind: String = source.great_work_types[index]
+	source.great_work_types.remove_at(index)
+	source.great_works -= 1
+	target.great_work_types.append(kind)
+	target.great_works += 1
+	events.append({"type": "great_work_moved", "player": pid, "from_city": source.id,
+		"to_city": target.id, "work": kind})
+	return ""
+
+
 static func domestic_tourists(game: Game, pid: int) -> int:
 	if game.state.cities_of(pid).is_empty():
 		return 0
@@ -120,6 +150,7 @@ static func tourism_per_turn(game: Game, pid: int) -> float:
 	for city in game.state.cities_of(pid):
 		amount += work_tourism(game, city)
 		amount += WonderRules.tourism(game, city)
+		amount += ParkRules.tourism(game, city)
 		for tile in game.state.map.grid.tiles_in_radius(city.tile, 3):
 			if game.state.map.owner_city[tile] == city.id and game.state.map.improvement[tile] == "SEASIDE_RESORT" \
 					and game.state.map.pillaged[tile] == 0:

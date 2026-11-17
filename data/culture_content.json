@@ -29,5 +29,16 @@
   "wonder_loser_gold_fraction": 0.5,
   "wonder_tourism_per_era": 1,
   "resort_min_appeal": 4,
-  "resort_tourism_per_appeal": 1
+  "resort_tourism_per_appeal": 1,
+  "park_min_appeal": 2,
+  "park_tourism_per_appeal": 1,
+  "park_amenities": 2,
+  "naturalist_faith_cost": 200,
+  "naturalist_cost_step": 25,
+  "rock_band_faith_cost": 300,
+  "rock_band_cost_step": 75,
+  "rock_band_concert_tourism": 250,
+  "rock_band_concert_growth": 0.5,
+  "rock_band_break_chance": 0.3,
+  "rock_band_charges": 3
 }

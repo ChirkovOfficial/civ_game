@@ -22,6 +22,8 @@ static func take_turn(game: Game, pid: int) -> void:
 	_choose_government(game, pid)
 	_religion(game, pid)
 	_recruit_great_people(game, pid)
+	_culture_recruits(game, pid)
+	_organize_works(game, pid)
 	_tactical(game, pid)
 	if not game.state.result.is_empty():
 		return
@@ -35,6 +37,10 @@ static func take_turn(game: Game, pid: int) -> void:
 			_handle_builder(game, u)
 		elif abilities.has("TRADE_ROUTE") and u.trade_route.is_empty():
 			_handle_trader(game, u)
+		elif abilities.has("FOUND_PARK"):
+			_handle_naturalist(game, u)
+		elif abilities.has("PERFORM_CONCERT"):
+			_handle_rock_band(game, u)
 	for city in game.state.cities_of(pid):
 		if city.queue.is_empty():
 			_choose_production(game, city)
@@ -690,6 +696,90 @@ static func _recruit_great_people(game: Game, pid: int) -> void:
 			if GreatPeopleRules.recruit_error(game, pid, city, kind) == "":
 				game.apply_action({"type": "recruit_great_person", "city": city.id, "kind": kind})
 				break
+
+
+static func _organize_works(game: Game, pid: int) -> void:
+	for source in game.state.cities_of(pid):
+		while source.great_works > CultureRules.work_slots(game, source):
+			var moved := false
+			for target in game.state.cities_of(pid):
+				if CultureRules.move_work_error(game, pid, source, target, source.great_works - 1) == "":
+					game.apply_action({"type": "move_great_work", "city": source.id,
+						"target_city": target.id, "index": source.great_works - 1})
+					moved = true
+					break
+			if not moved:
+				break
+
+
+static func _culture_recruits(game: Game, pid: int) -> void:
+	var player := game.state.player(pid)
+	if player.has_civic("CONSERVATION") and player.faith >= ParkRules.faith_cost(game, pid) \
+			and not game.state.units_of(pid).any(func(unit: Unit): return unit.type == "NATURALIST"):
+		var site := ParkRules.best_site(game, pid)
+		if not site.is_empty():
+			var park_city := game.state.city(int(site["city"]))
+			if ParkRules.recruit_error(game, pid, park_city) == "":
+				game.apply_action({"type": "recruit_naturalist", "city": park_city.id})
+	if not player.has_civic("COLD_WAR"):
+		return
+	if game.state.units_of(pid).any(func(unit: Unit): return unit.type == "ROCK_BAND"):
+		return
+	var host_continents := {}
+	for other in game.state.players:
+		if other.id != pid and other.alive and not other.is_barbarian and player.met.has(other.id) \
+				and not game.state.at_war(pid, other.id) and not game.state.cities_of(other.id).is_empty():
+			for host_city in game.state.cities_of(other.id):
+				host_continents[game.state.map.continent[host_city.tile]] = true
+	if host_continents.is_empty():
+		return
+	for city in game.state.cities_of(pid):
+		var continent := game.state.map.continent[city.tile]
+		if (continent < 0 or host_continents.has(continent) or host_continents.has(-1)) \
+				and RockBandRules.recruit_error(game, pid, city) == "":
+			game.apply_action({"type": "recruit_rock_band", "city": city.id})
+			break
+
+
+static func _handle_naturalist(game: Game, unit: Unit) -> void:
+	if unit.moves_left <= 0.0:
+		return
+	if ParkRules.found_error(game, unit) == "":
+		game.apply_action({"type": "found_park", "unit": unit.id})
+		return
+	var site := ParkRules.best_site(game, unit.owner)
+	if not site.is_empty() and int(site["stand_tile"]) != unit.tile:
+		game.apply_action({"type": "move_unit", "unit": unit.id, "target": int(site["stand_tile"])})
+
+
+static func _handle_rock_band(game: Game, unit: Unit) -> void:
+	if unit.moves_left <= 0.0:
+		return
+	if RockBandRules.concert_error(game, unit) == "":
+		game.apply_action({"type": "perform_concert", "unit": unit.id})
+		return
+	var best_tile := -1
+	var best_distance := 2147483647
+	for other in game.state.players:
+		if other.id == unit.owner or other.is_barbarian or not other.alive \
+				or not game.state.player(unit.owner).met.has(other.id) or game.state.at_war(unit.owner, other.id):
+			continue
+		for city in game.state.cities_of(other.id):
+			var options: Array[int] = [city.tile]
+			for tile in game.state.map.grid.neighbors(city.tile):
+				options.append(tile)
+			for tile in options:
+				if game.state.map.owner_city[tile] != city.id or not Movement.can_stand(game, unit, tile):
+					continue
+				if not Movement.occupancy_allows(game, unit, tile, true):
+					continue
+				var distance := game.state.map.grid.distance(unit.tile, tile)
+				if distance >= best_distance or Pathfinder.find_path(game, unit, tile).is_empty():
+					continue
+				best_distance = distance
+				best_tile = tile
+	if best_tile >= 0:
+		game.apply_action({"type": "move_unit", "unit": unit.id, "target": best_tile})
 
 
 static func _science_production(game: Game, city: City) -> bool:

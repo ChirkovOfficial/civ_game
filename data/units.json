@@ -53,6 +53,30 @@
    "abilities": ["PURGE_RELIGION", "THEOLOGICAL_ATTACK"]
   },
   {
+   "id": "NATURALIST",
+   "name": "Натуралист",
+   "class": "CIVILIAN",
+   "domain": "LAND",
+   "moves": 2,
+   "sight": 2,
+   "cost": 0,
+   "religion_only": true,
+   "abilities": ["FOUND_PARK"]
+  },
+  {
+   "id": "ROCK_BAND",
+   "name": "Рок-группа",
+   "class": "CIVILIAN",
+   "layer": "TOURISM",
+   "domain": "LAND",
+   "moves": 2,
+   "sight": 2,
+   "cost": 0,
+   "religion_only": true,
+   "charges": 3,
+   "abilities": ["PERFORM_CONCERT"]
+  },
+  {
    "id": "SETTLER",
    "name": "Поселенец",
    "class": "CIVILIAN",

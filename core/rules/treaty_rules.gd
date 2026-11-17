@@ -295,6 +295,9 @@ static func _closed(game: Game, visitor: int, host: int) -> bool:
 
 
 static func border_allows(game: Game, unit: Unit, from: int, to: int) -> bool:
+	if Movement.layer(game, unit.type) == "TOURISM":
+		var host := _owner(game, to)
+		return host < 0 or host == unit.owner or not game.state.at_war(unit.owner, host)
 	if Movement.layer(game, unit.type) in ["TRADE", "RELIGIOUS"]:
 		return true
 	var host := _owner(game, to)
@@ -302,6 +305,9 @@ static func border_allows(game: Game, unit: Unit, from: int, to: int) -> bool:
 
 
 static func withdrawing(game: Game, unit: Unit) -> bool:
+	if Movement.layer(game, unit.type) == "TOURISM":
+		var host := _owner(game, unit.tile)
+		return host >= 0 and host != unit.owner and game.state.at_war(unit.owner, host)
 	return Movement.layer(game, unit.type) not in ["TRADE", "RELIGIOUS"] and _closed(game, unit.owner, _owner(game, unit.tile))
 
 

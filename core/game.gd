@@ -172,6 +172,27 @@ func apply_action(action: Dictionary) -> Array:
 					str(action.get("kind", "")), bool(action.get("patronage", false)), events)
 				if recruit_err != "":
 					events.append(_error(recruit_err))
+		"move_great_work":
+			var source_city := _own_city(action, events)
+			if source_city != null:
+				var work_err := CultureRules.move_work(self, state.current_player, source_city,
+					state.city(int(action.get("target_city", -1))), int(action.get("index", -1)), events)
+				if work_err != "":
+					events.append(_error(work_err))
+		"recruit_naturalist", "recruit_rock_band":
+			var culture_city := _own_city(action, events)
+			if culture_city != null:
+				var culture_err := ParkRules.recruit(self, state.current_player, culture_city, events) \
+					if action["type"] == "recruit_naturalist" else RockBandRules.recruit(self, state.current_player, culture_city, events)
+				if culture_err != "":
+					events.append(_error(culture_err))
+		"found_park", "perform_concert":
+			var culture_unit := _own_unit(action, events)
+			if culture_unit != null:
+				var culture_err := ParkRules.found(self, culture_unit, events) \
+					if action["type"] == "found_park" else RockBandRules.perform(self, culture_unit, events)
+				if culture_err != "":
+					events.append(_error(culture_err))
 		"purchase":
 			_act_purchase(action, events)
 		"set_doctrine":

@@ -1474,6 +1474,16 @@ func show_unit(u: Unit) -> void:
 					var target_id := target.id
 					_button(_unit_box, "Теологический бой: %s" % game.data.unit_def(target.type)["name"],
 						func(): act.call({"type": "theological_attack", "unit": u.id, "target_unit": target_id}))
+	if abilities.has("FOUND_PARK"):
+		var park_option := ParkRules.best_option(game, u.owner, u.tile)
+		var park_err := ParkRules.found_error(game, u)
+		_button(_unit_box, "Основать национальный парк%s" %
+			(" (+%.0f туризма)" % float(park_option["tourism"]) if not park_option.is_empty() else ""),
+			func(): act.call({"type": "found_park", "unit": u.id}), park_err != "", park_err)
+	if abilities.has("PERFORM_CONCERT"):
+		var concert_err := RockBandRules.concert_error(game, u)
+		_button(_unit_box, "Дать концерт", func(): act.call({"type": "perform_concert", "unit": u.id}),
+			concert_err != "", concert_err)
 	if abilities.has("BUILD_IMPROVEMENT"):
 		for iid in ImprovementRules.valid_improvements(game, u):
 			var imp: Dictionary = game.data.improvements[iid]
@@ -1597,6 +1607,21 @@ func refresh_city() -> void:
 	if CultureRules.work_slots(game, city) > 0 or city.great_works > 0:
 		_label(_city_box, "Шедевры: %d/%d · туризм %.1f за круг" % [city.great_works,
 			CultureRules.work_slots(game, city), CultureRules.work_tourism(game, city)])
+		if city.owner == game.state.current_player:
+			for work_index in city.great_works:
+				var work_kind := city.great_work_types[work_index] if work_index < city.great_work_types.size() else ""
+				var work_name: String = {"WRITING": "Литература", "ART": "Живопись", "MUSIC": "Музыка"}.get(work_kind, "Шедевр")
+				var work_row := HBoxContainer.new()
+				_city_box.add_child(work_row)
+				_label(work_row, "• %s" % work_name, 12)
+				for other_city in game.state.cities_of(city.owner):
+					if CultureRules.move_work_error(game, city.owner, city, other_city, work_index) == "":
+						var destination_id := other_city.id
+						var source_index := work_index
+						_button(work_row, "→ %s" % other_city.name, func(): act.call({"type": "move_great_work",
+							"city": city.id, "target_city": destination_id, "index": source_index}))
+	if not city.parks.is_empty():
+		_label(_city_box, "Национальные парки: %d · туризм %.1f за круг" % [city.parks.size(), ParkRules.tourism(game, city)])
 	if not city.wonders.is_empty():
 		var wonder_names := []
 		for wonder in city.wonders:
@@ -1625,6 +1650,17 @@ func refresh_city() -> void:
 			var missing := maxf(0.0, cost_gp - points)
 			_button(gp_row, "Покровительство %d зол." % ceili(missing * GreatPeopleRules.cfg(game, "great_person_patronage_gold_per_point")),
 				func(): act.call({"type": "recruit_great_person", "city": city.id, "kind": patron_kind, "patronage": true}))
+	var faith_balance := game.state.player(city.owner).faith
+	if game.state.player(city.owner).has_civic("CONSERVATION"):
+		var naturalist_cost := ParkRules.faith_cost(game, city.owner)
+		var naturalist_err := ParkRules.recruit_error(game, city.owner, city)
+		_button(_city_box, "Натуралист — %d веры (запас %.0f)" % [naturalist_cost, faith_balance],
+			func(): act.call({"type": "recruit_naturalist", "city": city.id}), naturalist_err != "", naturalist_err)
+	if game.state.player(city.owner).has_civic("COLD_WAR"):
+		var band_cost := RockBandRules.faith_cost(game, city.owner)
+		var band_err := RockBandRules.recruit_error(game, city.owner, city)
+		_button(_city_box, "Рок-группа — %d веры (запас %.0f)" % [band_cost, faith_balance],
+			func(): act.call({"type": "recruit_rock_band", "city": city.id}), band_err != "", band_err)
 	_label(_city_box, "Производство", 18)
 	var item := city.current_item()
 	if item.is_empty():
@@ -1846,6 +1882,8 @@ func show_tile(viewer: Player, tile: int, reveal_all: bool) -> void:
 		lines.append("Ресурс: %s (%s)" % [rdef.get("name", rid), cls])
 	if map.improvement[tile] != "":
 		lines.append("Улучшение: %s" % game.data.improvements.get(map.improvement[tile], {}).get("name", ""))
+	if map.is_land(tile):
+		lines.append("Привлекательность: %d" % CultureRules.appeal(game, tile))
 	if map.district[tile] != "" and map.district[tile] != DistrictRules.CENTER:
 		if map.district[tile].begins_with("WONDER:"):
 			var wonder_city := game.state.city_owning(tile)

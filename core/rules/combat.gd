@@ -569,6 +569,10 @@ static func capture_city(game: Game, u: Unit, city: City, events: Array) -> void
 
 static func _destroy_city(game: Game, city: City, events: Array) -> void:
 	var map := game.state.map
+	for park in city.parks:
+		for tile in park["tiles"]:
+			if map.improvement[int(tile)] == "NATIONAL_PARK":
+				map.improvement[int(tile)] = ""
 	for t in map.grid.tiles_in_radius(city.tile, int(k(game, "city_border_radius", 5))):
 		if map.owner_city[t] == city.id:
 			map.owner_city[t] = -1

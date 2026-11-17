@@ -262,6 +262,13 @@ func _on_events(events: Array) -> void:
 			hud.show_message("Космический проект завершён: %s" % game.data.science_projects[e["project"]]["name"], 4.0)
 		elif t == "great_work_created" and e["player"] == game.state.current_player:
 			hud.show_message("В городе создан шедевр", 4.0)
+		elif t == "great_work_moved" and e["player"] == game.state.current_player:
+			hud.show_message("Шедевр перевезён в город %s" % game.state.city(int(e["to_city"])).name, 3.0)
+		elif t == "national_park_founded" and e["player"] == game.state.current_player:
+			hud.show_message("Основан национальный парк: +%.0f туризма" % float(e["tourism"]), 4.0)
+		elif t == "rock_concert" and e["player"] == game.state.current_player:
+			hud.show_message("Концерт: +%.0f туризма против %s%s" % [float(e["tourism"]),
+				game.state.player(int(e["host"])).name, " · группа распалась" if e["dissolved"] else ""], 4.0)
 		elif t == "world_exchange_opened":
 			hud.show_message("Открыта Мировая биржа: началась гонка за финансовую победу", 5.0)
 		elif t == "finance_hegemony":

@@ -323,6 +323,8 @@ func validate() -> PackedStringArray:
 	errors.append_array(ScienceRules.validate_data(self))
 	errors.append_array(EnergyRules.validate_data(self))
 	errors.append_array(CultureRules.validate_data(self))
+	errors.append_array(ParkRules.validate_data(self))
+	errors.append_array(RockBandRules.validate_data(self))
 	errors.append_array(GreatPeopleRules.validate_data(self))
 	errors.append_array(WonderRules.validate_data(self))
 	errors.append_array(FinanceRules.validate_data(self))

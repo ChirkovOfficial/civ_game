@@ -20,6 +20,8 @@ var great_works: int = 0
 var great_work_types: Array[String] = []
 ## Чудеса: {"id", "tile", "complete"}. Заложенный объект сохраняет клетку при смене производства.
 var wonders: Array = []
+## Национальные парки: {"tiles": [четыре индекса клеток]}.
+var parks: Array = []
 ## Обрабатываемые жителями клетки (без центра — он обрабатывается бесплатно).
 var worked_tiles: Array[int] = []
 ## Клетки, закреплённые игроком вручную (автоуправляющий их не снимает).
@@ -78,6 +80,7 @@ func to_dict() -> Dictionary:
 		"is_capital": is_capital, "founded_turn": founded_turn,
 		"buildings": buildings.duplicate(), "great_works": great_works,
 		"great_work_types": great_work_types.duplicate(), "wonders": wonders.duplicate(true),
+		"parks": parks.duplicate(true),
 		"worked_tiles": worked_tiles.duplicate(),
 		"locked_tiles": locked_tiles.duplicate(), "queue": queue.duplicate(true),
 		"progress": progress.duplicate(), "overflow": overflow,
@@ -112,6 +115,11 @@ static func from_dict(d: Dictionary) -> City:
 	for wonder in d.get("wonders", []):
 		c.wonders.append({"id": str(wonder["id"]), "tile": int(wonder["tile"]),
 			"complete": bool(wonder.get("complete", false)), "built_era": int(wonder.get("built_era", 0))})
+	for park in d.get("parks", []):
+		var tiles: Array[int] = []
+		for t in park["tiles"]:
+			tiles.append(int(t))
+		c.parks.append({"tiles": tiles})
 	for t in d["worked_tiles"]:
 		c.worked_tiles.append(int(t))
 	for t in d["locked_tiles"]:

@@ -199,6 +199,7 @@ static func _base_amenities(game: Game, city: City) -> int:
 	for bid in city.buildings:
 		a += int(game.data.buildings.get(bid, {}).get("amenities", 0))
 	a += int(DistrictRules.city_totals(game, city)["amenities"])
+	a += ParkRules.amenities(game, city)
 	a += int(CityLife.doctrine_effect(game, city).get("amenities", 0))
 	return a
 
@@ -447,7 +448,7 @@ static func build_error(game: Game, city: City, item: Dictionary) -> String:
 		if def.is_empty():
 			return "Неизвестный юнит"
 		if def.get("religion_only", false):
-			return "Религиозные юниты вербуются за веру или очки пророка"
+			return "Этот юнит приобретается отдельным действием"
 		if not _unlocked(p, def):
 			return "Не открыто"
 		if def.get("domain", "LAND") == "SEA" and not game.state.map.is_coastal_land(city.tile):

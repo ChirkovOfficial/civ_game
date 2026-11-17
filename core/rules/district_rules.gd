@@ -129,6 +129,8 @@ static func placement_error(game: Game, city: City, type: String, tile: int) -> 
 		return "Слишком далеко от центра (не дальше 3 клеток)"
 	if map.district[tile] != "" or map.is_mountain(tile):
 		return "Клетка занята"
+	if map.improvement[tile] == "NATIONAL_PARK":
+		return "Национальный парк нельзя застроить районом"
 	if map.feature_def(tile).get("impassable", false):
 		return "Здесь нельзя строить"
 	var rid := map.resource[tile]

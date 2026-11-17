@@ -173,7 +173,8 @@ static func pillage_error(game: Game, u: Unit) -> String:
 		return "Нет очков движения"
 	var map := game.state.map
 	var imp := map.improvement[u.tile]
-	if imp == "" or map.pillaged[u.tile] == 1 or game.data.improvements.get(imp, {}).get("special", false):
+	if imp == "" or map.pillaged[u.tile] == 1 or (game.data.improvements.get(imp, {}).get("special", false) \
+			and imp != "NATIONAL_PARK"):
 		return "Здесь нечего грабить"
 	var oc := game.state.city_owning(u.tile)
 	if oc == null or not game.state.at_war(u.owner, oc.owner):
