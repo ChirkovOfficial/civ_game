@@ -482,6 +482,9 @@ static func output(game: Game, city: City, entry: Dictionary) -> Dictionary:
 	for t in range(1, tier + 1):
 		var td := tier_def(game, type, t)
 		Yields.add_into(y, td.get("yields", {}))
+		if td.has("power_demand") and EnergyRules.powered(game, city, int(entry["tile"]), t):
+			Yields.add_into(y, td.get("powered_yields", {}))
+			out["amenities"] += int(td.get("powered_amenities", 0))
 		out["housing"] += float(td.get("housing", 0))
 		out["amenities"] += int(td.get("amenities", 0))
 		out["sanitation"] += float(td.get("sanitation", 0))

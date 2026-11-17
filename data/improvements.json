@@ -128,6 +128,22 @@
    "resource_only": true
   },
   {
+   "id": "WIND_FARM",
+   "name": "Ветропарк",
+   "tech": "ELECTRICITY",
+   "yields": {"production": 1},
+   "renewable_power": 3,
+   "placements": [{"terrain": ["GRASS", "PLAINS", "DESERT", "TUNDRA", "SNOW"], "relief": "HILLS"}]
+  },
+  {
+   "id": "SOLAR_FARM",
+   "name": "Солнечная станция",
+   "tech": "ADVANCED_POWER_CELLS",
+   "yields": {"production": 1},
+   "renewable_power": 4,
+   "placements": [{"terrain": ["DESERT", "PLAINS"], "relief": "FLAT"}]
+  },
+  {
    "id": "FORT",
    "name": "Форт",
    "tech": "METAL_CASTING",

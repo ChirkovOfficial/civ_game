@@ -3,7 +3,7 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 16
+const SAVE_VERSION := 17
 
 ## Основанные религии: id -> {name, founder, holy_city, follower_belief, founder_belief, cult_belief, enhancer_belief}.
 var religions: Dictionary = {}
@@ -11,6 +11,8 @@ var religions: Dictionary = {}
 var religious_conflicts := {"next_id": 1, "incidents": {}, "requests": {}, "promises": {}, "breaches": {}}
 ## Научные проекты и расстояние до экзопланеты по державам.
 var science_data: Dictionary = {}
+## Распределение энергии и сожжённое топливо за текущий ход каждой державы.
+var energy_data: Dictionary = {}
 ## Глобальное открытие биржи, серии финансовой гегемонии и последний засчитанный ход.
 var finance_data := {"unlocked": false, "streaks": {}, "last_counted": {}}
 ## Направленные делегации и взаимные посольства.
@@ -199,6 +201,7 @@ func to_dict() -> Dictionary:
 		"religions": religions.duplicate(true),
 		"religious_conflicts": religious_conflicts.duplicate(true),
 		"science": science_data.duplicate(true),
+		"energy": energy_data.duplicate(true),
 		"finance": finance_data.duplicate(true),
 		"diplomatic_visibility": visibility_data.duplicate(true),
 		"treaties": treaty_data.duplicate(true),
@@ -266,6 +269,25 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 		for key in saved_conflicts.get(collection, {}):
 			s.religious_conflicts[collection][key] = Unit._ints_in_dict(saved_conflicts[collection][key])
 	s.science_data = _restore_congress(d.get("science", {}))
+	if int(d.get("version", 1)) < 17:
+		for key in s.science_data:
+			var progress: Dictionary = s.science_data[key]
+			if progress.has("laser_sites"):
+				continue
+			progress["laser_sites"] = {}
+			if int(progress.get("lasers", 0)) <= 0:
+				continue
+			for city in s.cities_of(int(key)):
+				var has_port := false
+				for district in city.districts:
+					if district["type"] == "SPACEPORT" and district["complete"] \
+							and s.map.pillaged[int(district["tile"])] == 0:
+						has_port = true
+						break
+				if has_port:
+					progress["laser_sites"][str(city.id)] = int(progress["lasers"])
+					break
+	s.energy_data = _restore_congress(d.get("energy", {}))
 	for key in d.get("finance", {}):
 		s.finance_data[key] = _restore_congress(d["finance"][key])
 	for key in d.get("diplomatic_visibility", {}):

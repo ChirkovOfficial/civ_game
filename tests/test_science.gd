@@ -64,13 +64,29 @@ func test_expedition_lasers_save_and_arrival_before_score() -> void:
 	check_eq(CityRules.build_error(game, city, {"kind": "project", "id": "EXOPLANET_EXPEDITION"}), "Этот проект уже завершён державой")
 	check(CityRules.build_error(game, city, {"kind": "project", "id": "GROUND_LASER"}) != "")
 	player.stockpile["ALUMINUM"] = 20.0
+	check(CityRules.build_error(game, city, {"kind": "project", "id": "GROUND_LASER"}).contains("энергии"))
+	for tile in game.state.map.grid.neighbors(city.tile).slice(1, 4):
+		game.state.map.relief[tile] = GameMap.RELIEF_HILLS
+		game.state.map.improvement[tile] = "WIND_FARM"
 	_finish_project(game, city, "GROUND_LASER")
 	_finish_project(game, city, "LAGRANGE_LASER")
-	check_eq(ScienceRules.status(game, 0)["speed"], 3)
+	check_eq(ScienceRules.status(game, 0)["speed"], 1)
 	check_eq(ScienceRules.status(game, 0)["lasers"], 2)
 	check_near(float(player.stockpile["ALUMINUM"]), 0.0)
+	ScienceRules.process_round(game, [])
+	check_eq(ScienceRules.status(game, 0)["speed"], 3)
+	for tile in game.state.map.grid.neighbors(city.tile).slice(1, 4):
+		game.state.map.pillaged[tile] = 1
+	ScienceRules.process_round(game, [])
+	check_eq(ScienceRules.status(game, 0)["speed"], 1)
 	var restored := GameState.from_json(game.state.to_json(), game.data)
 	check_eq(restored.science_data, game.state.science_data)
+	var prior := game.state.to_dict()
+	prior["version"] = 16
+	prior.erase("energy")
+	prior["science"]["0"].erase("laser_sites")
+	var migrated := GameState.from_dict(prior, game.data)
+	check_eq(int(migrated.science_data["0"]["laser_sites"].get(str(city.id), 0)), 2)
 	var old := game.state.to_dict()
 	old["version"] = 12
 	old.erase("science")

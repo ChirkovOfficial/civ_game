@@ -59,6 +59,8 @@
      "yields": {
       "science": 5
      },
+     "power_demand": 3,
+     "powered_yields": {"science": 5},
      "specialist_slots": 1,
      "maintenance": 3
     }
@@ -231,6 +233,8 @@
       "food": 2,
       "gold": 2
      },
+     "power_demand": 2,
+     "powered_yields": {"food": 1, "gold": 2},
      "housing": 1,
      "specialist_slots": 1,
      "maintenance": 3
@@ -292,6 +296,8 @@
      "yields": {
       "gold": 7
      },
+     "power_demand": 3,
+     "powered_yields": {"gold": 7},
      "specialist_slots": 1,
      "maintenance": 3
     }
@@ -356,6 +362,8 @@
      "yields": {
       "culture": 4
      },
+     "power_demand": 3,
+     "powered_yields": {"culture": 4},
      "specialist_slots": 1,
      "maintenance": 3
     }
@@ -439,7 +447,30 @@
      "yields": {
       "production": 3
      },
+     "power_demand": 3,
+     "powered_yields": {"production": 3},
      "specialist_slots": 1,
+     "maintenance": 3
+    },
+    {
+     "name": "Промышленная зона IV · Угольная электростанция",
+     "tech": "INDUSTRIALIZATION",
+     "yields": {},
+     "power_plant": {"resource": "COAL", "per_resource": 4, "radius": 6},
+     "maintenance": 3
+    },
+    {
+     "name": "Промышленная зона V · Нефтяная электростанция",
+     "tech": "ELECTRICITY",
+     "yields": {},
+     "power_plant": {"resource": "OIL", "per_resource": 4, "radius": 6},
+     "maintenance": 3
+    },
+    {
+     "name": "Промышленная зона VI · Атомная электростанция",
+     "tech": "NUCLEAR_FISSION",
+     "yields": {},
+     "power_plant": {"resource": "URANIUM", "per_resource": 16, "radius": 6},
      "maintenance": 3
     }
    ],
@@ -484,6 +515,8 @@
      "civic": "PROFESSIONAL_SPORTS",
      "regional_amenities": 2,
      "radius": 6,
+     "power_demand": 2,
+     "powered_amenities": 1,
      "specialist_slots": 1,
      "maintenance": 3,
      "yields": {}
@@ -627,6 +660,13 @@
      "name": "Дамба",
      "yields": {},
      "adjacency_mult": 1.0
+    },
+    {
+     "name": "Дамба II · ГЭС",
+     "tech": "ELECTRICITY",
+     "yields": {},
+     "adjacency_mult": 1.0,
+     "renewable_power": 6
     }
    ],
    "tech": "BUTTRESS",

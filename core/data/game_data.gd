@@ -22,6 +22,7 @@ var trade: Dictionary = {}
 var diplomacy: Dictionary = {}
 var religion_setup: Dictionary = {}
 var science_setup: Dictionary = {}
+var energy_setup: Dictionary = {}
 var culture_setup: Dictionary = {}
 var finance_setup: Dictionary = {}
 var visibility_setup: Dictionary = {}
@@ -125,6 +126,7 @@ func load_all(dir: String = DATA_DIR) -> void:
 	diplomacy = _read(dir + "diplomacy.json")
 	religion_setup = _read(dir + "religions.json")
 	science_setup = _read(dir + "science_projects.json")
+	energy_setup = _read(dir + "energy.json")
 	culture_setup = _read(dir + "culture_victory.json")
 	finance_setup = _read(dir + "finance_victory.json")
 	visibility_setup = _read(dir + "diplomatic_visibility.json")
@@ -305,6 +307,7 @@ func validate() -> PackedStringArray:
 	errors.append_array(TradeRules.validate_data(self))
 	errors.append_array(ReligionRules.validate_data(self))
 	errors.append_array(ScienceRules.validate_data(self))
+	errors.append_array(EnergyRules.validate_data(self))
 	errors.append_array(CultureRules.validate_data(self))
 	errors.append_array(FinanceRules.validate_data(self))
 	errors.append_array(DiplomaticVisibility.validate_data(self))

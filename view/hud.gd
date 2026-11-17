@@ -1571,6 +1571,12 @@ func refresh_city() -> void:
 		food_net, _fmt(CityRules.housing(game, city)), int(am["have"]), int(am["need"]), str(st.get("name", ""))])
 	_label(_city_box, "Прочность: %d/%d%s" % [city.hp, int(game.data.const_value("city_hp", 200)),
 		(" · стены %d" % city.wall_hp) if city.wall_hp > 0 else ""])
+	if city.owner == game.state.current_player:
+		var power := EnergyRules.report(game, city)
+		_label(_city_box, "Электроэнергия: %d/%d · возобновляемая %d · резерв %d%s" % [
+			int(power["supplied"]), int(power["demand"]), int(power["renewable"]), int(power["spare"]),
+			(" · активных лазеров %d" % int(power["lasers_powered"])) if int(power["laser_sites"]) > 0 else ""],
+			13, Color(0.8, 0.9, 1.0), true)
 	var city_religion := ReligionRules.majority(game, city)
 	_label(_city_box, "Религия: %s%s" % [game.state.religions.get(city_religion, {}).get("name", "нет большинства"),
 		(" · %.1f последователей" % ReligionRules.followers(game, city, city_religion)) if city_religion != "" else ""])

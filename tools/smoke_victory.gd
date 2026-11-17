@@ -123,7 +123,7 @@ func _run() -> void:
 	var finance_game: Game = fifth.game
 	var finance_city := CityRules.found_city(finance_game, 0, finance_game.state.start_positions[0])
 	CityRules.found_city(finance_game, 1, finance_game.state.start_positions[1])
-	finance_game.data.buildings["SMOKE_MINT"] = {"yields": {"gold": 700}, "maintenance": 0}
+	finance_game.data.buildings["SMOKE_MINT"] = {"name": "Монетный двор", "yields": {"gold": 700}, "maintenance": 0}
 	finance_city.buildings.append("SMOKE_MINT")
 	finance_game.state.player(1).known_techs["BANKING"] = true
 	finance_game.state.player(0).known_techs["PRINTING"] = true
@@ -138,6 +138,15 @@ func _run() -> void:
 	finance_game.state.finance_data["streaks"]["0"] = FinanceRules.required_turns(finance_game) - 1
 	finance_game.state.settings["turn_limit"] = 3
 	var finance_hud: Hud = fifth.hud
+	finance_hud.open_city(finance_city.id)
+	var power_shown := false
+	for label in finance_hud.get("_city_box").find_children("*", "Label", true, false):
+		if label.text.contains("Электроэнергия:"):
+			power_shown = true
+	if not power_shown:
+		printerr("Город не показывает энергоснабжение")
+		quit(1)
+		return
 	finance_hud.open_diplomacy()
 	var alliance_shown := false
 	for label in finance_hud.get("_research_box").find_children("*", "Label", true, false):

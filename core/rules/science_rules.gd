@@ -25,7 +25,7 @@ static func validate_data(data: GameData) -> PackedStringArray:
 
 static func status(game: Game, pid: int) -> Dictionary:
 	return game.state.science_data.get(str(pid), {"completed": {}, "launched": false,
-		"distance": 0, "speed": 1, "lasers": 0})
+		"distance": 0, "speed": 1, "lasers": 0, "laser_sites": {}})
 
 
 static func _ensure(game: Game, pid: int) -> Dictionary:
@@ -58,6 +58,9 @@ static func project_error(game: Game, city: City, id: String) -> String:
 		return "Сначала завершите предыдущий космический проект"
 	if bool(project.get("repeatable", false)) and not bool(progress["launched"]):
 		return "Сначала отправьте экспедицию к экзопланете"
+	if bool(project.get("power_required", false)) and EnergyRules.spare_for_project(game, city) \
+			< int(game.data.energy_setup["laser_power_demand"]):
+		return "Нужно %d свободной энергии в городе" % int(game.data.energy_setup["laser_power_demand"])
 	for resource in project.get("resource", {}):
 		if float(game.state.player(city.owner).stockpile.get(resource, 0.0)) < float(project["resource"][resource]):
 			return "Нужно %d ед. ресурса «%s»" % [int(project["resource"][resource]),
@@ -94,8 +97,10 @@ static func complete(game: Game, city: City, id: String, events: Array) -> void:
 			progress["distance"] = 0
 			progress["speed"] = 1
 		"accelerate":
-			progress["speed"] = int(progress["speed"]) + 1
 			progress["lasers"] = int(progress["lasers"]) + 1
+			var sites: Dictionary = progress.get("laser_sites", {})
+			sites[str(city.id)] = int(sites.get(str(city.id), 0)) + 1
+			progress["laser_sites"] = sites
 	events.append({"type": "science_project_completed", "player": pid, "city": city.id,
 		"project": id, "culture": culture})
 
@@ -108,6 +113,11 @@ static func process_round(game: Game, events: Array) -> void:
 		var progress: Dictionary = game.state.science_data.get(str(player.id), {})
 		if progress.is_empty() or not bool(progress.get("launched", false)) or int(progress["distance"]) >= required:
 			continue
+		if progress.has("laser_sites"):
+			var powered_lasers := 0
+			for city in game.state.cities_of(player.id):
+				powered_lasers += int(EnergyRules.report(game, city)["lasers_powered"])
+			progress["speed"] = 1 + powered_lasers
 		progress["distance"] = mini(required, int(progress["distance"]) + int(progress["speed"]))
 		if int(progress["distance"]) >= required:
 			events.append({"type": "science_expedition_arrived", "player": player.id})

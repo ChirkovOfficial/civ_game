@@ -495,6 +495,11 @@ static func _improvement_gain(game: Game, u: Unit, tile: int) -> Array:
 	for iid in ImprovementRules.valid_improvements(game, probe):
 		var y: Dictionary = game.data.improvements[iid].get("yields", {})
 		var gain := Yields.total(y) + float(game.data.improvements[iid].get("housing", 0)) * 2.0
+		var power := int(game.data.improvements[iid].get("renewable_power", 0))
+		var city := game.state.city_owning(tile)
+		if power > 0 and city != null:
+			var report := EnergyRules.report(game, city)
+			gain += mini(power, maxi(0, int(report["demand"]) - int(report["supplied"]))) * 2.0
 		if game.state.map.resource[tile] != "":
 			gain += 2.0
 		if gain > best_gain:

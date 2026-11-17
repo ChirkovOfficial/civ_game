@@ -238,6 +238,8 @@ static func process_turn_start(game: Game, pid: int, events: Array) -> void:
 	var p := game.state.player(pid)
 	var cities := game.state.cities_of(pid)
 	var lux := CityRules.luxury_amenities(game, pid)
+	UnitRules.process_stockpile(game, pid)
+	EnergyRules.process_turn(game, pid, events)
 	# 1. Доходы державы.
 	var sum := summary(game, pid)
 	var y: Dictionary = sum["yields"]
@@ -251,7 +253,6 @@ static func process_turn_start(game: Game, pid: int, events: Array) -> void:
 	# Пусть результат текущего исследования (если оно завершилось) сразу засчитается.
 	if p.treasury < 0.0:
 		_bankruptcy(game, pid, events)
-	UnitRules.process_stockpile(game, pid)
 	# 2. Города: лечение и стены, рост, границы, производство.
 	var hp_max := int(game.data.const_value("city_hp", 200))
 	for city in cities:

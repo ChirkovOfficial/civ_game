@@ -6,7 +6,7 @@
     {"id": "MOON_LANDING", "name": "Высадка на Луну", "tech": "SATELLITES", "cost": 1200, "requires": "EARTH_SATELLITE", "effect": "moon_culture"},
     {"id": "MARS_COLONY", "name": "Марсианская колония", "tech": "NANOTECHNOLOGY", "cost": 1600, "requires": "MOON_LANDING"},
     {"id": "EXOPLANET_EXPEDITION", "name": "Экспедиция к экзопланете", "tech": "SMART_MATERIALS", "cost": 2000, "requires": "MARS_COLONY", "effect": "launch"},
-    {"id": "GROUND_LASER", "name": "Наземная лазерная станция", "tech": "OFFWORLD_MISSION", "cost": 600, "requires": "EXOPLANET_EXPEDITION", "repeatable": true, "resource": {"ALUMINUM": 10}, "effect": "accelerate"},
-    {"id": "LAGRANGE_LASER", "name": "Лагранжева лазерная станция", "tech": "OFFWORLD_MISSION", "cost": 800, "requires": "EXOPLANET_EXPEDITION", "repeatable": true, "resource": {"ALUMINUM": 10}, "effect": "accelerate"}
+    {"id": "GROUND_LASER", "name": "Наземная лазерная станция", "tech": "OFFWORLD_MISSION", "cost": 600, "requires": "EXOPLANET_EXPEDITION", "repeatable": true, "resource": {"ALUMINUM": 10}, "power_required": true, "effect": "accelerate"},
+    {"id": "LAGRANGE_LASER", "name": "Лагранжева лазерная станция", "tech": "OFFWORLD_MISSION", "cost": 800, "requires": "EXOPLANET_EXPEDITION", "repeatable": true, "resource": {"ALUMINUM": 10}, "power_required": true, "effect": "accelerate"}
   ]
 }
