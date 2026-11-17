@@ -47,6 +47,13 @@
   "alliance_level_2_rounds": 8,
   "alliance_level_3_rounds": 16,
   "alliance_influence_by_level": [1.0, 1.2, 1.5],
+  "alliance_specializations": {
+    "science": {"name": "Научный", "description": "+1/2/3 науки к исходящему пути между союзниками", "route_yield": "science", "route_bonus": [1, 2, 3]},
+    "culture": {"name": "Культурный", "description": "+10/20/30% туризма между союзниками", "tourism_bonus": [0.10, 0.20, 0.30]},
+    "economic": {"name": "Экономический", "description": "+2/4/6 золота к исходящему пути между союзниками", "route_yield": "gold", "route_bonus": [2, 4, 6]},
+    "military": {"name": "Военный", "description": "+2/3/4 силы юнитам и городам против общего врага", "shared_enemy_strength": [2, 3, 4]},
+    "religious": {"name": "Религиозный", "description": "+1/2/3 веры к исходящему пути между союзниками", "route_yield": "faith", "route_bonus": [1, 2, 3]}
+  },
   "alliance_civic": "CIVIL_SERVICE",
   "treaty_betrayal_rounds": 20,
   "treaty_betrayal_penalty": 25,

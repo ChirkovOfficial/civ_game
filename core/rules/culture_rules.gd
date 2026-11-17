@@ -127,6 +127,7 @@ static func pair_multiplier(game: Game, visitor: int, source: int) -> float:
 	if TreatyRules.until(game, "passage", visitor, source) > game.state.turn or \
 			TreatyRules.until(game, "alliance", visitor, source) > game.state.turn:
 		result += config(game, "open_borders_bonus")
+	result += TreatyRules.alliance_effect(game, visitor, source, "culture", "tourism_bonus")
 	var own_religion := _main_religion(game, visitor)
 	var other_religion := _main_religion(game, source)
 	if own_religion != "" and other_religion != "" and own_religion != other_religion \

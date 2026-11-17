@@ -19,6 +19,15 @@ static func validate_data(data: GameData) -> PackedStringArray:
 		for weight in weights:
 			if float(weight) <= 0.0:
 				errors.append("Союзы: коэффициенты влияния должны быть положительными")
+	var specializations: Dictionary = cfg.get("alliance_specializations", {})
+	for id in ["science", "culture", "economic", "military", "religious"]:
+		var def: Dictionary = specializations.get(id, {})
+		if str(def.get("name", "")) == "" or str(def.get("description", "")) == "":
+			errors.append("Союзы: отсутствует специализация %s" % id)
+			continue
+		var effect: Array = def.get("route_bonus", def.get("tourism_bonus", def.get("shared_enemy_strength", [])))
+		if effect.size() != 3:
+			errors.append("Союзы: нужны три ступени эффекта %s" % id)
 	return errors
 
 
@@ -69,10 +78,36 @@ static func alliance_next_level_turn(game: Game, a: int, b: int) -> int:
 		"alliance_level_2_rounds" if level == 1 else "alliance_level_3_rounds")
 
 
+static func alliance_specialization(game: Game, a: int, b: int) -> String:
+	if alliance_level(game, a, b) == 0:
+		return ""
+	return str(_entry(game, "active", _key("alliance", a, b)).get("specialization", "science"))
+
+
+static func alliance_effect(game: Game, a: int, b: int, specialization: String, effect: String) -> float:
+	var level := alliance_level(game, a, b)
+	if level == 0 or alliance_specialization(game, a, b) != specialization:
+		return 0.0
+	var def: Dictionary = game.data.diplomacy["alliance_specializations"].get(specialization, {})
+	var values: Array = def.get(effect, [])
+	return float(values[level - 1]) if values.size() >= level else 0.0
+
+
+static func shared_enemy_bonus(game: Game, own: int, enemy: int) -> int:
+	var best := 0
+	for partner in game.state.players:
+		if partner.id == own or partner.id == enemy or partner.is_barbarian or not partner.alive:
+			continue
+		if game.state.at_war(partner.id, enemy):
+			best = maxi(best, int(alliance_effect(game, own, partner.id, "military", "shared_enemy_strength")))
+	return best
+
+
 static func trust(game: Game, viewer: int, subject: int) -> int:
 	var record := _entry(game, "reputation", _key("trust", viewer, subject))
 	var value := int(record["value"]) if _active(record, game.state.turn) else 0
-	return value + DemandRules.trust_penalty(game, viewer, subject) + CongressRules.trust_penalty(game, viewer, subject)
+	return value + DemandRules.trust_penalty(game, viewer, subject) + CongressRules.trust_penalty(game, viewer, subject) \
+		+ DiplomaticVisibility.representation_trust(game, viewer, subject)
 
 
 static func _valid_pair(game: Game, a: int, b: int) -> bool:
@@ -154,8 +189,20 @@ static func propose(game: Game, action: Dictionary, events: Array) -> String:
 	var error := offer_error(game, kind, from, to)
 	if error != "":
 		return error
+	var specialization := ""
+	if kind == "alliance":
+		specialization = str(action.get("specialization", "science"))
+		if until(game, kind, from, to) > game.state.turn:
+			var existing := alliance_specialization(game, from, to)
+			if action.has("specialization") and specialization != existing:
+				return "Специализацию действующего союза нельзя изменить при продлении"
+			specialization = existing
+		elif not game.data.diplomacy["alliance_specializations"].has(specialization):
+			return "Неизвестная специализация союза"
 	var record := {"kind": kind, "from": from, "to": to,
 		"until": game.state.turn + _rounds(game, "treaty_offer_rounds")}
+	if kind == "alliance":
+		record["specialization"] = specialization
 	var key := _key(kind, from, to)
 	game.state.treaty_data["offers"][key] = record
 	events.append(_offer_event("treaty_proposed", record))
@@ -186,6 +233,9 @@ static func respond(game: Game, action: Dictionary, events: Array) -> String:
 	var treaty := {"kind": kind, "from": from, "to": to,
 		"since": int(previous.get("since", game.state.turn)) if active else game.state.turn,
 		"until": start + duration}
+	if kind == "alliance":
+		treaty["specialization"] = str(previous.get("specialization", "science")) if active \
+			else str(record.get("specialization", "science"))
 	game.state.treaty_data["active"][key] = treaty
 	game.state.treaty_data["offers"].erase(key)
 	if kind == "alliance":
@@ -193,6 +243,8 @@ static func respond(game: Game, action: Dictionary, events: Array) -> String:
 		game.state.treaty_data["offers"].erase(_key("friendship", from, to))
 	var event := _offer_event("treaty_accepted", treaty)
 	event["until"] = treaty["until"]
+	if kind == "alliance":
+		event["specialization"] = treaty["specialization"]
 	events.append(event)
 	return ""
 

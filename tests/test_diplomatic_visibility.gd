@@ -88,3 +88,35 @@ func test_combat_bonus_uses_visibility_difference() -> void:
 	game.state.player(1).known_techs["PRINTING"] = true
 	var city_advanced := Combat.preview(game, attacker, rival_city.tile)
 	check_eq(int(city_advanced["def"]) - int(city_baseline["def"]), 3)
+
+
+func test_representation_trust_and_hidden_plans() -> void:
+	var world := _world()
+	var game: Game = world["game"]
+	var own: City = world["own"]
+	var rival: City = world["rival"]
+	game.state.player(1).current_tech = "PRINTING"
+	game.state.player(1).current_civic = "CIVIL_SERVICE"
+	rival.queue = [{"kind": "unit", "id": "WARRIOR"}]
+	check(DiplomaticVisibility.disclosed_plans(game, 0, 1).is_empty())
+	check_eq(TreatyRules.trust(game, 0, 1), 0)
+	game.state.player(0).treasury = 50.0
+	game.apply_action({"type": "send_delegation", "target": 1})
+	check_eq(TreatyRules.trust(game, 0, 1), 5)
+	check_eq(TreatyRules.trust(game, 1, 0), 0)
+	var trader := game.state.add_unit(0, "TRADER", own.tile)
+	trader.trade_route = {"origin": own.id, "destination": rival.id}
+	game.state.player(0).known_techs["PRINTING"] = true
+	check_eq(DiplomaticVisibility.disclosed_plans(game, 0, 1)["tech"], "PRINTING")
+	check_eq(DiplomaticVisibility.disclosed_plans(game, 0, 1)["civic"], "CIVIL_SERVICE")
+	check(not DiplomaticVisibility.disclosed_plans(game, 0, 1).has("production"))
+	game.state.treaty_data["active"]["alliance:0:1"] = {"kind": "alliance", "from": 0, "to": 1,
+		"since": game.state.turn - 16, "until": game.state.turn + 5, "specialization": "science"}
+	check_eq(DiplomaticVisibility.level(game, 0, 1), 4)
+	check_eq(DiplomaticVisibility.disclosed_plans(game, 0, 1)["production"][rival.id]["id"], "WARRIOR")
+	trader.trade_route = {}
+	check(not DiplomaticVisibility.disclosed_plans(game, 0, 1).has("production"))
+	game.declare_war(0, 1, [])
+	check_eq(TreatyRules.trust(game, 0, 1), 0)
+	check_eq(TreatyRules.trust(game, 1, 0), -25)
+	check(not DiplomaticVisibility.disclosed_plans(game, 0, 1).has("production"))

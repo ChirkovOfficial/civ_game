@@ -261,7 +261,11 @@ static func _treaty_diplomacy(game: Game, pid: int) -> void:
 			continue
 		for kind in ["alliance", "friendship"]:
 			if TreatyRules.offer_error(game, kind, pid, other) == "":
-				game.apply_action({"type": "propose_treaty", "kind": kind, "target": other})
+				var action := {"type": "propose_treaty", "kind": kind, "target": other}
+				if kind == "alliance" and TreatyRules.alliance_level(game, pid, other) == 0:
+					var options := ["science", "culture", "economic", "military", "religious"]
+					action["specialization"] = options[pid % options.size()]
+				game.apply_action(action)
 				return
 
 

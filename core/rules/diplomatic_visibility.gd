@@ -10,11 +10,15 @@ static func validate_data(data: GameData) -> PackedStringArray:
 		errors.append("Дипломатическая видимость: неизвестный институт посольства")
 	if not data.techs.has(str(cfg.get("printing_tech", ""))):
 		errors.append("Дипломатическая видимость: неизвестная технология")
-	for key in ["delegation_cost", "max_level", "highest_alliance_max_level", "finance_exact_level", "combat_per_level"]:
+	for key in ["delegation_cost", "max_level", "highest_alliance_max_level", "finance_exact_level",
+			"combat_per_level", "representation_trust", "research_disclosure_level", "production_disclosure_level"]:
 		if int(cfg.get(key, 0)) <= 0:
 			errors.append("Дипломатическая видимость: неверное значение %s" % key)
 	if int(cfg.get("highest_alliance_max_level", 0)) <= int(cfg.get("max_level", 0)):
 		errors.append("Дипломатическая видимость: развитый союз должен повышать предел")
+	if int(cfg.get("research_disclosure_level", 0)) > int(cfg.get("max_level", 0)) or \
+			int(cfg.get("production_disclosure_level", 0)) > int(cfg.get("highest_alliance_max_level", 0)):
+		errors.append("Дипломатическая видимость: сведения превышают предел уровня")
 	return errors
 
 
@@ -32,6 +36,13 @@ static func has_delegation(game: Game, from: int, to: int) -> bool:
 
 static func has_embassy(game: Game, a: int, b: int) -> bool:
 	return bool(game.state.visibility_data["embassies"].get(_pair(a, b), false))
+
+
+static func representation_trust(game: Game, viewer: int, subject: int) -> int:
+	if _pair_error(game, viewer, subject) != "":
+		return 0
+	return int(game.data.visibility_setup["representation_trust"]) if \
+			(has_delegation(game, viewer, subject) or has_embassy(game, viewer, subject)) else 0
 
 
 static func _pair_error(game: Game, from: int, to: int) -> String:
@@ -132,6 +143,21 @@ static func maximum_level(game: Game, from: int, to: int) -> int:
 	if TreatyRules.alliance_level(game, from, to) >= 3:
 		return int(game.data.visibility_setup["highest_alliance_max_level"])
 	return int(game.data.visibility_setup["max_level"])
+
+
+static func disclosed_plans(game: Game, viewer: int, subject: int) -> Dictionary:
+	var sight := level(game, viewer, subject)
+	var result := {}
+	if sight >= int(game.data.visibility_setup["research_disclosure_level"]):
+		var player := game.state.player(subject)
+		result["tech"] = player.current_tech
+		result["civic"] = player.current_civic
+	if sight >= int(game.data.visibility_setup["production_disclosure_level"]):
+		var production := {}
+		for city in game.state.cities_of(subject):
+			production[city.id] = city.queue[0].duplicate(true) if not city.queue.is_empty() else {}
+		result["production"] = production
+	return result
 
 
 static func combat_bonus(game: Game, own: int, enemy: int) -> int:

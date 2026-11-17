@@ -157,6 +157,9 @@ static func unit_mods(game: Game, u: Unit, role: String, ctx: Dictionary) -> Arr
 		var visibility_bonus := DiplomaticVisibility.combat_bonus(game, u.owner, int(ctx["vs_player"]))
 		if visibility_bonus > 0:
 			mods.append(["Дипломатическая видимость", visibility_bonus])
+		var alliance_bonus := TreatyRules.shared_enemy_bonus(game, u.owner, int(ctx["vs_player"]))
+		if alliance_bonus > 0:
+			mods.append(["Военный союз", alliance_bonus])
 	if ctx.get("vs_irregular", false):
 		for effect in GovernmentRules.effects(game, game.state.player(u.owner)):
 			if effect.has("barbarian_strength"):
@@ -367,6 +370,9 @@ static func preview(game: Game, u: Unit, tile: int) -> Dictionary:
 		var city_visibility := DiplomaticVisibility.combat_bonus(game, t["city"].owner, u.owner)
 		if city_visibility > 0:
 			def_mods.append(["Дипломатическая видимость", city_visibility])
+		var military_bonus := TreatyRules.shared_enemy_bonus(game, t["city"].owner, u.owner)
+		if military_bonus > 0:
+			def_mods.append(["Военный союз", military_bonus])
 	elif t["kind"] == "unit":
 		var d: Unit = t["unit"]
 		ctx["vs_player"] = d.owner
@@ -623,7 +629,8 @@ static func city_attack(game: Game, city: City, tile: int, events: Array) -> voi
 	var def := melee_strength(game, d.type) + _sum(unit_mods(game, d, "defense", {"vs_ranged": true,
 		"vs_irregular": game.state.player(city.owner).is_barbarian, "vs_player": city.owner}))
 	var visibility_bonus := DiplomaticVisibility.combat_bonus(game, city.owner, d.owner)
-	var dmg := damage(game, city_ranged_strength(game, city) + visibility_bonus - def, _roll(game))
+	var alliance_bonus := TreatyRules.shared_enemy_bonus(game, city.owner, d.owner)
+	var dmg := damage(game, city_ranged_strength(game, city) + visibility_bonus + alliance_bonus - def, _roll(game))
 	d.hp -= dmg
 	city.has_attacked = true
 	events.append({"type": "combat", "city_attacker": city.id, "defender": d.id, "tile": tile, "dmg_to_def": dmg, "ranged": true})

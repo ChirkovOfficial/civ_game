@@ -739,6 +739,18 @@ func open_diplomacy() -> void:
 			"да" if sight["representation"] else "нет", "да" if sight["route"] else "нет",
 			"да" if sight["alliance"] else "нет", "да" if sight["printing"] else "нет"],
 			12, Color(0.75, 0.78, 0.85), true)
+		var plans := DiplomaticVisibility.disclosed_plans(game, pid, oid)
+		if plans.has("tech"):
+			var tech := str(plans["tech"])
+			var civic := str(plans["civic"])
+			_label(_research_box, "Их планы: технология — %s; институт — %s" % [
+				str(game.data.techs.get(tech, {}).get("name", "не выбрана")),
+				str(game.data.civics.get(civic, {}).get("name", "не выбран"))], 12)
+		if plans.has("production"):
+			for city in game.state.cities_of(oid):
+				var item: Dictionary = plans["production"].get(city.id, {})
+				_label(_research_box, "Их производство · %s: %s" % [city.name,
+					CityRules.item_name(game, item, oid) if not item.is_empty() else "ничего"], 12)
 		if CongressRules.embargoed(game, pid, oid):
 			_label(_research_box, "Эмбарго до начала хода %d" % CongressRules.embargo_until(game, pid, oid), 13)
 		_show_treaty_status(pid, oid)
@@ -783,10 +795,25 @@ func open_diplomacy() -> void:
 			var treaties := HBoxContainer.new()
 			_research_box.add_child(treaties)
 			for kind in TreatyRules.KINDS:
+				if kind == "alliance" and TreatyRules.alliance_level(game, pid, oid) == 0:
+					continue
 				var error := TreatyRules.offer_error(game, kind, pid, oid)
 				_button(treaties, _treaty_label(kind),
 					func(): act.call({"type": "propose_treaty", "kind": kind, "target": oid}),
 					error != "", error)
+			if TreatyRules.alliance_level(game, pid, oid) == 0:
+				_label(_research_box, "Предложить союз с направлением:", 12)
+				var choices := GridContainer.new()
+				choices.columns = 2
+				_research_box.add_child(choices)
+				for specialization in game.data.diplomacy["alliance_specializations"]:
+					var alliance_error := TreatyRules.offer_error(game, "alliance", pid, oid)
+					var choice := str(specialization)
+					var def: Dictionary = game.data.diplomacy["alliance_specializations"][choice]
+					_button(choices, str(def["name"]),
+						func(): act.call({"type": "propose_treaty", "kind": "alliance", "target": oid,
+							"specialization": choice}), alliance_error != "",
+						alliance_error if alliance_error != "" else str(def["description"]))
 			var passage_error := DemandRules.issue_error(game, pid, oid, "passage")
 			_button(_research_box, "Потребовать проход",
 				func(): act.call({"type": "issue_demand", "kind": "passage", "target": oid}),
@@ -1033,7 +1060,10 @@ func _show_treaty_status(pid: int, peer: int) -> void:
 	var reverse := TreatyRules.until(game, "passage", peer, pid)
 	if alliance > game.state.turn:
 		var level := TreatyRules.alliance_level(game, pid, peer)
-		_label(_research_box, "Союз · уровень %d/3 · взаимный проход до начала хода %d" % [level, alliance], 13)
+		var specialization := TreatyRules.alliance_specialization(game, pid, peer)
+		var name := str(game.data.diplomacy["alliance_specializations"].get(specialization, {}).get("name", "Научный"))
+		_label(_research_box, "%s союз · уровень %d/3 · взаимный проход до начала хода %d" % [name, level, alliance], 13)
+		_label(_research_box, str(game.data.diplomacy["alliance_specializations"].get(specialization, {}).get("description", "")), 12)
 		var next_level := TreatyRules.alliance_next_level_turn(game, pid, peer)
 		if next_level > 0:
 			_label(_research_box, "До следующего уровня %d ходов%s" % [next_level - game.state.turn,
@@ -1056,8 +1086,14 @@ func _show_treaty_offers(pid: int) -> void:
 		var peer := game.state.player(int(offer["from"] if incoming else offer["to"]))
 		var kind: String = offer["kind"]
 		var title := "Право прохода" if kind == "passage" else _treaty_label(kind)
+		if kind == "alliance":
+			title = "%s союз" % str(game.data.diplomacy["alliance_specializations"].get(
+				str(offer.get("specialization", "science")), {}).get("name", "Научный"))
 		_label(_research_box, "%s · %s · %s" % [title, peer.name,
 			"входящее" if incoming else "ждём ответа"], 15)
+		if kind == "alliance":
+			_label(_research_box, str(game.data.diplomacy["alliance_specializations"].get(
+				str(offer.get("specialization", "science")), {}).get("description", "")), 12)
 		if kind == "passage":
 			_label(_research_box, "Они просят проход через наши границы" if incoming else
 				"Мы просим проход через их границы", 12)

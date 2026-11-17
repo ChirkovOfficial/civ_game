@@ -150,6 +150,13 @@ static func route_yields(game: Game, route: Dictionary) -> Dictionary:
 			counted[city.id] = true
 			result["gold"] = float(result.get("gold", 0)) + float(game.data.trade["post_gold"])
 	GovernmentRules.add_route_yields(game, origin.owner, international, result)
+	if international:
+		var specialization := TreatyRules.alliance_specialization(game, origin.owner, destination.owner)
+		var def: Dictionary = game.data.diplomacy["alliance_specializations"].get(specialization, {})
+		var yield_name := str(def.get("route_yield", ""))
+		if yield_name != "":
+			result[yield_name] = float(result.get(yield_name, 0.0)) + TreatyRules.alliance_effect(
+				game, origin.owner, destination.owner, specialization, "route_bonus")
 	return result
 
 

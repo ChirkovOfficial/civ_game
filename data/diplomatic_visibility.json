@@ -5,5 +5,8 @@
   "max_level": 3,
   "highest_alliance_max_level": 4,
   "finance_exact_level": 2,
-  "combat_per_level": 3
+  "combat_per_level": 3,
+  "representation_trust": 5,
+  "research_disclosure_level": 3,
+  "production_disclosure_level": 4
 }
