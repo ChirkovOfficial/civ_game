@@ -261,6 +261,13 @@ func _on_events(events: Array) -> void:
 			hud.show_message("Космический проект завершён: %s" % game.data.science_projects[e["project"]]["name"], 4.0)
 		elif t == "great_work_created" and e["player"] == game.state.current_player:
 			hud.show_message("В городе создан шедевр", 4.0)
+		elif t == "world_exchange_opened":
+			hud.show_message("Открыта Мировая биржа: началась гонка за финансовую победу", 5.0)
+		elif t == "finance_hegemony":
+			hud.show_message("%s: финансовая гегемония, осталось %d ходов" % [
+				game.state.player(int(e["player"])).name, int(e["remaining"])], 5.0)
+		elif t == "finance_hegemony_broken":
+			hud.show_message("Гегемония державы %s прервана" % game.state.player(int(e["player"])).name, 4.0)
 		elif t == "inquisition_started" and e["player"] == game.state.current_player:
 			hud.show_message("Инквизиция учреждена", 3.0)
 		elif t == "religion_purged" and e["player"] == game.state.current_player:

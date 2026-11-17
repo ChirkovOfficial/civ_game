@@ -662,6 +662,8 @@ func _act_end_turn(events: Array) -> void:
 			return
 	state.current_player = next
 	_begin_player_turn(next, events)
+	if not state.result.is_empty():
+		return
 	# ИИ ходит сразу; управление возвращается, когда очередь дойдёт до человека.
 	# Если людей нет (автоигра), за один вызов проходит не больше одного круга.
 	var has_humans := false
@@ -691,6 +693,8 @@ func _act_end_turn(events: Array) -> void:
 				break
 		state.current_player = n2
 		_begin_player_turn(n2, events)
+		if not state.result.is_empty():
+			return
 
 
 func _advance_round(events: Array) -> bool:
@@ -742,8 +746,14 @@ func _next_alive_player(from: int) -> int:
 ## восстановление ОД, исполнение постоянных приказов, пересчёт видимости.
 func _begin_player_turn(pid: int, events: Array) -> void:
 	TradeRules.cancel_invalid(self, events)
+	var treasury_before := state.player(pid).treasury
+	var income_before := FinanceRules.economic_income(self, pid)
 	EmpireRules.process_turn_start(self, pid, events)
 	TradeRules.advance(self, pid, events)
+	FinanceRules.begin_turn(self, pid, events, treasury_before < 0.0 or treasury_before + income_before < 0.0)
+	VictoryRules.check_finance(self, pid, events)
+	if not state.result.is_empty():
+		return
 	UnitRules.process_units_turn_start(self, pid, events)
 	TreatyRules.process_withdrawal(self, pid, events)
 	for u in state.units_of(pid):

@@ -1,0 +1,9 @@
+{
+  "unlock_tech": "BANKING",
+  "base_income": 250,
+  "income_per_major": 50,
+  "rival_multiplier": 1.5,
+  "standard_turns": 10,
+  "public_estimate_variance": 0.15,
+  "include_deals": false
+}

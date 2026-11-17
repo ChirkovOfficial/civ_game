@@ -128,6 +128,13 @@ static func check_culture(game: Game, events: Array) -> void:
 			return
 
 
+static func check_finance(game: Game, pid: int, events: Array) -> void:
+	if not game.state.result.is_empty():
+		return
+	if int(game.state.finance_data["streaks"].get(str(pid), 0)) >= FinanceRules.required_turns(game):
+		_finish(game, "finance", [pid], events)
+
+
 static func check_capitals(game: Game, events: Array) -> void:
 	if not game.state.result.is_empty():
 		return

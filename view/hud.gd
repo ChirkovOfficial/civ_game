@@ -117,6 +117,7 @@ func _ready() -> void:
 	_reveal_button.toggled.connect(func(on): reveal_toggled.emit(on))
 	br.add_child(_reveal_button)
 	_button(br, "Победы и счёт", open_victory)
+	_button(br, "Мировая биржа", open_finance)
 	var file_row := HBoxContainer.new()
 	br.add_child(file_row)
 	var save_b := Button.new()
@@ -322,6 +323,9 @@ func refresh_research() -> void:
 		return
 	if _research_kind == "victory":
 		open_victory()
+		return
+	if _research_kind == "finance":
+		open_finance()
 		return
 	if _research_kind == "diplomacy":
 		open_diplomacy()
@@ -1150,6 +1154,55 @@ func _choose_research(id: String) -> void:
 	close_research()
 
 
+func open_finance() -> void:
+	_research_kind = "finance"
+	_research_panel.visible = true
+	_clear(_research_box)
+	var head := HBoxContainer.new()
+	_research_box.add_child(head)
+	var title := _label(head, "Мировая биржа", 20)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_button(head, "✕", close_research)
+	var pid := game.state.current_player
+	var own := FinanceRules.progress(game, pid)
+	if not own["unlocked"]:
+		_label(_research_box, "Гонка откроется, когда любая держава изучит Банковское дело.", 15, Color.WHITE, true)
+		return
+	_label(_research_box, "Ваш чистый доход: %.1f золота/ход · порог: %.1f" % [own["income"], own["threshold"]], 16)
+	_label(_research_box, "Нужно в %.1f раза больше дохода лучшего соперника (сейчас %.1f)." % [
+		own["multiplier"], own["best_rival"]], 14, Color.WHITE, true)
+	_label(_research_box, "Гегемония: %d/%d собственных ходов подряд" % [own["streak"], own["required"]], 15)
+	var bar := ProgressBar.new()
+	bar.max_value = 1.0
+	bar.value = own["fraction"]
+	bar.show_percentage = true
+	_research_box.add_child(bar)
+	if not FinanceRules.owns_original_capital(game, pid):
+		_label(_research_box, "Для победы верните свою исходную столицу.", 13)
+	_label(_research_box, "Доход по дипломатическим сделкам и разовые выплаты не входят в расчёт.", 12, Color(0.75, 0.78, 0.85), true)
+	_label(_research_box, "Рейтинг держав по чистому доходу", 17)
+	var rows: Array[Dictionary] = []
+	for player in game.state.players:
+		if player.alive and not player.is_barbarian:
+			rows.append({"id": player.id, "income": FinanceRules.economic_income(game, player.id)})
+	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["income"] > b["income"])
+	for row in rows:
+		var other := game.state.player(int(row["id"]))
+		if other.id == pid:
+			_label(_research_box, "%s · %.1f золота/ход · серия %d" % [other.name, row["income"],
+				int(game.state.finance_data["streaks"].get(str(other.id), 0))], 14)
+		elif game.state.player(pid).met.has(other.id):
+			var delta := absf(float(row["income"])) * float(game.data.finance_setup["public_estimate_variance"])
+			_label(_research_box, "%s · около %.1f…%.1f золота/ход · серия %d" % [other.name,
+				float(row["income"]) - delta, float(row["income"]) + delta,
+				int(game.state.finance_data["streaks"].get(str(other.id), 0))], 14)
+		else:
+			_label(_research_box, "Неизвестная держава · доход не раскрыт", 14)
+	_label(_research_box, "Точная чужая экономическая статистика появится вместе с дипломатической видимостью.",
+		12, Color(0.75, 0.78, 0.85), true)
+	_button(_research_box, "Победы и счёт", open_victory)
+
+
 func open_victory() -> void:
 	_research_kind = "victory"
 	_research_panel.visible = true
@@ -1192,6 +1245,8 @@ func open_victory() -> void:
 				reason = "Экспедиция достигла экзопланеты"
 			"culture":
 				reason = "Приезжих туристов больше, чем внутренних у каждой другой державы"
+			"finance":
+				reason = "Устойчивая финансовая гегемония"
 		_label(_research_box, "%s · ход %d" % [reason, int(result["turn"])])
 	else:
 		var own := VictoryRules.capital_progress(game, pid)
@@ -1227,6 +1282,14 @@ func open_victory() -> void:
 				target = maxi(target, CultureRules.domestic_tourists(game, other.id))
 		_label(_research_box, "Культурная победа · приезжие туристы %d · нужно больше %d · туризм/круг %.1f" % [
 			visitors, target, CultureRules.tourism_per_turn(game, pid)], 15, Color.WHITE, true)
+		var finance := FinanceRules.progress(game, pid)
+		if finance["unlocked"]:
+			_label(_research_box, "Финансовая победа · доход %.1f/%.1f · серия %d/%d ходов" % [
+				finance["income"], finance["threshold"], finance["streak"], finance["required"]],
+				15, Color.WHITE, true)
+		else:
+			_label(_research_box, "Финансовая победа · откроется после изучения Банковского дела", 15)
+		_button(_research_box, "Открыть Мировую биржу", open_finance)
 	_label(_research_box, "Счёт держав", 17)
 	for row in VictoryRules.standings(game):
 		var player := game.state.player(int(row["player"]))

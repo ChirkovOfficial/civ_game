@@ -115,5 +115,40 @@ func _run() -> void:
 		printerr("На экране итогов нет причины культурной победы")
 		quit(1)
 		return
-	print("Экраны очковой, религиозной, научной и культурной победы открываются автоматически")
+	fourth.queue_free()
+	var fifth: Node = load("res://view/main.tscn").instantiate()
+	fifth.map_size = "DUEL"
+	fifth.fixed_seed = 21
+	root.add_child(fifth)
+	var finance_game: Game = fifth.game
+	var finance_city := CityRules.found_city(finance_game, 0, finance_game.state.start_positions[0])
+	CityRules.found_city(finance_game, 1, finance_game.state.start_positions[1])
+	finance_game.data.buildings["SMOKE_MINT"] = {"yields": {"gold": 700}, "maintenance": 0}
+	finance_city.buildings.append("SMOKE_MINT")
+	finance_game.state.player(1).known_techs["BANKING"] = true
+	finance_game.state.finance_data["unlocked"] = true
+	finance_game.state.finance_data["streaks"]["0"] = FinanceRules.required_turns(finance_game) - 1
+	finance_game.state.settings["turn_limit"] = 3
+	var finance_hud: Hud = fifth.hud
+	finance_hud.open_finance()
+	if not finance_hud.is_modal_open() or finance_hud.get("_research_kind") != "finance":
+		printerr("Окно Мировой биржи не открылось")
+		quit(1)
+		return
+	finance_hud.close_research()
+	fifth.act({"type": "end_turn", "force": true})
+	if finance_game.state.result.get("kind") != "finance" or not finance_hud.is_modal_open() \
+			or finance_hud.get("_research_kind") != "victory":
+		printerr("Экран финансовой победы не открылся")
+		quit(1)
+		return
+	shown = false
+	for label in finance_hud.get("_research_box").find_children("*", "Label", true, false):
+		if label.text.contains("Устойчивая финансовая гегемония"):
+			shown = true
+	if not shown:
+		printerr("На экране итогов нет причины финансовой победы")
+		quit(1)
+		return
+	print("Окно Мировой биржи и экраны пяти видов побед открываются")
 	quit()
