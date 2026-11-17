@@ -18,6 +18,7 @@ static func take_turn(game: Game, pid: int) -> void:
 	_supply_diplomacy(game, pid)
 	_choose_research(game, pid)
 	_choose_government(game, pid)
+	_religion(game, pid)
 	_tactical(game, pid)
 	if not game.state.result.is_empty():
 		return
@@ -52,6 +53,60 @@ static func _answer_demands(game: Game, pid: int) -> void:
 			var city := game.state.city(int(demand["offer"]))
 			accept = accept and dependence - reverse >= 75.0 and city != null and city.population <= 3
 		game.apply_action({"type": "respond_demand", "pair": demand["pair"], "id": demand["id"], "accept": accept})
+
+
+static func _religion(game: Game, pid: int) -> void:
+	var player := game.state.player(pid)
+	if player.religion_id == "":
+		var prophet: Unit = null
+		for unit in game.state.units_of(pid):
+			if unit.type == "PROPHET":
+				prophet = unit
+				break
+		if prophet == null:
+			for city in game.state.cities_of(pid):
+				if ReligionRules.prophet_error(game, pid, city) == "":
+					game.apply_action({"type": "recruit_prophet", "city": city.id})
+					break
+			for unit in game.state.units_of(pid):
+				if unit.type == "PROPHET":
+					prophet = unit
+					break
+		if prophet != null and not ReligionRules.name_options(game).is_empty():
+			var option: Dictionary = ReligionRules.name_options(game)[0]
+			game.apply_action({"type": "found_religion", "unit": prophet.id, "religion": option["id"],
+				"follower": "SCHOLARLY", "founder": "TITHE"})
+		return
+	var missionaries := 0
+	for unit in game.state.units_of(pid):
+		if unit.type != "MISSIONARY":
+			continue
+		missionaries += 1
+		if unit.moves_left <= 0.0:
+			continue
+		var city := game.state.city_at(unit.tile)
+		if city != null and ReligionRules.majority(game, city) != player.religion_id:
+			if ReligionRules.spread_error(game, unit) == "":
+				game.apply_action({"type": "spread_religion", "unit": unit.id})
+			continue
+		var target: City = null
+		var distance := 99999
+		for candidate in game.state.cities.values():
+			if ReligionRules.majority(game, candidate) == player.religion_id or game.state.at_war(pid, candidate.owner):
+				continue
+			if candidate.owner != pid and not player.met.has(candidate.owner):
+				continue
+			var d := game.state.map.grid.distance(unit.tile, candidate.tile)
+			if d < distance:
+				distance = d
+				target = candidate
+		if target != null:
+			game.apply_action({"type": "move_unit", "unit": unit.id, "target": target.tile})
+	if missionaries < 2:
+		for city in game.state.cities_of(pid):
+			if ReligionRules.missionary_error(game, pid, city) == "":
+				game.apply_action({"type": "recruit_missionary", "city": city.id})
+				break
 
 
 static func _congress(game: Game, pid: int) -> void:
@@ -438,6 +493,16 @@ static func _choose_production(game: Game, city: City) -> void:
 		candidates.append({"kind": "building", "id": "ANCIENT_WALLS"})
 	if (military < cities.size() + 1 or not garrisoned) and combat != "":
 		candidates.append({"kind": "unit", "id": combat})
+	if game.state.player(pid).religion_id == "" and game.state.religions.size() < ReligionRules.prophet_limit(game):
+		var has_site := false
+		for own_city in cities:
+			if not ReligionRules.holy_site(own_city).is_empty():
+				has_site = true
+		if not has_site:
+			for district in _district_candidates(game, city, threatened):
+				if district["id"] == "HOLY_SITE":
+					candidates.append(district)
+					break
 	if cities.size() + settlers < target_cities and settlers < 1:
 		candidates.append({"kind": "unit", "id": "SETTLER"})
 	# Развитый город сначала строит районы, а не очередного строителя (docs/CITIES.md).

@@ -184,7 +184,7 @@ func act(action: Dictionary) -> Array:
 	var events := game.apply_action(action)
 	_after_action()
 	var t: String = action.get("type", "")
-	if t in ["found_city", "build_improvement", "harvest", "skip_unit", "sleep_unit", "fortify", "build_road", "attack", "promote", "upgrade_unit", "build_fort", "pillage", "attach_commander"] and \
+	if t in ["found_city", "found_religion", "spread_religion", "build_improvement", "harvest", "skip_unit", "sleep_unit", "fortify", "build_road", "attack", "promote", "upgrade_unit", "build_fort", "pillage", "attach_commander"] and \
 			(selected == null or game.state.unit(selected.id) == null or selected.moves_left <= 0.0 or not selected.orders.is_empty()):
 		_select_next_unit()
 	if t == "found_city":
@@ -249,6 +249,10 @@ func _on_events(events: Array) -> void:
 			hud.show_message("Изучено: %s" % EmpireRules.tech_display(game, e["player"], e["tech"])["name"], 3.0)
 		elif t == "civic_completed" and e["player"] == game.state.current_player:
 			hud.show_message("Принят институт: %s" % game.data.civics[e["civic"]]["name"], 3.0)
+		elif t == "religion_founded":
+			hud.show_message("Основана религия: %s" % game.state.religions[e["religion"]]["name"], 3.0)
+		elif t == "religion_spread" and e["player"] == game.state.current_player:
+			hud.show_message("Вера распространена в городе %s" % game.state.city(e["city"]).name, 3.0)
 		elif t == "village_reward" and e["player"] == game.state.current_player:
 			hud.show_message("Племенное поселение: %s" % e["text"], 3.0)
 		elif t == "camp_cleared" and e["player"] == game.state.current_player:
@@ -285,7 +289,7 @@ func _on_events(events: Array) -> void:
 			var au := game.state.unit(e.get("attacker", -1))
 			if au != null and au.owner == me:
 				hud.show_message("Урон врагу: %d · ваши потери: %d" % [int(e["dmg_to_def"]), int(e.get("dmg_to_att", 0))], 2.5)
-		elif t == "unit_killed" and e["owner"] == game.state.current_player:
+		elif t == "unit_killed" and e["owner"] == game.state.current_player and e.get("reason", "") != "spent":
 			hud.show_message("Юнит погиб", 2.5)
 		elif t == "player_eliminated":
 			hud.show_message("%s выбывает из игры" % game.state.player(e["player"]).name, 4.0)

@@ -270,6 +270,7 @@ func refresh_top() -> void:
 	_research_button("science", "tech", p.current_tech, float(y["science"]), has_cities)
 	_research_button("culture", "civic", p.current_civic, float(y["culture"]), has_cities)
 	_button(_top_box, "Правительство", open_government)
+	_button(_top_box, "Религия", open_religion)
 	var wars := 0
 	for other in game.state.players:
 		if other.id != pid and not other.is_barbarian and game.state.at_war(pid, other.id):
@@ -327,6 +328,9 @@ func refresh_research() -> void:
 		return
 	if _research_kind == "congress":
 		open_congress()
+		return
+	if _research_kind == "religion":
+		open_religion()
 		return
 	if _research_kind.begins_with("supply:"):
 		var parts := _research_kind.split(":")
@@ -507,6 +511,84 @@ func _trade_yields_text(route: Dictionary) -> String:
 	return " · ".join(parts)
 
 
+func open_religion() -> void:
+	_research_kind = "religion"
+	_research_panel.visible = true
+	_clear(_research_box)
+	var pid := game.state.current_player
+	var player := game.state.player(pid)
+	var head := HBoxContainer.new()
+	_research_box.add_child(head)
+	var title := _label(head, "Религия", 20)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_button(head, "✕", close_research)
+	_label(_research_box, "Вера: %d · очки Великого пророка: %d/%d · основано религий: %d/%d" % [
+		int(player.faith), int(player.prophet_points), int(ReligionRules.cfg(game, "prophet_points")),
+		game.state.religions.size(), ReligionRules.prophet_limit(game)], 14)
+	if player.religion_id != "":
+		var mine: Dictionary = game.state.religions[player.religion_id]
+		_label(_research_box, "Ваша религия: %s · священный город: %s" % [mine["name"], game.state.city(int(mine["holy_city"])).name], 16)
+		_label(_research_box, "Последователи: %s · основатель: %s" % [
+			ReligionRules.belief(game, "follower_beliefs", mine["follower_belief"])["name"],
+			ReligionRules.belief(game, "founder_beliefs", mine["founder_belief"])["name"]], 13)
+	else:
+		var prophet: Unit = null
+		for unit in game.state.units_of(pid):
+			if unit.type == "PROPHET":
+				prophet = unit
+				break
+		if prophet != null:
+			_label(_research_box, "Выберите название и два верования. Пророк должен стоять на своём Священном месте.", 13, Color.WHITE, true)
+			var names := OptionButton.new()
+			var custom_name := LineEdit.new()
+			custom_name.placeholder_text = "Или введите собственное название"
+			var followers := OptionButton.new()
+			var founders := OptionButton.new()
+			for option in ReligionRules.name_options(game):
+				names.add_item(option["name"])
+				names.set_item_metadata(names.item_count - 1, option["id"])
+			for option in ReligionRules.cfg(game, "follower_beliefs", []):
+				followers.add_item(option["name"])
+				followers.set_item_metadata(followers.item_count - 1, option["id"])
+			for option in ReligionRules.cfg(game, "founder_beliefs", []):
+				founders.add_item(option["name"])
+				founders.set_item_metadata(founders.item_count - 1, option["id"])
+			_research_box.add_child(names)
+			_research_box.add_child(custom_name)
+			_research_box.add_child(followers)
+			_research_box.add_child(founders)
+			var prophet_id := prophet.id
+			var ready := names.item_count > 0
+			_button(_research_box, "Основать религию", func():
+				act.call({"type": "found_religion", "unit": prophet_id,
+					"religion": names.get_item_metadata(names.selected) if names.item_count > 0 else "",
+					"custom_name": custom_name.text,
+					"follower": followers.get_item_metadata(followers.selected),
+					"founder": founders.get_item_metadata(founders.selected)})
+				open_religion(), not ready and custom_name.text.strip_edges() == "")
+	for city in game.state.cities_of(pid):
+		var rid := ReligionRules.majority(game, city)
+		var label: String = str(game.state.religions.get(rid, {}).get("name", "нет большинства"))
+		_label(_research_box, "%s · %s" % [city.name, label], 14)
+		if player.religion_id == "":
+			var prophet_error := ReligionRules.prophet_error(game, pid, city)
+			if prophet_error == "":
+				var city_id_for_prophet := city.id
+				_button(_research_box, "Нанять Великого пророка в %s" % city.name,
+					func(): act.call({"type": "recruit_prophet", "city": city_id_for_prophet}); open_religion())
+		else:
+			var missionary_error := ReligionRules.missionary_error(game, pid, city)
+			if missionary_error == "":
+				var city_id_for_missionary := city.id
+				_button(_research_box, "Купить миссионера в %s · %d веры" % [city.name, int(ReligionRules.cfg(game, "missionary_faith_cost"))],
+					func(): act.call({"type": "recruit_missionary", "city": city_id_for_missionary}); open_religion())
+	if game.state.religions.size() > 0:
+		_label(_research_box, "Основанные религии", 16)
+		for rid in game.state.religions:
+			var religion: Dictionary = game.state.religions[rid]
+			_label(_research_box, "%s · %s" % [religion["name"], game.state.player(int(religion["founder"])).name], 13)
+
+
 func open_diplomacy() -> void:
 	_research_kind = "diplomacy"
 	_research_panel.visible = true
@@ -529,7 +611,7 @@ func open_diplomacy() -> void:
 		_fmt(float(sources.get("supplies", 0.0))), _fmt(float(sources.get("living", 0.0))),
 		_fmt(float(sources.get("relations", 0.0)))],
 		12, Color(0.75, 0.78, 0.85), true)
-	_label(_research_box, "Религия, туризм и международные события появятся вместе с их механиками.",
+	_label(_research_box, "Религия %s · туризм и международные события появятся вместе с их механиками." % _fmt(float(sources.get("religion", 0.0))),
 		12, Color(0.75, 0.78, 0.85), true)
 	if float(sources.get("congress_damage", 0)) > 0.0:
 		_label(_research_box, "Штраф к влиянию за нарушение резолюций · −%d" % int(sources["congress_damage"]), 13)
@@ -564,14 +646,17 @@ func open_diplomacy() -> void:
 		if float(ours.get("goods", 0.0)) > 0.0 or float(theirs.get("goods", 0.0)) > 0.0:
 			_label(_research_box, "Из них редкие ресурсы · мы %s · они %s" % [
 				_fmt(float(ours.get("goods", 0.0))), _fmt(float(theirs.get("goods", 0.0)))], 12, Color.WHITE, true)
+		if float(ours.get("religion", 0.0)) > 0.0 or float(theirs.get("religion", 0.0)) > 0.0:
+			_label(_research_box, "Из них религия · мы %s · они %s" % [
+				_fmt(float(ours.get("religion", 0.0))), _fmt(float(theirs.get("religion", 0.0)))], 12, Color.WHITE, true)
 		if not ours.is_empty() and float(ours.get("strategic", 0.0)) > 0.0:
 			_label(_research_box, "Наш источник: %s · целевой уровень %s" % [
 				str(game.data.resources.get(ours.get("main_resource", ""), {}).get("name", "ресурс")),
-				_fmt(float(ours.get("target", 0.0)) - float(ours.get("goods_target", 0.0)))], 12, Color(0.75, 0.78, 0.85), true)
+				_fmt(float(ours.get("target", 0.0)) - float(ours.get("goods_target", 0.0)) - float(ours.get("religion_target", 0.0)))], 12, Color(0.75, 0.78, 0.85), true)
 		if not theirs.is_empty() and float(theirs.get("strategic", 0.0)) > 0.0:
 			_label(_research_box, "Их источник: %s · целевой уровень %s" % [
 				str(game.data.resources.get(theirs.get("main_resource", ""), {}).get("name", "ресурс")),
-				_fmt(float(theirs.get("target", 0.0)) - float(theirs.get("goods_target", 0.0)))], 12, Color(0.75, 0.78, 0.85), true)
+				_fmt(float(theirs.get("target", 0.0)) - float(theirs.get("goods_target", 0.0)) - float(theirs.get("religion_target", 0.0)))], 12, Color(0.75, 0.78, 0.85), true)
 		if war:
 			var e := UnitRules.make_peace_error(game, pid, oid)
 			_button(row, "Заключить мир", func(): act.call({"type": "make_peace", "target": oid}); open_diplomacy(), e != "", e)
@@ -1094,6 +1179,12 @@ func show_unit(u: Unit) -> void:
 		var err := CityRules.found_city_error(game, u.owner, u.tile)
 		_button(_unit_box, "Основать город (B)", func(): act.call({"type": "found_city", "unit": u.id}),
 			err != "" or u.moves_left <= 0.0, err)
+	if abilities.has("FOUND_RELIGION"):
+		_button(_unit_box, "Основать религию…", open_religion)
+	if abilities.has("SPREAD_RELIGION"):
+		var spread_error := ReligionRules.spread_error(game, u)
+		_button(_unit_box, "Распространить религию", func(): act.call({"type": "spread_religion", "unit": u.id}),
+			spread_error != "", spread_error)
 	if abilities.has("BUILD_IMPROVEMENT"):
 		for iid in ImprovementRules.valid_improvements(game, u):
 			var imp: Dictionary = game.data.improvements[iid]
@@ -1192,6 +1283,9 @@ func refresh_city() -> void:
 		food_net, _fmt(CityRules.housing(game, city)), int(am["have"]), int(am["need"]), str(st.get("name", ""))])
 	_label(_city_box, "Прочность: %d/%d%s" % [city.hp, int(game.data.const_value("city_hp", 200)),
 		(" · стены %d" % city.wall_hp) if city.wall_hp > 0 else ""])
+	var city_religion := ReligionRules.majority(game, city)
+	_label(_city_box, "Религия: %s%s" % [game.state.religions.get(city_religion, {}).get("name", "нет большинства"),
+		(" · %.1f последователей" % ReligionRules.followers(game, city, city_religion)) if city_religion != "" else ""])
 	if city.owner == game.state.current_player and Combat.city_can_strike(game, city):
 		for t in game.state.map.grid.tiles_in_radius(city.tile, int(game.data.const_value("city_ranged_range", 2))):
 			if Combat.city_attack_error(game, city, t) == "":

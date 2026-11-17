@@ -8,6 +8,8 @@ var original_owner: int
 var name: String
 var tile: int
 var population: int = 1
+## Накопленное давление по религиям. Последователи выводятся из давления и населения.
+var religion_pressure: Dictionary = {}
 var food_stored: float = 0.0
 var is_capital: bool = false
 var founded_turn: int = 1
@@ -66,7 +68,7 @@ func has_building(bid: String) -> bool:
 func to_dict() -> Dictionary:
 	return {
 		"id": id, "owner": owner, "original_owner": original_owner, "name": name,
-		"tile": tile, "population": population, "food_stored": food_stored,
+		"tile": tile, "population": population, "religion_pressure": religion_pressure.duplicate(), "food_stored": food_stored,
 		"is_capital": is_capital, "founded_turn": founded_turn,
 		"buildings": buildings.duplicate(), "worked_tiles": worked_tiles.duplicate(),
 		"locked_tiles": locked_tiles.duplicate(), "queue": queue.duplicate(true),
@@ -89,6 +91,8 @@ static func from_dict(d: Dictionary) -> City:
 	c.name = d["name"]
 	c.tile = int(d["tile"])
 	c.population = int(d["population"])
+	for rid in d.get("religion_pressure", {}):
+		c.religion_pressure[str(rid)] = float(d["religion_pressure"][rid])
 	c.food_stored = float(d["food_stored"])
 	c.is_capital = bool(d["is_capital"])
 	c.founded_turn = int(d["founded_turn"])

@@ -69,6 +69,7 @@ static func found_city(game: Game, pid: int, tile: int) -> City:
 			if game.data.buildings[bid].get("capital_only", false):
 				city.buildings.append(bid)
 	s.cities[city.id] = city
+	ReligionRules.on_city_founded(game, city)
 	if c(game, "city_removes_features", []).has(map.feature[tile]):
 		map.feature[tile] = ""
 	map.improvement[tile] = ""
@@ -205,7 +206,7 @@ static func _base_amenities(game: Game, city: City) -> int:
 static func amenity_info(game: Game, city: City, lux: Dictionary = {}) -> Dictionary:
 	if lux.is_empty():
 		lux = luxury_amenities(game, city.owner)
-	var have := _base_amenities(game, city) + int(lux.get(city.id, 0))
+	var have := _base_amenities(game, city) + int(lux.get(city.id, 0)) + ReligionRules.city_amenities(game, city)
 	var need := amenities_needed(city)
 	var balance := have - need
 	return {"have": have, "need": need, "balance": balance, "state": amenity_state(game, balance)}
@@ -229,6 +230,7 @@ static func city_yields(game: Game, city: City, lux: Dictionary = {}) -> Diction
 	for bid in city.buildings:
 		Yields.add_into(y, game.data.buildings.get(bid, {}).get("yields", {}))
 	Yields.add_into(y, DistrictRules.city_totals(game, city)["yields"])
+	Yields.add_into(y, ReligionRules.city_follower_yields(game, city))
 	y["science"] = float(y.get("science", 0)) + city.population * float(c(game, "science_per_pop", 0.5))
 	y["culture"] = float(y.get("culture", 0)) + city.population * float(c(game, "culture_per_pop", 0.3))
 	GovernmentRules.apply_city_yields(game, city, y)
@@ -420,6 +422,8 @@ static func build_error(game: Game, city: City, item: Dictionary) -> String:
 		var def := game.data.unit_def(id)
 		if def.is_empty():
 			return "Неизвестный юнит"
+		if def.get("religion_only", false):
+			return "Религиозные юниты вербуются за веру или очки пророка"
 		if not _unlocked(p, def):
 			return "Не открыто"
 		if def.get("domain", "LAND") == "SEA" and not game.state.map.is_coastal_land(city.tile):

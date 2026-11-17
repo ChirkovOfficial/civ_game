@@ -128,6 +128,7 @@ static func cap_components(record: Dictionary, cap: float) -> void:
 	var target: float = record.get("target", 0.0)
 	if target > cap:
 		record["goods_target"] = float(record.get("goods_target", 0.0)) * cap / target
+		record["religion_target"] = float(record.get("religion_target", 0.0)) * cap / target
 		record["target"] = cap
 
 

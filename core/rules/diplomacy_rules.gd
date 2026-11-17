@@ -478,9 +478,14 @@ static func _update_dependency(game: Game, round_number: int, events: Array) -> 
 			var previous_goods: float = old.get("goods", 0.0)
 			var step := cfg(game, "goods_dependency_step")
 			var goods := previous_goods + clampf(goods_target - previous_goods, -step, step)
-			var religion: float = old.get("religion", 0.0)
+			var religious := ReligionRules.religious_dependency_target(game, buyer, seller, old)
+			var religion_target: float = religious["target"]
+			var religion_step: float = ReligionRules.cfg(game, "religion_dependency_step")
+			var religion: float = float(old.get("religion", 0.0)) + clampf(religion_target - float(old.get("religion", 0.0)), -religion_step, religion_step)
 			var record := {"strategic": value, "goods": goods, "religion": religion,
-				"target": target + goods_target, "goods_target": goods_target, "main_resource": best_rid}
+				"target": target + goods_target + religion_target, "goods_target": goods_target,
+				"religion_target": religion_target, "religion_active": religious["active"],
+				"religion_streak": religious["streak"], "main_resource": best_rid}
 			if ConcessionRules.concession_active(game, buyer, seller):
 				ConcessionRules.cap_components(record, cfg(game, "concession_dependency_cap"))
 			d["dependency"][key] = record
@@ -589,7 +594,8 @@ static func _update_influence(game: Game, round_number: int, events: Array) -> v
 			"supplies": cfg(game, "supply_influence_cap") * minf(1.0, supply_power / n),
 			"relations": cfg(game, "relations_influence_cap") * minf(1.0, relation_power / n),
 			"living": cfg(game, "living_influence_cap") * _average_strength(
-				d["living_history"].get(str(pid), []), round_number, int(cfg(game, "demand_window")))}
+				d["living_history"].get(str(pid), []), round_number, int(cfg(game, "demand_window"))),
+			"religion": ReligionRules.influence_source(game, pid, majors.size())}
 		var target := 0.0
 		for amount in sources.values():
 			target += float(amount)

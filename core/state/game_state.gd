@@ -3,7 +3,10 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 9
+const SAVE_VERSION := 10
+
+## Основанные религии: id -> {name, founder, holy_city, follower_belief, founder_belief}.
+var religions: Dictionary = {}
 
 var congress_data := {"founded": false, "next_id": 1, "next_session": 0, "polls": {},
 	"docket": {}, "orders": {}, "evidence": {}, "cooldowns": {}, "recent": {}}
@@ -185,6 +188,7 @@ func to_dict() -> Dictionary:
 		"cities": _sorted_city_ids().map(func(id): return cities[id].to_dict()),
 		"war_changed": war_changed.duplicate(),
 		"diplomacy": diplomacy.duplicate(true),
+		"religions": religions.duplicate(true),
 		"treaties": treaty_data.duplicate(true),
 		"demands": demand_data.duplicate(true),
 		"congress": congress_data.duplicate(true),
@@ -239,6 +243,10 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 	for k in d.get("war_changed", {}):
 		s.war_changed[k] = int(d["war_changed"][k])
 	s.diplomacy = d.get("diplomacy", {}).duplicate(true)
+	s.religions = d.get("religions", {}).duplicate(true)
+	for rid in s.religions:
+		s.religions[rid]["founder"] = int(s.religions[rid]["founder"])
+		s.religions[rid]["holy_city"] = int(s.religions[rid]["holy_city"])
 	for key in d.get("congress", {}):
 		s.congress_data[key] = _restore_congress(d["congress"][key])
 	var demands: Dictionary = d.get("demands", {})
@@ -278,6 +286,10 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 			for key in s.diplomacy.get(collection, {}):
 				for record in s.diplomacy[collection][key]:
 					record["round"] = int(record["round"])
+		for key in s.diplomacy.get("dependency", {}):
+			var record: Dictionary = s.diplomacy["dependency"][key]
+			if record.has("religion_streak"):
+				record["religion_streak"] = int(record["religion_streak"])
 	for c in d.get("camps", []):
 		var camp := Unit._ints_in_dict(c)
 		s.camps[int(camp["tile"])] = camp

@@ -16,6 +16,7 @@ static func summary(game: Game, pid: int) -> Dictionary:
 		for k in y:
 			if k != "food" and k != "production":
 				total[k] = float(total.get(k, 0.0)) + float(y[k])
+	Yields.add_into(total, ReligionRules.founder_yields(game, pid))
 	var upkeep := maintenance(game, pid)
 	return {
 		"yields": total,
@@ -240,6 +241,7 @@ static func process_turn_start(game: Game, pid: int, events: Array) -> void:
 	var y: Dictionary = sum["yields"]
 	p.treasury += float(sum["net_gold"])
 	p.faith += float(y.get("faith", 0.0))
+	ReligionRules.process_turn(game, pid)
 	if not cities.is_empty():
 		apply_research_boosts(game, pid, events)
 		add_research(game, pid, "tech", float(y.get("science", 0.0)), events)

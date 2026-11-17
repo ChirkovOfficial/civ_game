@@ -20,6 +20,7 @@ var governments: Dictionary = {}
 var policies: Dictionary = {}
 var trade: Dictionary = {}
 var diplomacy: Dictionary = {}
+var religion_setup: Dictionary = {}
 var buildings: Dictionary = {}
 var districts: Dictionary = {}
 var improvements: Dictionary = {}
@@ -116,6 +117,7 @@ func load_all(dir: String = DATA_DIR) -> void:
 	policies = _index(government_setup.get("policies", []))
 	trade = _read(dir + "trade.json")
 	diplomacy = _read(dir + "diplomacy.json")
+	religion_setup = _read(dir + "religions.json")
 	setup = _read(dir + "game_setup.json")
 
 
@@ -287,6 +289,7 @@ func validate() -> PackedStringArray:
 	errors.append_array(_validate_tree(techs, "Технология"))
 	errors.append_array(GovernmentRules.validate_data(self))
 	errors.append_array(TradeRules.validate_data(self))
+	errors.append_array(ReligionRules.validate_data(self))
 	errors.append_array(_validate_tree(civics, "Институт"))
 	return errors
 

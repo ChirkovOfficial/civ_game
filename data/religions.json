@@ -1,0 +1,41 @@
+{
+  "prophet_points": 20,
+  "prophet_points_per_holy_site_tier": 1,
+  "missionary_faith_cost": 75,
+  "missionary_pressure": 200,
+  "missionary_other_pressure_factor": 0.9,
+  "holy_city_pressure": 400,
+  "new_city_pressure": 400,
+  "natural_pressure": 1,
+  "holy_city_natural_pressure": 3,
+  "pressure_radius": 10,
+  "religion_dependency_cap": 25,
+  "religion_dependency_step": 2,
+  "religion_majority_rounds": 3,
+  "religion_influence_cap": 150,
+  "religion_influence_full_share": 0.3,
+  "religion_influence_reach_population": 10,
+  "names": [
+    {"id": "CATHOLICISM", "name": "Католицизм"},
+    {"id": "ORTHODOXY", "name": "Православие"},
+    {"id": "ISLAM", "name": "Ислам"},
+    {"id": "BUDDHISM", "name": "Буддизм"},
+    {"id": "HINDUISM", "name": "Индуизм"},
+    {"id": "JUDAISM", "name": "Иудаизм"},
+    {"id": "SHINTO", "name": "Синтоизм"},
+    {"id": "TAOISM", "name": "Даосизм"},
+    {"id": "ZOROASTRIANISM", "name": "Зороастризм"}
+  ],
+  "follower_beliefs": [
+    {"id": "SCHOLARLY", "name": "Учёные общины", "yield": "science", "per_holy_site_tier": 1},
+    {"id": "CULTURAL", "name": "Культурные общины", "yield": "culture", "per_holy_site_tier": 1},
+    {"id": "WORK_ETHIC", "name": "Трудовая этика", "yield": "production", "per_holy_site_tier": 1},
+    {"id": "MERCY", "name": "Милосердие", "amenity_with_holy_site": 1}
+  ],
+  "founder_beliefs": [
+    {"id": "TITHE", "name": "Десятина", "yield": "gold", "foreign_followers_per_point": 4, "cap": 30},
+    {"id": "PILGRIMAGE", "name": "Паломничество", "yield": "faith", "foreign_majority_cities_per_point": 2, "cap": 15},
+    {"id": "WORLD_CHURCH", "name": "Мировая церковь", "yield": "culture", "foreign_majority_cities_per_point": 3, "cap": 10},
+    {"id": "KNOWLEDGE_EXCHANGE", "name": "Обмен знаниями", "yield": "science", "foreign_majority_cities_per_point": 3, "cap": 10}
+  ]
+}

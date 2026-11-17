@@ -2,6 +2,31 @@
  "_doc": "Юниты (ГДД 9.2). class — линия развития; domain: LAND | SEA | AIR. combat — сила ближнего боя, ranged — дальнего/бомбардировки, range — дальность. resource: разовая стоимость в запасе; resource_per_turn: содержание ресурса. tech/civic — что открывает (пусто = доступен со старта). upgrades_to — следующий в линии. Содержание в золоте считается по эре открывающей технологии (constants.unit_maintenance_by_era). Боевой авиации и оружия массового поражения в игре нет (docs/CIVS.md). Названия здесь — нейтральные, для держав без своей цивилизации; цивилизации задают свои в civs.json.",
  "units": [
   {
+   "id": "PROPHET",
+   "name": "Великий пророк",
+   "class": "CIVILIAN",
+   "layer": "RELIGIOUS",
+   "domain": "LAND",
+   "moves": 2,
+   "sight": 2,
+   "cost": 0,
+   "religion_only": true,
+   "abilities": ["FOUND_RELIGION"]
+  },
+  {
+   "id": "MISSIONARY",
+   "name": "Миссионер",
+   "class": "CIVILIAN",
+   "layer": "RELIGIOUS",
+   "domain": "LAND",
+   "moves": 2,
+   "sight": 2,
+   "cost": 0,
+   "religion_only": true,
+   "charges": 3,
+   "abilities": ["SPREAD_RELIGION"]
+  },
+  {
    "id": "SETTLER",
    "name": "Поселенец",
    "class": "CIVILIAN",

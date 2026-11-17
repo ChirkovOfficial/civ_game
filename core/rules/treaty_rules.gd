@@ -201,14 +201,14 @@ static func _closed(game: Game, visitor: int, host: int) -> bool:
 
 
 static func border_allows(game: Game, unit: Unit, from: int, to: int) -> bool:
-	if Movement.layer(game, unit.type) == "TRADE":
+	if Movement.layer(game, unit.type) in ["TRADE", "RELIGIOUS"]:
 		return true
 	var host := _owner(game, to)
 	return not _closed(game, unit.owner, host) or host == _owner(game, from)
 
 
 static func withdrawing(game: Game, unit: Unit) -> bool:
-	return Movement.layer(game, unit.type) != "TRADE" and _closed(game, unit.owner, _owner(game, unit.tile))
+	return Movement.layer(game, unit.type) not in ["TRADE", "RELIGIOUS"] and _closed(game, unit.owner, _owner(game, unit.tile))
 
 
 static func process_withdrawal(game: Game, pid: int, events: Array) -> void:
