@@ -1180,11 +1180,34 @@ func open_victory() -> void:
 		_label(_research_box, outcome, 22)
 		if not names.is_empty():
 			_label(_research_box, "Победители · " + ", ".join(names), 16, Color.WHITE, true)
-		var reason := "Контроль исходных столиц" if result["kind"] == "domination" else "Итоговый счёт"
+		var reason := "Итоговый счёт"
+		match str(result["kind"]):
+			"domination":
+				reason = "Контроль исходных столиц"
+			"religion":
+				var religion_id := str(result.get("religion", ""))
+				var religion_name := str(game.state.religions.get(religion_id, {}).get("name", religion_id))
+				reason = "Распространение религии %s" % religion_name
 		_label(_research_box, "%s · ход %d" % [reason, int(result["turn"])])
 	else:
 		var own := VictoryRules.capital_progress(game, pid)
 		_label(_research_box, "Исходные столицы под вашим контролем · %d из %d" % [own.x, own.y])
+		var own_religion := game.state.player(pid).religion_id
+		if own_religion == "":
+			_label(_research_box, "Религиозная победа: сначала основайте религию")
+		else:
+			var progress := VictoryRules.religion_progress(game, own_religion)
+			var complete := 0
+			for row in progress:
+				if int(row["total"]) > 0 and int(row["converted"]) >= int(row["required"]):
+					complete += 1
+			_label(_research_box, "Религиозная победа · %s · %d/%d держав имеют большинство" % [
+				game.state.religions[own_religion]["name"], complete, progress.size()], 15, Color.WHITE, true)
+			for row in progress:
+				var other := game.state.player(int(row["player"]))
+				if other.id == pid or game.state.player(pid).met.has(other.id):
+					_label(_research_box, "%s · %d/%d городов · нужно %d" % [other.name,
+						int(row["converted"]), int(row["total"]), int(row["required"])], 12)
 		_label(_research_box, "Победа по очкам после хода %d" % VictoryRules.turn_limit(game))
 	_label(_research_box, "Счёт держав", 17)
 	for row in VictoryRules.standings(game):

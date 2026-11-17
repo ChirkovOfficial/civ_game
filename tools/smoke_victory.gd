@@ -26,5 +26,36 @@ func _run() -> void:
 		printerr("Итоги нельзя открыть повторно")
 		quit(1)
 		return
-	print("Экран итогов открылся автоматически и повторно")
+	main.queue_free()
+	var second: Node = load("res://view/main.tscn").instantiate()
+	second.map_size = "DUEL"
+	second.fixed_seed = 18
+	root.add_child(second)
+	var religious_game: Game = second.game
+	var home := CityRules.found_city(religious_game, 0, religious_game.state.start_positions[0])
+	var rival := CityRules.found_city(religious_game, 1, religious_game.state.start_positions[1])
+	religious_game.state.player(0).religion_id = "TEST_FAITH"
+	religious_game.state.religions["TEST_FAITH"] = {"name": "Путь звёзд", "founder": 0,
+		"holy_city": home.id, "follower_belief": "SCHOLARLY", "founder_belief": "TITHE",
+		"cult_belief": "", "enhancer_belief": "", "inquisition_started": false}
+	home.religion_pressure["TEST_FAITH"] = 400.0
+	var missionary := religious_game.state.add_unit(0, "MISSIONARY", rival.tile)
+	missionary.charges = 1
+	missionary.moves_left = 2.0
+	second.act({"type": "spread_religion", "unit": missionary.id})
+	var religious_hud: Hud = second.hud
+	if religious_game.state.result.get("kind") != "religion" or not religious_hud.is_modal_open() \
+			or religious_hud.get("_research_kind") != "victory":
+		printerr("Экран религиозной победы не открылся")
+		quit(1)
+		return
+	var shown := false
+	for label in religious_hud.get("_research_box").find_children("*", "Label", true, false):
+		if label.text.contains("Распространение религии Путь звёзд"):
+			shown = true
+	if not shown:
+		printerr("На экране итогов нет названия победившей религии")
+		quit(1)
+		return
+	print("Экраны очковой и религиозной победы открываются автоматически")
 	quit()

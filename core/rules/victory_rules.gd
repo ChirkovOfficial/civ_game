@@ -1,6 +1,6 @@
 class_name VictoryRules
 extends RefCounted
-## Победа за исходные столицы и по очкам (ГДД 18, 20).
+## Победа за исходные столицы, распространение религии и по очкам (ГДД 20).
 
 
 static func turn_limit(game: Game) -> int:
@@ -55,6 +55,45 @@ static func capital_progress(game: Game, pid: int) -> Vector2i:
 	return Vector2i(controlled, required)
 
 
+## Для каждой живой крупной державы: сколько её городов исповедует religion_id.
+## Город без строгого большинства не засчитывается ни одной религии.
+static func religion_progress(game: Game, religion_id: String) -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	for player in game.state.players:
+		if player.is_barbarian or not player.alive:
+			continue
+		var cities := game.state.cities_of(player.id)
+		var converted := 0
+		for city in cities:
+			if ReligionRules.majority(game, city) == religion_id:
+				converted += 1
+		rows.append({"player": player.id, "converted": converted, "total": cities.size(),
+			"required": floori(cities.size() * 0.5) + 1})
+	return rows
+
+
+static func check_religion(game: Game, events: Array) -> void:
+	if not game.state.result.is_empty():
+		return
+	var ids := game.state.religions.keys()
+	ids.sort()
+	for rid in ids:
+		var founder := int(game.state.religions[rid].get("founder", -1))
+		if founder < 0 or founder >= game.state.players.size() or not game.state.player(founder).alive:
+			continue
+		var progress := religion_progress(game, str(rid))
+		if progress.size() < 2:
+			continue
+		var complete := true
+		for row in progress:
+			if int(row["total"]) == 0 or int(row["converted"]) < int(row["required"]):
+				complete = false
+				break
+		if complete:
+			_finish(game, "religion", [founder], events, {"religion": str(rid)})
+			return
+
+
 static func check_capitals(game: Game, events: Array) -> void:
 	if not game.state.result.is_empty():
 		return
@@ -86,8 +125,9 @@ static func check_turn_limit(game: Game, events: Array) -> void:
 	_finish(game, "score", winners, events)
 
 
-static func _finish(game: Game, kind: String, winners: Array[int], events: Array) -> void:
+static func _finish(game: Game, kind: String, winners: Array[int], events: Array, details: Dictionary = {}) -> void:
 	game.state.result = {"kind": kind, "winners": winners, "turn": game.state.turn}
+	game.state.result.merge(details)
 	var event := game.state.result.duplicate(true)
 	event["type"] = "game_finished"
 	events.append(event)

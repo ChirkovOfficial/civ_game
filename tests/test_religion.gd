@@ -291,6 +291,7 @@ func test_active_spread_protest_promise_and_breach() -> void:
 	_site(game, home)
 	_found(game, home)
 	var foreign := _city(game, 1, 12, 5)
+	_city(game, 1, 12, 11)
 	ReligionRules.process_round(game)
 	check(game.state.religious_conflicts["incidents"].is_empty(), "естественное давление не создаёт повод для протеста")
 	var preacher := game.state.add_unit(0, "MISSIONARY", foreign.tile)

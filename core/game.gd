@@ -367,6 +367,11 @@ func apply_action(action: Dictionary) -> Array:
 		if event["type"] in ["city_founded", "city_captured", "player_eliminated"]:
 			VictoryRules.check_capitals(self, events)
 			break
+	for event in events:
+		if event["type"] in ["religion_founded", "religion_spread", "religion_purged", "theological_combat",
+				"city_founded", "city_captured", "city_conceded", "city_destroyed", "player_eliminated"]:
+			VictoryRules.check_religion(self, events)
+			break
 	if not events.is_empty():
 		events_emitted.emit(events)
 	return events
@@ -689,13 +694,16 @@ func _act_end_turn(events: Array) -> void:
 func _advance_round(events: Array) -> bool:
 	_barbarian_phase(events)
 	VictoryRules.check_capitals(self, events)
-	VictoryRules.check_turn_limit(self, events)
 	if not state.result.is_empty():
 		return false
 	DemandRules.close_round(self, events)
 	ReligiousConflictRules.close_round(self)
 	TreatyRules.close_round(self)
 	ReligionRules.process_round(self)
+	VictoryRules.check_religion(self, events)
+	VictoryRules.check_turn_limit(self, events)
+	if not state.result.is_empty():
+		return false
 	DiplomacyRules.close_round(self, events)
 	CongressRules.apply_commerce_effects(self, events)
 	CongressRules.close_round(self, events)

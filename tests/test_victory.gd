@@ -67,3 +67,85 @@ func test_score_tie_and_scaled_default_limit() -> void:
 	g.state.turn = 335
 	g.apply_action({"type": "end_turn", "force": true})
 	check_eq(g.state.result["winners"], [0, 1])
+
+
+func _religion_setup(g: Game, home: City) -> void:
+	g.state.player(0).religion_id = "TEST_FAITH"
+	g.state.religions["TEST_FAITH"] = {"name": "Путь звёзд", "founder": 0,
+		"holy_city": home.id, "follower_belief": "SCHOLARLY", "founder_belief": "TITHE",
+		"cult_belief": "", "enhancer_belief": "", "inquisition_started": false}
+	home.religion_pressure["TEST_FAITH"] = 400.0
+
+
+func _spread_test_religion(g: Game, target: City) -> Array:
+	g.state.current_player = 0
+	var unit := g.state.add_unit(0, "MISSIONARY", target.tile)
+	unit.charges = 1
+	unit.moves_left = 2.0
+	return g.apply_action({"type": "spread_religion", "unit": unit.id})
+
+
+func test_religious_victory_needs_majority_in_every_living_civilization() -> void:
+	var g := blank_game(32, 16, 3)
+	var grid := g.state.map.grid
+	var home := CityRules.found_city(g, 0, grid.index_of(4, 5))
+	var rival_a := CityRules.found_city(g, 1, grid.index_of(12, 4))
+	var rival_b := CityRules.found_city(g, 1, grid.index_of(12, 11))
+	var third := CityRules.found_city(g, 2, grid.index_of(22, 5))
+	_religion_setup(g, home)
+	var progress := VictoryRules.religion_progress(g, "TEST_FAITH")
+	check_eq(progress[1]["required"], 2, "для двух городов нужно оба")
+	_spread_test_religion(g, rival_a)
+	_spread_test_religion(g, third)
+	check(g.state.result.is_empty(), "одного из двух городов державы недостаточно")
+	check_eq(VictoryRules.religion_progress(g, "TEST_FAITH")[1]["converted"], 1)
+	var final_spread := _spread_test_religion(g, rival_b)
+	check(final_spread.any(func(e): return e["type"] == "game_finished"))
+	check_eq(g.state.result["kind"], "religion")
+	check_eq(g.state.result["religion"], "TEST_FAITH")
+	check_eq(g.state.result["winners"], [0])
+	var saved := g.state.to_json()
+	check_eq(GameState.from_json(saved, g.data).to_json(), saved)
+	check_eq(g.apply_action({"type": "end_turn", "force": true})[0]["type"], "error")
+	check_eq(g.state.to_json(), saved)
+
+
+func test_natural_pressure_wins_before_score_on_last_round() -> void:
+	var g := blank_game(32, 16, 2)
+	var grid := g.state.map.grid
+	var home := CityRules.found_city(g, 0, grid.index_of(5, 5))
+	var rival := CityRules.found_city(g, 1, grid.index_of(12, 5))
+	_religion_setup(g, home)
+	rival.religion_pressure["TEST_FAITH"] = 99.0
+	g.state.player(1).is_ai = false
+	g.state.settings["turn_limit"] = 1
+	check_eq(ReligionRules.majority(g, rival), "")
+	g.apply_action({"type": "end_turn", "force": true})
+	check(g.state.result.is_empty())
+	var events := g.apply_action({"type": "end_turn", "force": true})
+	check_eq(ReligionRules.majority(g, rival), "TEST_FAITH")
+	check_eq(g.state.result["kind"], "religion")
+	check(events.any(func(e): return e["type"] == "game_finished"))
+	check_eq(g.state.turn, 1)
+
+
+func test_religious_victory_ignores_eliminated_but_not_cityless_living_state() -> void:
+	var g := blank_game(32, 16, 3)
+	var grid := g.state.map.grid
+	var home := CityRules.found_city(g, 0, grid.index_of(5, 5))
+	var rival := CityRules.found_city(g, 1, grid.index_of(12, 5))
+	_religion_setup(g, home)
+	rival.religion_pressure["TEST_FAITH"] = 400.0
+	VictoryRules.check_religion(g, [])
+	check(g.state.result.is_empty(), "живая держава без городов не выполняет условие")
+	g.state.player(2).alive = false
+	VictoryRules.check_religion(g, [])
+	check_eq(g.state.result["kind"], "religion")
+	var without_founder := blank_game(32, 16, 2)
+	var first := CityRules.found_city(without_founder, 0, without_founder.state.map.grid.index_of(5, 5))
+	var second := CityRules.found_city(without_founder, 1, without_founder.state.map.grid.index_of(12, 5))
+	_religion_setup(without_founder, first)
+	second.religion_pressure["TEST_FAITH"] = 400.0
+	without_founder.state.player(0).alive = false
+	VictoryRules.check_religion(without_founder, [])
+	check(without_founder.state.result.is_empty(), "религия выбывшего основателя не побеждает")
