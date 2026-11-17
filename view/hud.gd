@@ -525,12 +525,49 @@ func open_religion() -> void:
 	_label(_research_box, "Вера: %d · очки Великого пророка: %d/%d · основано религий: %d/%d" % [
 		int(player.faith), int(player.prophet_points), int(ReligionRules.cfg(game, "prophet_points")),
 		game.state.religions.size(), ReligionRules.prophet_limit(game)], 14)
+	if player.pantheon == "":
+		_label(_research_box, "Пантеон · %d веры. Каждый пантеон можно выбрать только один раз в мире." % int(ReligionRules.cfg(game, "pantheon_faith_cost")), 15, Color.WHITE, true)
+		for option in ReligionRules.pantheon_options(game):
+			var pantheon_id: String = option["id"]
+			var pantheon_error := ReligionRules.pantheon_error(game, pid, pantheon_id)
+			_button(_research_box, "%s — %s" % [option["name"], option["text"]],
+				func(): act.call({"type": "choose_pantheon", "id": pantheon_id}); open_religion(),
+				pantheon_error != "", pantheon_error)
+	else:
+		var pantheon := ReligionRules.belief(game, "pantheons", player.pantheon)
+		_label(_research_box, "Пантеон: %s — %s" % [pantheon.get("name", player.pantheon), pantheon.get("text", "")], 14, Color.WHITE, true)
 	if player.religion_id != "":
 		var mine: Dictionary = game.state.religions[player.religion_id]
-		_label(_research_box, "Ваша религия: %s · священный город: %s" % [mine["name"], game.state.city(int(mine["holy_city"])).name], 16)
+		var holy_city := game.state.city(int(mine["holy_city"]))
+		_label(_research_box, "Ваша религия: %s · священный город: %s" % [mine["name"],
+			holy_city.name if holy_city != null else "утрачен"], 16)
 		_label(_research_box, "Последователи: %s · основатель: %s" % [
 			ReligionRules.belief(game, "follower_beliefs", mine["follower_belief"])["name"],
 			ReligionRules.belief(game, "founder_beliefs", mine["founder_belief"])["name"]], 13)
+		for kind in ["cult", "enhancer"]:
+			var chosen: String = str(mine.get(kind + "_belief", ""))
+			var title_text := "Здание культа" if kind == "cult" else "Усиление"
+			var chosen_def := ReligionRules.belief(game, kind + "_beliefs", chosen)
+			_label(_research_box, "%s: %s%s" % [title_text, chosen_def.get("name", "не выбрано"),
+				(" — " + str(chosen_def["text"])) if chosen_def.has("text") else ""], 13, Color.WHITE, true)
+			if chosen != "":
+				continue
+			for unit in game.state.units_of(pid):
+				if unit.type != "APOSTLE":
+					continue
+				var options: Array = ReligionRules.cfg(game, kind + "_beliefs", [])
+				if options.is_empty() or ReligionRules.proclaim_error(game, unit, kind, str(options[0]["id"])) != "":
+					continue
+				for option in options:
+					var option_id: String = option["id"]
+					var apostle_id := unit.id
+					var belief_kind: String = kind
+					var error := ReligionRules.proclaim_error(game, unit, belief_kind, option_id)
+					if error == "":
+						_button(_research_box, "Провозгласить: %s — %s" % [option["name"], option["text"]],
+							func(): act.call({"type": "proclaim_belief", "unit": apostle_id,
+								"kind": belief_kind, "id": option_id}); open_religion())
+				break
 	else:
 		var prophet: Unit = null
 		for unit in game.state.units_of(pid):
@@ -580,8 +617,13 @@ func open_religion() -> void:
 			var missionary_error := ReligionRules.missionary_error(game, pid, city)
 			if missionary_error == "":
 				var city_id_for_missionary := city.id
-				_button(_research_box, "Купить миссионера в %s · %d веры" % [city.name, int(ReligionRules.cfg(game, "missionary_faith_cost"))],
+				_button(_research_box, "Купить миссионера в %s · %d веры" % [city.name, ReligionRules.faith_cost(game, pid, "MISSIONARY")],
 					func(): act.call({"type": "recruit_missionary", "city": city_id_for_missionary}); open_religion())
+			var apostle_error := ReligionRules.apostle_error(game, pid, city)
+			if apostle_error == "":
+				var apostle_city_id := city.id
+				_button(_research_box, "Купить апостола в %s · %d веры" % [city.name, ReligionRules.faith_cost(game, pid, "APOSTLE")],
+					func(): act.call({"type": "recruit_apostle", "city": apostle_city_id}); open_religion())
 	if game.state.religions.size() > 0:
 		_label(_research_box, "Основанные религии", 16)
 		for rid in game.state.religions:
@@ -1181,6 +1223,8 @@ func show_unit(u: Unit) -> void:
 			err != "" or u.moves_left <= 0.0, err)
 	if abilities.has("FOUND_RELIGION"):
 		_button(_unit_box, "Основать религию…", open_religion)
+	if abilities.has("PROCLAIM_BELIEF"):
+		_button(_unit_box, "Провозгласить верование…", open_religion)
 	if abilities.has("SPREAD_RELIGION"):
 		var spread_error := ReligionRules.spread_error(game, u)
 		_button(_unit_box, "Распространить религию", func(): act.call({"type": "spread_religion", "unit": u.id}),

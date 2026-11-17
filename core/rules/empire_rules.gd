@@ -295,6 +295,8 @@ static func blocking_decisions(game: Game, pid: int) -> Array:
 	var p := game.state.player(pid)
 	var cities := game.state.cities_of(pid)
 	if not cities.is_empty():
+		if p.pantheon == "" and p.faith >= float(ReligionRules.cfg(game, "pantheon_faith_cost")) and not ReligionRules.pantheon_options(game).is_empty():
+			result.append({"type": "choose_pantheon", "text": "Выберите пантеон"})
 		if p.current_tech == "" and not available_techs(game, pid).is_empty():
 			result.append({"type": "choose_tech", "text": "Выберите исследование"})
 		if p.current_civic == "" and not available_civics(game, pid).is_empty():

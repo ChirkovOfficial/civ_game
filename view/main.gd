@@ -184,7 +184,7 @@ func act(action: Dictionary) -> Array:
 	var events := game.apply_action(action)
 	_after_action()
 	var t: String = action.get("type", "")
-	if t in ["found_city", "found_religion", "spread_religion", "build_improvement", "harvest", "skip_unit", "sleep_unit", "fortify", "build_road", "attack", "promote", "upgrade_unit", "build_fort", "pillage", "attach_commander"] and \
+	if t in ["found_city", "found_religion", "spread_religion", "proclaim_belief", "build_improvement", "harvest", "skip_unit", "sleep_unit", "fortify", "build_road", "attack", "promote", "upgrade_unit", "build_fort", "pillage", "attach_commander"] and \
 			(selected == null or game.state.unit(selected.id) == null or selected.moves_left <= 0.0 or not selected.orders.is_empty()):
 		_select_next_unit()
 	if t == "found_city":
@@ -251,6 +251,10 @@ func _on_events(events: Array) -> void:
 			hud.show_message("Принят институт: %s" % game.data.civics[e["civic"]]["name"], 3.0)
 		elif t == "religion_founded":
 			hud.show_message("Основана религия: %s" % game.state.religions[e["religion"]]["name"], 3.0)
+		elif t == "pantheon_founded" and e["player"] == game.state.current_player:
+			hud.show_message("Основан пантеон: %s" % ReligionRules.belief(game, "pantheons", e["pantheon"])["name"], 3.0)
+		elif t == "religion_enhanced":
+			hud.show_message("Провозглашено верование: %s" % ReligionRules.belief(game, str(e["kind"]) + "_beliefs", e["belief"])["name"], 3.0)
 		elif t == "religion_spread" and e["player"] == game.state.current_player:
 			hud.show_message("Вера распространена в городе %s" % game.state.city(e["city"]).name, 3.0)
 		elif t == "village_reward" and e["player"] == game.state.current_player:
@@ -487,6 +491,8 @@ func _end_turn() -> void:
 		var b: Dictionary = blocking[0]
 		hud.show_message(b["text"])
 		match b["type"]:
+			"choose_pantheon":
+				hud.open_religion()
 			"choose_tech":
 				hud.open_research("tech")
 			"choose_civic":

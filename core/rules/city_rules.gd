@@ -106,6 +106,7 @@ static func tile_yields(game: Game, tile: int, player: Player) -> Dictionary:
 	var imp := map.improvement[tile]
 	if imp != "":
 		Yields.add_into(y, game.data.improvements.get(imp, {}).get("yields", {}))
+	Yields.add_into(y, ReligionRules.pantheon_tile_yields(game, tile, player))
 	var city := game.state.city_at(tile)
 	if city != null:
 		var mins: Dictionary = c(game, "city_center_min_yields", {})

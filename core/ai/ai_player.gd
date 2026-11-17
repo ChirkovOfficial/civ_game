@@ -57,6 +57,16 @@ static func _answer_demands(game: Game, pid: int) -> void:
 
 static func _religion(game: Game, pid: int) -> void:
 	var player := game.state.player(pid)
+	if player.pantheon == "" and player.faith >= float(ReligionRules.cfg(game, "pantheon_faith_cost")):
+		var choice := ""
+		var best_score := -1
+		for option in ReligionRules.pantheon_options(game):
+			var score := ReligionRules.pantheon_score(game, pid, option)
+			if score > best_score:
+				best_score = score
+				choice = option["id"]
+		if choice != "":
+			game.apply_action({"type": "choose_pantheon", "id": choice})
 	if player.religion_id == "":
 		var prophet: Unit = null
 		for unit in game.state.units_of(pid):
@@ -77,9 +87,32 @@ static func _religion(game: Game, pid: int) -> void:
 			game.apply_action({"type": "found_religion", "unit": prophet.id, "religion": option["id"],
 				"follower": "SCHOLARLY", "founder": "TITHE"})
 		return
+	var religion: Dictionary = game.state.religions[player.religion_id]
+	for kind in ["cult", "enhancer"]:
+		if str(religion.get(kind + "_belief", "")) != "":
+			continue
+		var options: Array = ReligionRules.cfg(game, kind + "_beliefs", [])
+		if options.is_empty():
+			continue
+		var apostle: Unit = null
+		for unit in game.state.units_of(pid):
+			if ReligionRules.proclaim_error(game, unit, kind, str(options[0]["id"])) == "":
+				apostle = unit
+				break
+		if apostle == null:
+			for city in game.state.cities_of(pid):
+				if ReligionRules.apostle_error(game, pid, city) == "":
+					var result := game.apply_action({"type": "recruit_apostle", "city": city.id})
+					if not result.is_empty() and result[0]["type"] == "unit_created":
+						apostle = game.state.unit(int(result[0]["unit"]))
+					break
+		if apostle != null:
+			var option: Dictionary = options[pid % options.size()]
+			game.apply_action({"type": "proclaim_belief", "unit": apostle.id,
+				"kind": kind, "id": option["id"]})
 	var missionaries := 0
 	for unit in game.state.units_of(pid):
-		if unit.type != "MISSIONARY":
+		if unit.type not in ["MISSIONARY", "APOSTLE"]:
 			continue
 		missionaries += 1
 		if unit.moves_left <= 0.0:
@@ -103,7 +136,11 @@ static func _religion(game: Game, pid: int) -> void:
 		if target != null:
 			game.apply_action({"type": "move_unit", "unit": unit.id, "target": target.tile})
 	if missionaries < 2:
+		var need_apostle := str(religion.get("cult_belief", "")) != "" and str(religion.get("enhancer_belief", "")) != ""
 		for city in game.state.cities_of(pid):
+			if need_apostle and ReligionRules.apostle_error(game, pid, city) == "":
+				game.apply_action({"type": "recruit_apostle", "city": city.id})
+				break
 			if ReligionRules.missionary_error(game, pid, city) == "":
 				game.apply_action({"type": "recruit_missionary", "city": city.id})
 				break

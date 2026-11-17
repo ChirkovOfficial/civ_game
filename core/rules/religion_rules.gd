@@ -15,7 +15,7 @@ static func validate_data(data: GameData) -> PackedStringArray:
 		if id == "" or str(option.get("name", "")) == "" or names.has(id):
 			errors.append("Некорректное или повторное название религии: %s" % id)
 		names[id] = true
-	for kind in ["follower_beliefs", "founder_beliefs"]:
+	for kind in ["pantheons", "follower_beliefs", "founder_beliefs", "cult_beliefs", "enhancer_beliefs"]:
 		var ids := {}
 		for option in data.religion_setup.get(kind, []):
 			var id: String = str(option.get("id", ""))
@@ -24,14 +24,26 @@ static func validate_data(data: GameData) -> PackedStringArray:
 			ids[id] = true
 			if option.has("yield") and not Yields.TYPES.has(option["yield"]):
 				errors.append("Верование %s: неизвестный доход" % id)
-	if data.religion_setup.get("names", []).is_empty() or data.religion_setup.get("follower_beliefs", []).is_empty() or data.religion_setup.get("founder_beliefs", []).is_empty():
-		errors.append("Религия: нужны названия и оба вида верований")
+			if kind == "pantheons":
+				if option.has("improvement") and not data.improvements.has(option["improvement"]):
+					errors.append("Пантеон %s: неизвестное улучшение" % id)
+				if option.has("feature") and not data.features.has(option["feature"]):
+					errors.append("Пантеон %s: неизвестная особенность клетки" % id)
+				if not option.has("yield") or float(option.get("amount", 0)) <= 0.0:
+					errors.append("Пантеон %s: нужен положительный доход" % id)
+	if data.religion_setup.get("names", []).is_empty() or data.religion_setup.get("pantheons", []).is_empty() or data.religion_setup.get("follower_beliefs", []).is_empty() or data.religion_setup.get("founder_beliefs", []).is_empty() or data.religion_setup.get("cult_beliefs", []).is_empty() or data.religion_setup.get("enhancer_beliefs", []).is_empty():
+		errors.append("Религия: нужны названия, пантеоны и все четыре вида верований")
+	var max_civs := 0
+	for size in data.setup.get("map_sizes", []):
+		max_civs = maxi(max_civs, int(size.get("civs", 0)))
+	if data.religion_setup.get("pantheons", []).size() < max_civs:
+		errors.append("Религия: пантеонов меньше, чем держав на самой большой карте")
 	return errors
 
 
-static func holy_site(city: City) -> Dictionary:
+static func holy_site(city: City, min_tier: int = 1) -> Dictionary:
 	for d in city.districts:
-		if d["type"] == "HOLY_SITE" and d["complete"]:
+		if d["type"] == "HOLY_SITE" and d["complete"] and int(d["tier"]) >= min_tier:
 			return d
 	return {}
 
@@ -59,11 +71,79 @@ static func belief(game: Game, kind: String, id: String) -> Dictionary:
 	return {}
 
 
+static func pantheon_options(game: Game) -> Array:
+	var taken := {}
+	for player in game.state.players:
+		if player.pantheon != "":
+			taken[player.pantheon] = true
+	var result := []
+	for option in cfg(game, "pantheons", []):
+		if not taken.has(option["id"]):
+			result.append(option)
+	return result
+
+
+static func pantheon_error(game: Game, pid: int, id: String) -> String:
+	if pid < 0 or pid >= game.state.players.size() or game.state.player(pid).is_barbarian:
+		return "Пантеон доступен крупной державе"
+	var player := game.state.player(pid)
+	if player.pantheon != "":
+		return "Пантеон уже выбран"
+	if game.state.cities_of(pid).is_empty():
+		return "Нужен основанный город"
+	if player.faith < float(cfg(game, "pantheon_faith_cost")):
+		return "Недостаточно веры для пантеона"
+	if not pantheon_options(game).any(func(option): return option["id"] == id):
+		return "Этот пантеон уже выбран или неизвестен"
+	return ""
+
+
+static func choose_pantheon(game: Game, pid: int, id: String, events: Array) -> String:
+	var error := pantheon_error(game, pid, id)
+	if error != "":
+		return error
+	game.state.player(pid).faith -= float(cfg(game, "pantheon_faith_cost"))
+	game.state.player(pid).pantheon = id
+	events.append({"type": "pantheon_founded", "player": pid, "pantheon": id})
+	return ""
+
+
+static func pantheon_tile_yields(game: Game, tile: int, player: Player) -> Dictionary:
+	if player.pantheon == "":
+		return {}
+	var option := belief(game, "pantheons", player.pantheon)
+	if option.is_empty():
+		return {}
+	if option.has("improvement") and game.state.map.improvement[tile] != option["improvement"]:
+		return {}
+	if option.has("feature") and game.state.map.feature[tile] != option["feature"]:
+		return {}
+	return {option["yield"]: float(option["amount"])}
+
+
+static func pantheon_score(game: Game, pid: int, option: Dictionary) -> int:
+	var score := 0
+	for city in game.state.cities_of(pid):
+		for tile in CityRules.owned_tiles(game, city):
+			var useful := false
+			if option.has("feature"):
+				useful = game.state.map.feature[tile] == option["feature"]
+			elif option.has("improvement"):
+				var rid: String = game.state.map.resource[tile]
+				useful = game.state.map.improvement[tile] == option["improvement"] or \
+					(rid != "" and game.data.resources[rid].get("improvement", "") == option["improvement"])
+			if useful:
+				score += 3 if city.worked_tiles.has(tile) else 1
+	return score
+
+
 static func prophet_error(game: Game, pid: int, city: City) -> String:
 	if city == null or city.owner != pid:
 		return "Выберите свой город"
 	if game.state.player(pid).religion_id != "":
 		return "Держава уже основала религию"
+	if game.state.player(pid).pantheon == "":
+		return "Сначала выберите пантеон"
 	if game.state.religions.size() >= prophet_limit(game):
 		return "Предел религий в мире достигнут"
 	if game.state.player(pid).prophet_points < float(cfg(game, "prophet_points")):
@@ -97,6 +177,8 @@ static func found_error(game: Game, unit: Unit, name_id: String, follower: Strin
 		return "Нужен свой Великий пророк"
 	if game.state.player(unit.owner).religion_id != "":
 		return "Держава уже основала религию"
+	if game.state.player(unit.owner).pantheon == "":
+		return "Сначала выберите пантеон"
 	if game.state.religions.size() >= prophet_limit(game):
 		return "Предел религий в мире достигнут"
 	var site := DistrictRules.at(game, unit.tile)
@@ -134,7 +216,8 @@ static func found(game: Game, unit: Unit, name_id: String, follower: String, fou
 				name = option["name"]
 				break
 	game.state.religions[name_id] = {"name": name, "founder": unit.owner, "holy_city": city.id,
-		"follower_belief": follower, "founder_belief": founder}
+		"follower_belief": follower, "founder_belief": founder,
+		"cult_belief": "", "enhancer_belief": ""}
 	game.state.player(unit.owner).religion_id = name_id
 	city.religion_pressure[name_id] = float(cfg(game, "holy_city_pressure"))
 	game.state.remove_unit(unit.id)
@@ -167,19 +250,41 @@ static func city_follower_yields(game: Game, city: City) -> Dictionary:
 	if religion.is_empty():
 		return {}
 	var option := belief(game, "follower_beliefs", religion["follower_belief"])
-	if not option.has("yield"):
-		return {}
 	var tiers := 0
+	var advanced := false
 	for site in DistrictRules.of_type(city, "HOLY_SITE", true):
 		tiers += int(site["tier"])
-	return {option["yield"]: tiers * float(option["per_holy_site_tier"])}
+		advanced = advanced or int(site["tier"]) >= 2
+	var yields := {}
+	if option.has("yield"):
+		yields[option["yield"]] = tiers * float(option["per_holy_site_tier"])
+	var cult := belief(game, "cult_beliefs", str(religion.get("cult_belief", "")))
+	if advanced and cult.has("yield"):
+		yields[cult["yield"]] = float(yields.get(cult["yield"], 0.0)) + float(cult["amount"])
+	return yields
 
 
 static func city_amenities(game: Game, city: City) -> int:
 	var religion: Dictionary = game.state.religions.get(majority(game, city), {})
 	if religion.is_empty() or holy_site(city).is_empty():
 		return 0
-	return int(belief(game, "follower_beliefs", religion["follower_belief"]).get("amenity_with_holy_site", 0))
+	var result := int(belief(game, "follower_beliefs", religion["follower_belief"]).get("amenity_with_holy_site", 0))
+	var cult := belief(game, "cult_beliefs", str(religion.get("cult_belief", "")))
+	for site in DistrictRules.of_type(city, "HOLY_SITE", true):
+		if int(site["tier"]) >= 2:
+			result += int(cult.get("amenities", 0))
+			break
+	return result
+
+
+static func enhancer(game: Game, rid: String) -> Dictionary:
+	var religion: Dictionary = game.state.religions.get(rid, {})
+	return belief(game, "enhancer_beliefs", str(religion.get("enhancer_belief", "")))
+
+
+static func faith_cost(game: Game, pid: int, unit_type: String) -> int:
+	var base := float(cfg(game, "apostle_faith_cost")) if unit_type == "APOSTLE" else float(cfg(game, "missionary_faith_cost"))
+	return ceili(base * float(enhancer(game, game.state.player(pid).religion_id).get("faith_cost_multiplier", 1.0)))
 
 
 static func founder_yields(game: Game, pid: int) -> Dictionary:
@@ -215,7 +320,7 @@ static func missionary_error(game: Game, pid: int, city: City) -> String:
 	var site := holy_site(city)
 	if site.is_empty():
 		return "Нужно готовое Священное место"
-	if game.state.player(pid).faith < float(cfg(game, "missionary_faith_cost")):
+	if game.state.player(pid).faith < faith_cost(game, pid, "MISSIONARY"):
 		return "Недостаточно веры"
 	for unit in game.state.units_at(int(site["tile"])):
 		if Movement.layer(game, unit.type) == "RELIGIOUS":
@@ -227,7 +332,7 @@ static func recruit_missionary(game: Game, pid: int, city: City, events: Array) 
 	var error := missionary_error(game, pid, city)
 	if error != "":
 		return error
-	game.state.player(pid).faith -= float(cfg(game, "missionary_faith_cost"))
+	game.state.player(pid).faith -= faith_cost(game, pid, "MISSIONARY")
 	var unit := game.state.add_unit(pid, "MISSIONARY", int(holy_site(city)["tile"]))
 	unit.charges = 3
 	unit.moves_left = 0.0
@@ -235,16 +340,78 @@ static func recruit_missionary(game: Game, pid: int, city: City, events: Array) 
 	return ""
 
 
+static func apostle_error(game: Game, pid: int, city: City) -> String:
+	if city == null or city.owner != pid:
+		return "Выберите свой город"
+	var rid := game.state.player(pid).religion_id
+	if rid == "" or majority(game, city) != rid:
+		return "Город должен исповедовать основанную вами религию"
+	var site := holy_site(city, 2)
+	if site.is_empty():
+		return "Нужно готовое Священное место II"
+	if game.state.player(pid).faith < faith_cost(game, pid, "APOSTLE"):
+		return "Недостаточно веры"
+	for unit in game.state.units_at(int(site["tile"])):
+		if Movement.layer(game, unit.type) == "RELIGIOUS":
+			return "Священное место занято религиозным юнитом"
+	return ""
+
+
+static func recruit_apostle(game: Game, pid: int, city: City, events: Array) -> String:
+	var error := apostle_error(game, pid, city)
+	if error != "":
+		return error
+	game.state.player(pid).faith -= faith_cost(game, pid, "APOSTLE")
+	var unit := game.state.add_unit(pid, "APOSTLE", int(holy_site(city, 2)["tile"]))
+	unit.charges = int(cfg(game, "apostle_charges"))
+	unit.moves_left = 0.0
+	events.append({"type": "unit_created", "unit": unit.id, "player": pid})
+	return ""
+
+
+static func proclaim_error(game: Game, unit: Unit, kind: String, id: String) -> String:
+	if unit == null or unit.type != "APOSTLE" or unit.owner != game.state.current_player:
+		return "Нужен свой апостол"
+	if unit.charges < int(cfg(game, "apostle_charges")):
+		return "Для провозглашения нужны все заряды апостола"
+	var site := DistrictRules.at(game, unit.tile)
+	if site.size() < 2 or site[0].owner != unit.owner or site[1]["type"] != "HOLY_SITE" or not site[1]["complete"] or int(site[1]["tier"]) < 2:
+		return "Апостол должен находиться на своём Священном месте II"
+	var rid := game.state.player(unit.owner).religion_id
+	if rid == "":
+		return "Держава не основала религию"
+	if kind not in ["cult", "enhancer"]:
+		return "Неизвестный вид верования"
+	var field := kind + "_belief"
+	if str(game.state.religions[rid].get(field, "")) != "":
+		return "Это верование уже провозглашено"
+	if belief(game, kind + "_beliefs", id).is_empty():
+		return "Неизвестное верование"
+	return ""
+
+
+static func proclaim(game: Game, unit: Unit, kind: String, id: String, events: Array) -> String:
+	var error := proclaim_error(game, unit, kind, id)
+	if error != "":
+		return error
+	var rid := game.state.player(unit.owner).religion_id
+	game.state.religions[rid][kind + "_belief"] = id
+	game.state.remove_unit(unit.id)
+	events.append({"type": "religion_enhanced", "player": game.state.current_player,
+		"religion": rid, "kind": kind, "belief": id})
+	return ""
+
+
 static func spread_error(game: Game, unit: Unit) -> String:
-	if unit == null or unit.type != "MISSIONARY" or unit.owner != game.state.current_player:
-		return "Нужен свой миссионер"
+	if unit == null or unit.type not in ["MISSIONARY", "APOSTLE"] or unit.owner != game.state.current_player:
+		return "Нужен свой миссионер или апостол"
 	if unit.charges <= 0 or unit.moves_left <= 0.0:
-		return "Миссионер уже действовал в этот ход"
+		return "Религиозный юнит уже действовал в этот ход"
 	if game.state.player(unit.owner).religion_id == "":
 		return "Держава не основала религию"
 	var city := game.state.city_at(unit.tile)
 	if city == null:
-		return "Миссионер должен находиться в центре города"
+		return "Религиозный юнит должен находиться в центре города"
 	if game.state.at_war(unit.owner, city.owner):
 		return "Во время войны распространение здесь невозможно"
 	return ""
@@ -259,7 +426,8 @@ static func spread(game: Game, unit: Unit, events: Array) -> String:
 	for other in city.religion_pressure.keys():
 		if other != rid:
 			city.religion_pressure[other] = float(city.religion_pressure[other]) * float(cfg(game, "missionary_other_pressure_factor"))
-	city.religion_pressure[rid] = float(city.religion_pressure.get(rid, 0.0)) + float(cfg(game, "missionary_pressure"))
+	var base := float(cfg(game, "apostle_pressure")) if unit.type == "APOSTLE" else float(cfg(game, "missionary_pressure"))
+	city.religion_pressure[rid] = float(city.religion_pressure.get(rid, 0.0)) + base * float(enhancer(game, rid).get("spread_multiplier", 1.0))
 	unit.charges -= 1
 	unit.moves_left = 0.0
 	unit.acted = true
@@ -284,8 +452,10 @@ static func process_round(game: Game) -> void:
 		var rid := majority(game, source)
 		if rid == "":
 			continue
+		var extra := enhancer(game, rid)
 		var power := float(cfg(game, "holy_city_natural_pressure")) if int(game.state.religions.get(rid, {}).get("holy_city", -1)) == source.id else float(cfg(game, "natural_pressure"))
-		for tile in game.state.map.grid.tiles_in_radius(source.tile, int(cfg(game, "pressure_radius"))):
+		power += float(extra.get("natural_pressure_bonus", 0.0))
+		for tile in game.state.map.grid.tiles_in_radius(source.tile, int(cfg(game, "pressure_radius")) + int(extra.get("radius_bonus", 0))):
 			var target := game.state.city_at(tile)
 			if target != null:
 				var key := "%d:%s" % [target.id, rid]

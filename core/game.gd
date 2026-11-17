@@ -119,16 +119,28 @@ func apply_action(action: Dictionary) -> Array:
 				events.append({"type": "unit_updated", "unit": u.id})
 		"found_city":
 			_act_found_city(action, events)
-		"recruit_prophet", "recruit_missionary":
+		"choose_pantheon":
+			var err := ReligionRules.choose_pantheon(self, state.current_player, str(action.get("id", "")), events)
+			if err != "":
+				events.append(_error(err))
+		"recruit_prophet", "recruit_missionary", "recruit_apostle":
 			var city := _own_city(action, events)
 			if city != null:
-				var err := ReligionRules.recruit_prophet(self, state.current_player, city, events) if action["type"] == "recruit_prophet" else ReligionRules.recruit_missionary(self, state.current_player, city, events)
+				var err := ""
+				match action["type"]:
+					"recruit_prophet": err = ReligionRules.recruit_prophet(self, state.current_player, city, events)
+					"recruit_missionary": err = ReligionRules.recruit_missionary(self, state.current_player, city, events)
+					"recruit_apostle": err = ReligionRules.recruit_apostle(self, state.current_player, city, events)
 				if err != "":
 					events.append(_error(err))
-		"found_religion", "spread_religion":
+		"found_religion", "spread_religion", "proclaim_belief":
 			var unit := _own_unit(action, events)
 			if unit != null:
-				var err := ReligionRules.found(self, unit, str(action.get("religion", "")), str(action.get("follower", "")), str(action.get("founder", "")), events, str(action.get("custom_name", ""))) if action["type"] == "found_religion" else ReligionRules.spread(self, unit, events)
+				var err := ""
+				match action["type"]:
+					"found_religion": err = ReligionRules.found(self, unit, str(action.get("religion", "")), str(action.get("follower", "")), str(action.get("founder", "")), events, str(action.get("custom_name", "")))
+					"spread_religion": err = ReligionRules.spread(self, unit, events)
+					"proclaim_belief": err = ReligionRules.proclaim(self, unit, str(action.get("kind", "")), str(action.get("id", "")), events)
 				if err != "":
 					events.append(_error(err))
 		"build_improvement":

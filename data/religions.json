@@ -1,4 +1,8 @@
 {
+  "pantheon_faith_cost": 25,
+  "apostle_faith_cost": 150,
+  "apostle_pressure": 300,
+  "apostle_charges": 3,
   "prophet_points": 20,
   "prophet_points_per_holy_site_tier": 1,
   "missionary_faith_cost": 75,
@@ -15,6 +19,32 @@
   "religion_influence_cap": 150,
   "religion_influence_full_share": 0.3,
   "religion_influence_reach_population": 10,
+  "pantheons": [
+    {"id": "HARVEST", "name": "Праздник урожая", "text": "+1 пищи от обрабатываемых ферм", "improvement": "FARM", "yield": "food", "amount": 1},
+    {"id": "SEA", "name": "Бог моря", "text": "+1 пищи от обрабатываемых рыбацких лодок", "improvement": "FISHING_BOATS", "yield": "food", "amount": 1},
+    {"id": "HUNT", "name": "Богиня охоты", "text": "+1 пищи от обрабатываемых лагерей", "improvement": "CAMP", "yield": "food", "amount": 1},
+    {"id": "GROVE", "name": "Священная роща", "text": "+1 веры от обрабатываемых лесных клеток", "feature": "WOODS", "yield": "faith", "amount": 1},
+    {"id": "STONE", "name": "Каменные круги", "text": "+1 веры от обрабатываемых каменоломен", "improvement": "QUARRY", "yield": "faith", "amount": 1},
+    {"id": "FESTIVAL", "name": "Праздники плодородия", "text": "+1 культуры от обрабатываемых плантаций", "improvement": "PLANTATION", "yield": "culture", "amount": 1},
+    {"id": "HERD", "name": "Покровитель стад", "text": "+1 пищи от обрабатываемых пастбищ", "improvement": "PASTURE", "yield": "food", "amount": 1},
+    {"id": "FORGE", "name": "Божественная кузница", "text": "+1 производства от обрабатываемых шахт", "improvement": "MINE", "yield": "production", "amount": 1},
+    {"id": "WOODCRAFT", "name": "Духи лесных ремёсел", "text": "+1 культуры от обрабатываемых лесопилок", "improvement": "LUMBER_MILL", "yield": "culture", "amount": 1},
+    {"id": "JUNGLE", "name": "Духи джунглей", "text": "+1 веры от обрабатываемых джунглей", "feature": "RAINFOREST", "yield": "faith", "amount": 1},
+    {"id": "OASIS", "name": "Священные оазисы", "text": "+1 культуры от обрабатываемых оазисов", "feature": "OASIS", "yield": "culture", "amount": 1},
+    {"id": "FLOOD", "name": "Дар реки", "text": "+1 пищи от обрабатываемой поймы", "feature": "FLOODPLAINS", "yield": "food", "amount": 1}
+  ],
+  "cult_beliefs": [
+    {"id": "CATHEDRAL", "name": "Собор", "text": "+2 культуры в городе со Священным местом II", "yield": "culture", "amount": 2},
+    {"id": "MOSQUE", "name": "Мечеть", "text": "+2 веры в городе со Священным местом II", "yield": "faith", "amount": 2},
+    {"id": "PAGODA", "name": "Пагода", "text": "+1 довольства в городе со Священным местом II", "amenities": 1},
+    {"id": "SYNAGOGUE", "name": "Синагога", "text": "+2 золота в городе со Священным местом II", "yield": "gold", "amount": 2}
+  ],
+  "enhancer_beliefs": [
+    {"id": "SCRIPTURE", "name": "Священные тексты", "text": "+2 клетки к дальности естественного религиозного давления", "radius_bonus": 2},
+    {"id": "PREACHERS", "name": "Проповедники", "text": "+50% давления от миссионеров и апостолов", "spread_multiplier": 1.5},
+    {"id": "TRADITION", "name": "Устная традиция", "text": "+1 естественного давления от каждого города", "natural_pressure_bonus": 1},
+    {"id": "ORDERS", "name": "Религиозные ордена", "text": "−15% стоимости миссионеров и апостолов за веру", "faith_cost_multiplier": 0.85}
+  ],
   "names": [
     {"id": "CATHOLICISM", "name": "Католицизм"},
     {"id": "ORTHODOXY", "name": "Православие"},

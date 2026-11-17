@@ -20,6 +20,7 @@ var stockpile: Dictionary = {}
 var best_strength: Dictionary = {}
 var treasury: float = 0.0
 var faith: float = 0.0
+var pantheon: String = ""
 var prophet_points: float = 0.0
 var religion_id: String = ""
 var known_techs: Dictionary = {}   # id -> true
@@ -71,7 +72,7 @@ func to_dict() -> Dictionary:
 	return {
 		"id": id, "name": name, "color": color.to_html(false),
 		"civ_trait_id": civ_trait_id, "is_ai": is_ai, "alive": alive,
-		"treasury": treasury, "faith": faith, "prophet_points": prophet_points,
+		"treasury": treasury, "faith": faith, "pantheon": pantheon, "prophet_points": prophet_points,
 		"religion_id": religion_id, "known_techs": _sorted_keys(known_techs),
 		"known_civics": _sorted_keys(known_civics), "revealed": Marshalls.raw_to_base64(revealed),
 		"current_tech": current_tech, "tech_progress": tech_progress.duplicate(),
@@ -105,6 +106,7 @@ static func from_dict(d: Dictionary) -> Player:
 		p.known_civics[c] = true
 	p.revealed = Marshalls.base64_to_raw(d["revealed"])
 	p.faith = float(d.get("faith", 0.0))
+	p.pantheon = str(d.get("pantheon", ""))
 	p.prophet_points = float(d.get("prophet_points", 0.0))
 	p.religion_id = str(d.get("religion_id", ""))
 	p.current_tech = d.get("current_tech", "")

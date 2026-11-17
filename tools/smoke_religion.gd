@@ -1,5 +1,5 @@
 extends SceneTree
-## Проверка доступности основания религии и покупки миссионера из игрового окна.
+## Проверка пантеона, основания религии, двух провозглашений и покупки миссионера.
 
 
 func _initialize() -> void:
@@ -33,8 +33,19 @@ func _run() -> void:
 		"buildings": [], "complete": true, "cost": 1.0})
 	game.state.map.district[site_tile] = "HOLY_SITE"
 	game.state.player(0).prophet_points = 20.0
+	game.state.player(0).faith = 25.0
 	main.hud.open_religion()
 	var box: VBoxContainer = main.hud.get("_research_box")
+	var pantheon := _button(box, "Праздник урожая")
+	if pantheon == null or pantheon.disabled:
+		printerr("Пантеон недоступен в игровом окне")
+		quit(1)
+		return
+	pantheon.pressed.emit()
+	if game.state.player(0).pantheon != "HARVEST":
+		printerr("Пантеон не выбран")
+		quit(1)
+		return
 	var recruit := _button(box, "Нанять Великого пророка")
 	if recruit == null:
 		printerr("Кнопка найма пророка не появилась")
@@ -49,6 +60,27 @@ func _run() -> void:
 	found.pressed.emit()
 	if game.state.player(0).religion_id == "":
 		printerr("Религия не основана из интерфейса")
+		quit(1)
+		return
+	city.districts[0]["tier"] = 2
+	game.state.player(0).faith = 300.0
+	main.hud.open_religion()
+	for choice in ["Собор", "Священные тексты"]:
+		var apostle := _button(box, "Купить апостола")
+		if apostle == null:
+			printerr("Кнопка покупки апостола не появилась")
+			quit(1)
+			return
+		apostle.pressed.emit()
+		var proclaim := _button(box, "Провозгласить: " + choice)
+		if proclaim == null:
+			printerr("Нет выбора верования: " + choice)
+			quit(1)
+			return
+		proclaim.pressed.emit()
+	var religion: Dictionary = game.state.religions[game.state.player(0).religion_id]
+	if religion["cult_belief"] != "CATHEDRAL" or religion["enhancer_belief"] != "SCRIPTURE":
+		printerr("Верования апостола не сохранились")
 		quit(1)
 		return
 	game.state.player(0).faith = 75.0
@@ -67,5 +99,5 @@ func _run() -> void:
 		printerr("Миссионер не создан или вера не списана")
 		quit(1)
 		return
-	print("Религия основана, миссионер куплен через игровой экран")
+	print("Пантеон, религия, оба верования и миссионер работают через игровой экран")
 	quit()
