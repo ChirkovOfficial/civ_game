@@ -3,12 +3,14 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 12
+const SAVE_VERSION := 13
 
 ## Основанные религии: id -> {name, founder, holy_city, follower_belief, founder_belief, cult_belief, enhancer_belief}.
 var religions: Dictionary = {}
 ## Активная проповедь за рубежом, протесты и обещания государств.
 var religious_conflicts := {"next_id": 1, "incidents": {}, "requests": {}, "promises": {}, "breaches": {}}
+## Научные проекты и расстояние до экзопланеты по державам.
+var science_data: Dictionary = {}
 
 var congress_data := {"founded": false, "next_id": 1, "next_session": 0, "polls": {},
 	"docket": {}, "orders": {}, "evidence": {}, "cooldowns": {}, "recent": {}}
@@ -192,6 +194,7 @@ func to_dict() -> Dictionary:
 		"diplomacy": diplomacy.duplicate(true),
 		"religions": religions.duplicate(true),
 		"religious_conflicts": religious_conflicts.duplicate(true),
+		"science": science_data.duplicate(true),
 		"treaties": treaty_data.duplicate(true),
 		"demands": demand_data.duplicate(true),
 		"congress": congress_data.duplicate(true),
@@ -256,6 +259,7 @@ static func from_dict(d: Dictionary, data: GameData) -> GameState:
 	for collection in ["incidents", "requests", "promises", "breaches"]:
 		for key in saved_conflicts.get(collection, {}):
 			s.religious_conflicts[collection][key] = Unit._ints_in_dict(saved_conflicts[collection][key])
+	s.science_data = _restore_congress(d.get("science", {}))
 	for key in d.get("congress", {}):
 		s.congress_data[key] = _restore_congress(d["congress"][key])
 	var demands: Dictionary = d.get("demands", {})

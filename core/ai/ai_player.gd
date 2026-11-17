@@ -575,6 +575,8 @@ static func _best_combat_unit(game: Game, city: City) -> String:
 
 static func _choose_production(game: Game, city: City) -> void:
 	var pid := city.owner
+	if _science_production(game, city):
+		return
 	var cities := game.state.cities_of(pid)
 	var military := _count_units(game, pid, func(u: Unit) -> bool: return Movement.layer(game, u.type) == "COMBAT")
 	var settlers := _count_units(game, pid, func(u: Unit) -> bool:
@@ -637,6 +639,29 @@ static func _choose_production(game: Game, city: City) -> void:
 			game.apply_action({"type": "set_production", "city": city.id, "kind": item["kind"], "id": item["id"],
 				"tile": int(item.get("tile", -1))})
 			return
+
+
+static func _science_production(game: Game, city: City) -> bool:
+	var pid := city.owner
+	if not game.state.player(pid).has_tech("ROCKETRY"):
+		return false
+	if not _enemies_near(game, pid, city.tile, 5).is_empty():
+		return false
+	if ScienceRules.has_spaceport(game, city):
+		for project_id in game.data.science_project_ids:
+			if ScienceRules.project_error(game, city, project_id) == "":
+				game.apply_action({"type": "set_production", "city": city.id, "kind": "project", "id": project_id})
+				return true
+		return false
+	for own_city in game.state.cities_of(pid):
+		if not DistrictRules.of_type(own_city, "SPACEPORT").is_empty():
+			return false
+	var tiles := DistrictRules.valid_tiles(game, city, "SPACEPORT")
+	if tiles.is_empty():
+		return false
+	game.apply_action({"type": "set_production", "city": city.id,
+		"kind": "district", "id": "SPACEPORT", "tile": tiles[0]})
+	return true
 
 
 # --- Районы и губернаторы (docs/CITIES.md) -----------------------------------------------------------

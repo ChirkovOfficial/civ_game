@@ -94,6 +94,19 @@ static func check_religion(game: Game, events: Array) -> void:
 			return
 
 
+static func check_science(game: Game, events: Array) -> void:
+	if not game.state.result.is_empty():
+		return
+	var required := int(game.data.science_setup.get("distance_required", 50))
+	for player in game.state.players:
+		if not player.alive or player.is_barbarian:
+			continue
+		var progress := ScienceRules.status(game, player.id)
+		if bool(progress["launched"]) and int(progress["distance"]) >= required:
+			_finish(game, "science", [player.id], events)
+			return
+
+
 static func check_capitals(game: Game, events: Array) -> void:
 	if not game.state.result.is_empty():
 		return

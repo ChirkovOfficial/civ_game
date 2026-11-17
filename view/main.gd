@@ -257,6 +257,8 @@ func _on_events(events: Array) -> void:
 			hud.show_message("Провозглашено верование: %s" % ReligionRules.belief(game, str(e["kind"]) + "_beliefs", e["belief"])["name"], 3.0)
 		elif t == "religion_spread" and e["player"] == game.state.current_player:
 			hud.show_message("Вера распространена в городе %s" % game.state.city(e["city"]).name, 3.0)
+		elif t == "science_project_completed" and e["player"] == game.state.current_player:
+			hud.show_message("Космический проект завершён: %s" % game.data.science_projects[e["project"]]["name"], 4.0)
 		elif t == "inquisition_started" and e["player"] == game.state.current_player:
 			hud.show_message("Инквизиция учреждена", 3.0)
 		elif t == "religion_purged" and e["player"] == game.state.current_player:

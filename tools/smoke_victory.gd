@@ -57,5 +57,30 @@ func _run() -> void:
 		printerr("На экране итогов нет названия победившей религии")
 		quit(1)
 		return
-	print("Экраны очковой и религиозной победы открываются автоматически")
+	second.queue_free()
+	var third: Node = load("res://view/main.tscn").instantiate()
+	third.map_size = "DUEL"
+	third.fixed_seed = 19
+	root.add_child(third)
+	var scientific_game: Game = third.game
+	scientific_game.state.science_data["0"] = {"completed": {"EARTH_SATELLITE": true,
+		"MOON_LANDING": true, "MARS_COLONY": true, "EXOPLANET_EXPEDITION": true},
+		"launched": true, "distance": 49, "speed": 1, "lasers": 0}
+	scientific_game.state.settings["turn_limit"] = 1
+	third.act({"type": "end_turn", "force": true})
+	var scientific_hud: Hud = third.hud
+	if scientific_game.state.result.get("kind") != "science" or not scientific_hud.is_modal_open() \
+			or scientific_hud.get("_research_kind") != "victory":
+		printerr("Экран научной победы не открылся")
+		quit(1)
+		return
+	shown = false
+	for label in scientific_hud.get("_research_box").find_children("*", "Label", true, false):
+		if label.text.contains("Экспедиция достигла экзопланеты"):
+			shown = true
+	if not shown:
+		printerr("На экране итогов нет причины научной победы")
+		quit(1)
+		return
+	print("Экраны очковой, религиозной и научной победы открываются автоматически")
 	quit()
