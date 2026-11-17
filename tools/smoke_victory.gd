@@ -131,10 +131,22 @@ func _run() -> void:
 	finance_game.state.player(1).met[0] = true
 	finance_game.state.player(0).treasury = 100.0
 	fifth.act({"type": "send_delegation", "target": 1})
+	finance_game.state.treaty_data["active"]["alliance:0:1"] = {"kind": "alliance",
+		"from": 0, "to": 1, "since": finance_game.state.turn - 16,
+		"until": finance_game.state.turn + 5}
 	finance_game.state.finance_data["unlocked"] = true
 	finance_game.state.finance_data["streaks"]["0"] = FinanceRules.required_turns(finance_game) - 1
 	finance_game.state.settings["turn_limit"] = 3
 	var finance_hud: Hud = fifth.hud
+	finance_hud.open_diplomacy()
+	var alliance_shown := false
+	for label in finance_hud.get("_research_box").find_children("*", "Label", true, false):
+		if label.text.contains("Союз · уровень 3/3") and TreatyRules.alliance_level(finance_game, 0, 1) == 3:
+			alliance_shown = true
+	if not alliance_shown:
+		printerr("Уровень развитого союза не виден в окне держав")
+		quit(1)
+		return
 	finance_hud.open_finance()
 	if not finance_hud.is_modal_open() or finance_hud.get("_research_kind") != "finance":
 		printerr("Окно Мировой биржи не открылось")

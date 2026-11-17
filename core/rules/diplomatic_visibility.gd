@@ -10,9 +10,11 @@ static func validate_data(data: GameData) -> PackedStringArray:
 		errors.append("Дипломатическая видимость: неизвестный институт посольства")
 	if not data.techs.has(str(cfg.get("printing_tech", ""))):
 		errors.append("Дипломатическая видимость: неизвестная технология")
-	for key in ["delegation_cost", "max_level", "finance_exact_level", "combat_per_level"]:
+	for key in ["delegation_cost", "max_level", "highest_alliance_max_level", "finance_exact_level", "combat_per_level"]:
 		if int(cfg.get(key, 0)) <= 0:
 			errors.append("Дипломатическая видимость: неверное значение %s" % key)
+	if int(cfg.get("highest_alliance_max_level", 0)) <= int(cfg.get("max_level", 0)):
+		errors.append("Дипломатическая видимость: развитый союз должен повышать предел")
 	return errors
 
 
@@ -123,7 +125,13 @@ static func level(game: Game, from: int, to: int) -> int:
 	for enabled in sources(game, from, to).values():
 		if enabled:
 			result += 1
-	return mini(result, int(game.data.visibility_setup["max_level"]))
+	return mini(result, maximum_level(game, from, to))
+
+
+static func maximum_level(game: Game, from: int, to: int) -> int:
+	if TreatyRules.alliance_level(game, from, to) >= 3:
+		return int(game.data.visibility_setup["highest_alliance_max_level"])
+	return int(game.data.visibility_setup["max_level"])
 
 
 static func combat_bonus(game: Game, own: int, enemy: int) -> int:

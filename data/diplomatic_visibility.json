@@ -3,6 +3,7 @@
   "embassy_civic": "DIPLOMATIC_SERVICE",
   "printing_tech": "PRINTING",
   "max_level": 3,
+  "highest_alliance_max_level": 4,
   "finance_exact_level": 2,
   "combat_per_level": 3
 }

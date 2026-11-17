@@ -48,6 +48,51 @@ func test_alliance_requires_friendship_and_war_removes_access() -> void:
 	check_eq(TreatyRules.trust(g, 0, 1), 0)
 
 
+func test_alliance_levels_renewal_influence_and_visibility_four() -> void:
+	var g := _setup()
+	_offer(g, "friendship")
+	_accept(g, "friendship")
+	g.state.turn = 6
+	g.state.player(0).known_civics["CIVIL_SERVICE"] = true
+	_offer(g, "alliance")
+	_accept(g, "alliance")
+	check_eq(TreatyRules.alliance_level(g, 0, 1), 1)
+	var own := CityRules.found_city(g, 0, g.state.map.grid.index_of(5, 6))
+	var rival := CityRules.found_city(g, 1, g.state.map.grid.index_of(13, 6))
+	var trader := g.state.add_unit(0, "TRADER", own.tile)
+	trader.trade_route = {"origin": own.id, "destination": rival.id}
+	g.state.player(0).known_techs["PRINTING"] = true
+	g.state.player(0).treasury = 30.0
+	g.state.current_player = 0
+	g.apply_action({"type": "send_delegation", "target": 1})
+	check_eq(DiplomaticVisibility.level(g, 0, 1), 3)
+	g.state.turn = 13
+	var events: Array = []
+	TreatyRules.close_round(g, events)
+	check(events.any(func(event): return event["type"] == "alliance_leveled" and event["level"] == 2))
+	g.state.turn = 14
+	check_eq(TreatyRules.alliance_level(g, 0, 1), 2)
+	check_eq(DiplomaticVisibility.level(g, 0, 1), 3)
+	g.state.turn = 21
+	check_eq(_offer(g, "alliance")[0]["type"], "treaty_proposed")
+	check_eq(_accept(g, "alliance")[0]["type"], "treaty_accepted")
+	check_eq(TreatyRules.until(g, "alliance", 0, 1), 46)
+	events.clear()
+	TreatyRules.close_round(g, events)
+	check(events.any(func(event): return event["type"] == "alliance_leveled" and event["level"] == 3))
+	g.state.turn = 22
+	check_eq(TreatyRules.alliance_level(g, 0, 1), 3)
+	check_eq(DiplomaticVisibility.level(g, 0, 1), 4)
+	g.state.treaty_data["history"]["friendship:0:1"] = [
+		{"turn": 22, "kind": "alliance", "level": 3}]
+	check_near(TreatyRules.influence_strength(g, 0, 1), 0.3)
+	trader.trade_route = {}
+	check_eq(DiplomaticVisibility.level(g, 0, 1), 3)
+	g.state.turn = 46
+	check_eq(TreatyRules.alliance_level(g, 0, 1), 0)
+	check_eq(DiplomaticVisibility.level(g, 0, 1), 2)
+
+
 func test_passage_is_one_way_and_expiry_relocates_unit() -> void:
 	var g := _setup()
 	var grid := g.state.map.grid

@@ -296,6 +296,8 @@ func _on_events(events: Array) -> void:
 			hud.show_message("Заключён мир", 3.0)
 		elif t == "treaty_accepted" and _viewer().id in [int(e["from"]), int(e["to"])]:
 			hud.show_message("Дипломатический договор принят")
+		elif t == "alliance_leveled" and _viewer().id in [int(e["from"]), int(e["to"])]:
+			hud.show_message("Союз достиг уровня %d" % int(e["level"]), 4.0)
 		elif t == "demand_accepted" and _viewer().id in [int(e["issuer"]), int(e["recipient"])]:
 			hud.show_message("Дипломатическое требование принято")
 		elif t == "demand_refused" and _viewer().id in [int(e["issuer"]), int(e["recipient"])]:

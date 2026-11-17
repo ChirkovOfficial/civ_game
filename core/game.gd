@@ -711,7 +711,7 @@ func _advance_round(events: Array) -> bool:
 		return false
 	DemandRules.close_round(self, events)
 	ReligiousConflictRules.close_round(self)
-	TreatyRules.close_round(self)
+	TreatyRules.close_round(self, events)
 	ReligionRules.process_round(self)
 	ScienceRules.process_round(self, events)
 	CultureRules.process_round(self)

@@ -733,8 +733,9 @@ func open_diplomacy() -> void:
 			continue
 		var oid := other.id
 		var sight := DiplomaticVisibility.sources(game, pid, oid)
-		_label(_research_box, "Видимость: наша %d/3 · их %d/3 · представительство %s · путь %s · союз %s · Книгопечатание %s" % [
-			DiplomaticVisibility.level(game, pid, oid), DiplomaticVisibility.level(game, oid, pid),
+		_label(_research_box, "Видимость: наша %d/%d · их %d/%d · представительство %s · путь %s · союз %s · Книгопечатание %s" % [
+			DiplomaticVisibility.level(game, pid, oid), DiplomaticVisibility.maximum_level(game, pid, oid),
+			DiplomaticVisibility.level(game, oid, pid), DiplomaticVisibility.maximum_level(game, oid, pid),
 			"да" if sight["representation"] else "нет", "да" if sight["route"] else "нет",
 			"да" if sight["alliance"] else "нет", "да" if sight["printing"] else "нет"],
 			12, Color(0.75, 0.78, 0.85), true)
@@ -1031,7 +1032,12 @@ func _show_treaty_status(pid: int, peer: int) -> void:
 	var passage := TreatyRules.until(game, "passage", pid, peer)
 	var reverse := TreatyRules.until(game, "passage", peer, pid)
 	if alliance > game.state.turn:
-		_label(_research_box, "Союз · взаимный проход до начала хода %d" % alliance, 13)
+		var level := TreatyRules.alliance_level(game, pid, peer)
+		_label(_research_box, "Союз · уровень %d/3 · взаимный проход до начала хода %d" % [level, alliance], 13)
+		var next_level := TreatyRules.alliance_next_level_turn(game, pid, peer)
+		if next_level > 0:
+			_label(_research_box, "До следующего уровня %d ходов%s" % [next_level - game.state.turn,
+				" · требуется продлить союз" if next_level >= alliance else ""], 12)
 	if friendship > game.state.turn:
 		_label(_research_box, "Дружба до начала хода %d" % friendship, 13)
 	if alliance <= game.state.turn and passage > game.state.turn:

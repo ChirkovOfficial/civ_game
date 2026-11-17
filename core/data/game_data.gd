@@ -308,6 +308,7 @@ func validate() -> PackedStringArray:
 	errors.append_array(CultureRules.validate_data(self))
 	errors.append_array(FinanceRules.validate_data(self))
 	errors.append_array(DiplomaticVisibility.validate_data(self))
+	errors.append_array(TreatyRules.validate_data(self))
 	errors.append_array(_validate_tree(civics, "Институт"))
 	return errors
 

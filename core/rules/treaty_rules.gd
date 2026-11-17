@@ -5,6 +5,23 @@ extends RefCounted
 const KINDS := ["friendship", "alliance", "passage"]
 
 
+static func validate_data(data: GameData) -> PackedStringArray:
+	var errors := PackedStringArray()
+	var cfg := data.diplomacy
+	var second := int(cfg.get("alliance_level_2_rounds", 0))
+	var third := int(cfg.get("alliance_level_3_rounds", 0))
+	if second <= 0 or third <= second:
+		errors.append("Союзы: сроки уровней должны возрастать")
+	var weights: Array = cfg.get("alliance_influence_by_level", [])
+	if weights.size() != 3:
+		errors.append("Союзы: нужны три коэффициента влияния")
+	else:
+		for weight in weights:
+			if float(weight) <= 0.0:
+				errors.append("Союзы: коэффициенты влияния должны быть положительными")
+	return errors
+
+
 static func _key(kind: String, from: int, to: int) -> String:
 	if kind == "passage" or kind == "trust":
 		return "%s:%d:%d" % [kind, from, to]
@@ -25,6 +42,31 @@ static func _active(record: Dictionary, turn: int) -> bool:
 
 static func until(game: Game, kind: String, from: int, to: int) -> int:
 	return int(_entry(game, "active", _key(kind, from, to)).get("until", 0))
+
+
+static func alliance_level(game: Game, a: int, b: int, turn: int = -1) -> int:
+	if turn < 0:
+		turn = game.state.turn
+	if not _valid_pair(game, a, b) or game.state.at_war(a, b):
+		return 0
+	var treaty := _entry(game, "active", _key("alliance", a, b))
+	if not _active(treaty, turn):
+		return 0
+	var age := maxi(0, turn - int(treaty.get("since", turn)))
+	if age >= _rounds(game, "alliance_level_3_rounds"):
+		return 3
+	if age >= _rounds(game, "alliance_level_2_rounds"):
+		return 2
+	return 1
+
+
+static func alliance_next_level_turn(game: Game, a: int, b: int) -> int:
+	var level := alliance_level(game, a, b)
+	if level == 0 or level == 3:
+		return -1
+	var treaty := _entry(game, "active", _key("alliance", a, b))
+	return int(treaty["since"]) + _rounds(game,
+		"alliance_level_2_rounds" if level == 1 else "alliance_level_3_rounds")
 
 
 static func trust(game: Game, viewer: int, subject: int) -> int:
@@ -255,7 +297,7 @@ static func _safe_tile(game: Game, unit: Unit) -> int:
 	return best
 
 
-static func close_round(game: Game) -> void:
+static func close_round(game: Game, events: Array = []) -> void:
 	var turn := game.state.turn
 	var active := _collection(game, "active")
 	var history := _collection(game, "history")
@@ -275,9 +317,15 @@ static func close_round(game: Game) -> void:
 		if treaty["kind"] == "passage" or not _active(treaty, turn) \
 				or not _valid_pair(game, a, b) or game.state.at_war(a, b):
 			continue
+		if treaty["kind"] == "alliance" and _active(treaty, turn + 1):
+			var current_level := alliance_level(game, a, b, turn)
+			var next_level := alliance_level(game, a, b, turn + 1)
+			if next_level > current_level:
+				events.append({"type": "alliance_leveled", "from": a, "to": b, "level": next_level})
 		var pair := _key("friendship", a, b)
 		var samples: Array = history.get(pair, [])
-		samples.append({"turn": turn, "kind": treaty["kind"]})
+		samples.append({"turn": turn, "kind": treaty["kind"],
+			"level": alliance_level(game, a, b, turn) if treaty["kind"] == "alliance" else 0})
 		history[pair] = samples
 	for collection in ["active", "offers", "cooldowns", "reputation"]:
 		var records := _collection(game, collection)
@@ -295,5 +343,9 @@ static func influence_strength(game: Game, a: int, b: int) -> float:
 	var history: Array = _collection(game, "history").get(_key("friendship", a, b), [])
 	for sample in history:
 		var setting := "alliance_strength" if sample["kind"] == "alliance" else "friendship_strength"
-		total += float(game.data.diplomacy[setting])
+		var strength := float(game.data.diplomacy[setting])
+		if sample["kind"] == "alliance":
+			var weights: Array = game.data.diplomacy["alliance_influence_by_level"]
+			strength *= float(weights[clampi(int(sample.get("level", 1)) - 1, 0, weights.size() - 1)])
+		total += strength
 	return total / maxf(1.0, float(game.data.diplomacy["demand_window"]))
