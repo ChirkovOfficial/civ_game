@@ -123,7 +123,7 @@ func apply_action(action: Dictionary) -> Array:
 			var err := ReligionRules.choose_pantheon(self, state.current_player, str(action.get("id", "")), events)
 			if err != "":
 				events.append(_error(err))
-		"recruit_prophet", "recruit_missionary", "recruit_apostle":
+		"recruit_prophet", "recruit_missionary", "recruit_apostle", "recruit_inquisitor":
 			var city := _own_city(action, events)
 			if city != null:
 				var err := ""
@@ -131,9 +131,10 @@ func apply_action(action: Dictionary) -> Array:
 					"recruit_prophet": err = ReligionRules.recruit_prophet(self, state.current_player, city, events)
 					"recruit_missionary": err = ReligionRules.recruit_missionary(self, state.current_player, city, events)
 					"recruit_apostle": err = ReligionRules.recruit_apostle(self, state.current_player, city, events)
+					"recruit_inquisitor": err = ReligionRules.recruit_inquisitor(self, state.current_player, city, events)
 				if err != "":
 					events.append(_error(err))
-		"found_religion", "spread_religion", "proclaim_belief":
+		"found_religion", "spread_religion", "proclaim_belief", "start_inquisition", "purge_religion", "theological_attack":
 			var unit := _own_unit(action, events)
 			if unit != null:
 				var err := ""
@@ -141,8 +142,19 @@ func apply_action(action: Dictionary) -> Array:
 					"found_religion": err = ReligionRules.found(self, unit, str(action.get("religion", "")), str(action.get("follower", "")), str(action.get("founder", "")), events, str(action.get("custom_name", "")))
 					"spread_religion": err = ReligionRules.spread(self, unit, events)
 					"proclaim_belief": err = ReligionRules.proclaim(self, unit, str(action.get("kind", "")), str(action.get("id", "")), events)
+					"start_inquisition": err = ReligionRules.start_inquisition(self, unit, events)
+					"purge_religion": err = ReligionRules.purge(self, unit, events)
+					"theological_attack": err = ReligionRules.theological_attack(self, unit, state.unit(int(action.get("target_unit", -1))), events)
 				if err != "":
 					events.append(_error(err))
+		"religious_protest":
+			var err := ReligiousConflictRules.protest(self, state.current_player, int(action.get("incident", -1)), events)
+			if err != "":
+				events.append(_error(err))
+		"respond_religious_protest":
+			var err := ReligiousConflictRules.respond(self, state.current_player, int(action.get("request", -1)), bool(action.get("accept", false)), events)
+			if err != "":
+				events.append(_error(err))
 		"build_improvement":
 			_act_build_improvement(action, events)
 		"harvest":
@@ -634,6 +646,7 @@ func _continue_move(u: Unit, events: Array) -> void:
 func _act_end_turn(events: Array) -> void:
 	var finished := state.current_player
 	DemandRules.end_turn(self, finished, events)
+	ReligiousConflictRules.end_turn(self, finished, events)
 	CongressRules.end_turn(self, finished, events)
 	events.append({"type": "turn_ended", "player": finished})
 	var next := _next_alive_player(finished)
@@ -658,6 +671,7 @@ func _act_end_turn(events: Array) -> void:
 			return
 		var ai_id := state.current_player
 		DemandRules.end_turn(self, ai_id, events)
+		ReligiousConflictRules.end_turn(self, ai_id, events)
 		CongressRules.end_turn(self, ai_id, events)
 		events.append({"type": "turn_ended", "player": ai_id})
 		var n2 := _next_alive_player(ai_id)
@@ -679,6 +693,7 @@ func _advance_round(events: Array) -> bool:
 	if not state.result.is_empty():
 		return false
 	DemandRules.close_round(self, events)
+	ReligiousConflictRules.close_round(self)
 	TreatyRules.close_round(self)
 	ReligionRules.process_round(self)
 	DiplomacyRules.close_round(self, events)

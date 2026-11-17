@@ -217,7 +217,7 @@ static func found(game: Game, unit: Unit, name_id: String, follower: String, fou
 				break
 	game.state.religions[name_id] = {"name": name, "founder": unit.owner, "holy_city": city.id,
 		"follower_belief": follower, "founder_belief": founder,
-		"cult_belief": "", "enhancer_belief": ""}
+		"cult_belief": "", "enhancer_belief": "", "inquisition_started": false}
 	game.state.player(unit.owner).religion_id = name_id
 	city.religion_pressure[name_id] = float(cfg(game, "holy_city_pressure"))
 	game.state.remove_unit(unit.id)
@@ -283,7 +283,9 @@ static func enhancer(game: Game, rid: String) -> Dictionary:
 
 
 static func faith_cost(game: Game, pid: int, unit_type: String) -> int:
-	var base := float(cfg(game, "apostle_faith_cost")) if unit_type == "APOSTLE" else float(cfg(game, "missionary_faith_cost"))
+	var base := float(cfg(game, "apostle_faith_cost")) if unit_type == "APOSTLE" else float(cfg(game, "inquisitor_faith_cost")) if unit_type == "INQUISITOR" else float(cfg(game, "missionary_faith_cost"))
+	if unit_type == "INQUISITOR":
+		return ceili(base)
 	return ceili(base * float(enhancer(game, game.state.player(pid).religion_id).get("faith_cost_multiplier", 1.0)))
 
 
@@ -369,6 +371,156 @@ static func recruit_apostle(game: Game, pid: int, city: City, events: Array) -> 
 	return ""
 
 
+static func inquisition_error(game: Game, unit: Unit) -> String:
+	if unit == null or unit.type != "APOSTLE" or unit.owner != game.state.current_player:
+		return "Нужен свой апостол"
+	if unit.charges < int(cfg(game, "apostle_charges")):
+		return "Для учреждения инквизиции нужны все заряды апостола"
+	var site := DistrictRules.at(game, unit.tile)
+	if site.size() < 2 or site[0].owner != unit.owner or site[1]["type"] != "HOLY_SITE" or not site[1]["complete"] or int(site[1]["tier"]) < 2:
+		return "Апостол должен находиться на своём Священном месте II"
+	var rid := game.state.player(unit.owner).religion_id
+	if rid == "" or bool(game.state.religions[rid].get("inquisition_started", false)):
+		return "Инквизиция уже учреждена или религия не основана"
+	return ""
+
+
+static func start_inquisition(game: Game, unit: Unit, events: Array) -> String:
+	var error := inquisition_error(game, unit)
+	if error != "":
+		return error
+	var rid := game.state.player(unit.owner).religion_id
+	game.state.religions[rid]["inquisition_started"] = true
+	game.state.remove_unit(unit.id)
+	events.append({"type": "inquisition_started", "player": unit.owner, "religion": rid})
+	return ""
+
+
+static func inquisitor_error(game: Game, pid: int, city: City) -> String:
+	if city == null or city.owner != pid:
+		return "Выберите свой город"
+	var rid := game.state.player(pid).religion_id
+	if rid == "" or not bool(game.state.religions[rid].get("inquisition_started", false)):
+		return "Сначала учредите инквизицию апостолом"
+	if majority(game, city) != rid:
+		return "Город должен исповедовать основанную вами религию"
+	var site := holy_site(city)
+	if site.is_empty():
+		return "Нужно готовое Священное место"
+	if game.state.player(pid).faith < faith_cost(game, pid, "INQUISITOR"):
+		return "Недостаточно веры"
+	for other in game.state.units_at(int(site["tile"])):
+		if Movement.layer(game, other.type) == "RELIGIOUS":
+			return "Священное место занято религиозным юнитом"
+	return ""
+
+
+static func recruit_inquisitor(game: Game, pid: int, city: City, events: Array) -> String:
+	var error := inquisitor_error(game, pid, city)
+	if error != "":
+		return error
+	game.state.player(pid).faith -= faith_cost(game, pid, "INQUISITOR")
+	var unit := game.state.add_unit(pid, "INQUISITOR", int(holy_site(city)["tile"]))
+	unit.charges = int(cfg(game, "inquisitor_charges"))
+	unit.moves_left = 0.0
+	events.append({"type": "unit_created", "unit": unit.id, "player": pid})
+	return ""
+
+
+static func purge_error(game: Game, unit: Unit) -> String:
+	if unit == null or unit.type != "INQUISITOR" or unit.owner != game.state.current_player:
+		return "Нужен свой инквизитор"
+	if unit.charges <= 0 or unit.moves_left <= 0.0:
+		return "Инквизитор уже действовал в этот ход"
+	var city := game.state.city_at(unit.tile)
+	if city == null or city.owner != unit.owner:
+		return "Инквизитор должен находиться в центре своего города"
+	var rid := game.state.player(unit.owner).religion_id
+	if rid == "":
+		return "Держава не основала религию"
+	var foreign := false
+	for other in city.religion_pressure:
+		if other != rid and float(city.religion_pressure[other]) > 0.0:
+			foreign = true
+	return "" if foreign else "В городе нет чужого религиозного давления"
+
+
+static func purge(game: Game, unit: Unit, events: Array) -> String:
+	var error := purge_error(game, unit)
+	if error != "":
+		return error
+	var city := game.state.city_at(unit.tile)
+	var rid := game.state.player(unit.owner).religion_id
+	for other in city.religion_pressure.keys():
+		if other != rid:
+			city.religion_pressure.erase(other)
+	unit.charges -= 1
+	unit.moves_left = 0.0
+	unit.acted = true
+	events.append({"type": "religion_purged", "player": unit.owner, "city": city.id})
+	if unit.charges <= 0:
+		game.state.remove_unit(unit.id)
+		events.append({"type": "unit_killed", "unit": unit.id, "owner": unit.owner, "reason": "spent"})
+	return ""
+
+
+static func theological_error(game: Game, attacker: Unit, defender: Unit) -> String:
+	if attacker == null or attacker.owner != game.state.current_player or attacker.type not in ["APOSTLE", "INQUISITOR"]:
+		return "Нужен свой апостол или инквизитор"
+	if defender == null or defender.type not in ["MISSIONARY", "APOSTLE", "INQUISITOR"] or defender.owner == attacker.owner:
+		return "Нужен чужой религиозный юнит"
+	if game.state.player(attacker.owner).religion_id == "" or game.state.player(defender.owner).religion_id == "" or game.state.player(attacker.owner).religion_id == game.state.player(defender.owner).religion_id:
+		return "Теологический бой возможен только между разными религиями"
+	if attacker.moves_left <= 0.0:
+		return "Юнит уже действовал в этот ход"
+	if game.state.map.grid.distance(attacker.tile, defender.tile) != 1:
+		return "Цель должна быть на соседней клетке"
+	return ""
+
+
+static func _religious_strength(game: Game, unit: Unit) -> int:
+	var strength := int(cfg(game, "theological_" + unit.type.to_lower() + "_strength"))
+	if unit.type == "INQUISITOR":
+		var city := game.state.city_owning(unit.tile)
+		if city != null and city.owner == unit.owner:
+			strength += int(cfg(game, "inquisitor_home_bonus"))
+	return strength
+
+
+static func theological_attack(game: Game, attacker: Unit, defender: Unit, events: Array) -> String:
+	var error := theological_error(game, attacker, defender)
+	if error != "":
+		return error
+	var delta := _religious_strength(game, attacker) - _religious_strength(game, defender)
+	var damage_to_def := Combat.damage(game, delta, game.state.rng.randf_range(0.8, 1.2))
+	var damage_to_att := Combat.damage(game, -delta, game.state.rng.randf_range(0.8, 1.2))
+	attacker.moves_left = 0.0
+	attacker.acted = true
+	defender.hp = maxi(0, defender.hp - damage_to_def)
+	attacker.hp = maxi(0, attacker.hp - damage_to_att)
+	events.append({"type": "theological_combat", "attacker": attacker.id, "defender": defender.id,
+		"damage_to_defender": damage_to_def, "damage_to_attacker": damage_to_att})
+	if defender.hp <= 0:
+		_religious_victory(game, attacker.owner, defender.owner, defender.tile)
+		game.state.remove_unit(defender.id)
+		events.append({"type": "unit_killed", "unit": defender.id, "owner": defender.owner, "reason": "theological"})
+	if attacker.hp <= 0:
+		_religious_victory(game, defender.owner, attacker.owner, attacker.tile)
+		game.state.remove_unit(attacker.id)
+		events.append({"type": "unit_killed", "unit": attacker.id, "owner": attacker.owner, "reason": "theological"})
+	return ""
+
+
+static func _religious_victory(game: Game, winner: int, loser: int, tile: int) -> void:
+	var winning_religion := game.state.player(winner).religion_id
+	var losing_religion := game.state.player(loser).religion_id
+	for city in game.state.cities.values():
+		if game.state.map.grid.distance(tile, city.tile) > int(cfg(game, "theological_pressure_radius")):
+			continue
+		city.religion_pressure[winning_religion] = float(city.religion_pressure.get(winning_religion, 0.0)) + float(cfg(game, "theological_victory_pressure"))
+		city.religion_pressure[losing_religion] = maxf(0.0, float(city.religion_pressure.get(losing_religion, 0.0)) - float(cfg(game, "theological_victory_pressure")))
+
+
 static func proclaim_error(game: Game, unit: Unit, kind: String, id: String) -> String:
 	if unit == null or unit.type != "APOSTLE" or unit.owner != game.state.current_player:
 		return "Нужен свой апостол"
@@ -432,6 +584,8 @@ static func spread(game: Game, unit: Unit, events: Array) -> String:
 	unit.moves_left = 0.0
 	unit.acted = true
 	events.append({"type": "religion_spread", "player": unit.owner, "city": city.id, "religion": rid})
+	if city.owner != unit.owner:
+		ReligiousConflictRules.record_spread(game, unit.owner, city, events)
 	if unit.charges <= 0:
 		game.state.remove_unit(unit.id)
 		events.append({"type": "unit_killed", "unit": unit.id, "owner": unit.owner, "reason": "spent"})

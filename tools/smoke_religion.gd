@@ -83,6 +83,39 @@ func _run() -> void:
 		printerr("Верования апостола не сохранились")
 		quit(1)
 		return
+	game.state.player(0).faith = 250.0
+	main.hud.open_religion()
+	var inquisition_apostle := _button(box, "Купить апостола")
+	if inquisition_apostle == null:
+		printerr("Нет апостола для учреждения инквизиции")
+		quit(1)
+		return
+	inquisition_apostle.pressed.emit()
+	var start_inquisition := _button(box, "Учредить инквизицию")
+	if start_inquisition == null:
+		printerr("Кнопка инквизиции не появилась")
+		quit(1)
+		return
+	start_inquisition.pressed.emit()
+	if not bool(religion["inquisition_started"]):
+		printerr("Инквизиция не учреждена из интерфейса")
+		quit(1)
+		return
+	var buy_inquisitor := _button(box, "Купить инквизитора")
+	if buy_inquisitor == null:
+		printerr("Нет кнопки найма инквизитора")
+		quit(1)
+		return
+	buy_inquisitor.pressed.emit()
+	var inquisitor: Unit = null
+	for unit in game.state.units_of(0):
+		if unit.type == "INQUISITOR":
+			inquisitor = unit
+	if inquisitor == null:
+		printerr("Инквизитор не создан")
+		quit(1)
+		return
+	inquisitor.tile = city.tile
 	game.state.player(0).faith = 75.0
 	main.hud.open_religion()
 	var missionary := _button(box, "Купить миссионера")
@@ -99,5 +132,5 @@ func _run() -> void:
 		printerr("Миссионер не создан или вера не списана")
 		quit(1)
 		return
-	print("Пантеон, религия, оба верования и миссионер работают через игровой экран")
+	print("Пантеон, верования, инквизиция и религиозные юниты работают через игровой экран")
 	quit()

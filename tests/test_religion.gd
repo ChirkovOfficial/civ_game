@@ -244,3 +244,112 @@ func test_other_belief_effects_and_version_ten_save() -> void:
 	restored.state.player(0).faith = 25.0
 	var chosen := restored.apply_action({"type": "choose_pantheon", "id": "SEA"})
 	check_eq(chosen[0]["type"], "pantheon_founded")
+
+
+func test_inquisition_purge_and_theological_combat() -> void:
+	var game := blank_game(32, 16)
+	var home := _city(game, 0, 5, 5)
+	_site(game, home)
+	_found(game, home)
+	home.districts[0]["tier"] = 2
+	game.state.player(0).faith = 350.0
+	check_eq(game.apply_action({"type": "recruit_inquisitor", "city": home.id})[0]["type"], "error")
+	var apostle_id: int = game.apply_action({"type": "recruit_apostle", "city": home.id})[0]["unit"]
+	check_eq(game.apply_action({"type": "start_inquisition", "unit": apostle_id})[0]["type"], "inquisition_started")
+	check(game.state.unit(apostle_id) == null, "учредивший инквизицию апостол расходуется")
+	var inquisitor_id: int = game.apply_action({"type": "recruit_inquisitor", "city": home.id})[0]["unit"]
+	var inquisitor := game.state.unit(inquisitor_id)
+	check_eq(inquisitor.charges, 3)
+	home.religion_pressure["FOREIGN"] = 500.0
+	inquisitor.tile = home.tile
+	inquisitor.moves_left = 2.0
+	check_eq(game.apply_action({"type": "purge_religion", "unit": inquisitor_id})[0]["type"], "religion_purged")
+	check_eq(float(home.religion_pressure.get("FOREIGN", 0.0)), 0.0)
+	check_eq(inquisitor.charges, 2)
+	check_eq(game.apply_action({"type": "purge_religion", "unit": inquisitor_id})[0]["type"], "error")
+	var rival := _city(game, 1, 12, 5)
+	game.state.player(1).religion_id = "FOREIGN"
+	var attacker := game.state.add_unit(0, "APOSTLE", game.state.map.grid.neighbors(rival.tile)[0])
+	attacker.moves_left = 2.0
+	var defender := game.state.add_unit(1, "MISSIONARY", rival.tile)
+	defender.hp = 10
+	rival.religion_pressure["FOREIGN"] = 400.0
+	var result := game.apply_action({"type": "theological_attack", "unit": attacker.id, "target_unit": defender.id})
+	check_eq(result[0]["type"], "theological_combat")
+	check(game.state.unit(defender.id) == null, "побеждённый миссионер погиб")
+	check(float(rival.religion_pressure["CATHOLICISM"]) >= 250.0, "победа добавляет давление своей религии")
+	check_eq(float(rival.religion_pressure["FOREIGN"]), 150.0)
+	check_eq(game.apply_action({"type": "theological_attack", "unit": attacker.id, "target_unit": inquisitor.id})[0]["type"], "error")
+	var saved := GameState.from_json(game.state.to_json(), game.data)
+	check_eq(saved.religions["CATHOLICISM"]["inquisition_started"], true)
+	check_eq(saved.unit(inquisitor_id).charges, 2)
+
+
+func test_active_spread_protest_promise_and_breach() -> void:
+	var game := blank_game(32, 16)
+	var home := _city(game, 0, 5, 5)
+	_site(game, home)
+	_found(game, home)
+	var foreign := _city(game, 1, 12, 5)
+	ReligionRules.process_round(game)
+	check(game.state.religious_conflicts["incidents"].is_empty(), "естественное давление не создаёт повод для протеста")
+	var preacher := game.state.add_unit(0, "MISSIONARY", foreign.tile)
+	preacher.charges = 3
+	preacher.moves_left = 2.0
+	game.apply_action({"type": "spread_religion", "unit": preacher.id})
+	var incident: Dictionary = game.state.religious_conflicts["incidents"].values()[0]
+	check_eq(int(incident["victim"]), 1)
+	game.state.current_player = 1
+	var protest := game.apply_action({"type": "religious_protest", "incident": int(incident["id"])})
+	check_eq(protest[0]["type"], "religious_protest")
+	check_eq(game.apply_action({"type": "religious_protest", "incident": int(incident["id"])})[0]["type"], "error")
+	var request_id: int = protest[0]["id"]
+	game.state.current_player = 0
+	check_eq(game.apply_action({"type": "respond_religious_protest", "request": request_id, "accept": true})[0]["type"], "religious_protest_answered")
+	preacher.moves_left = 2.0
+	var repeated := game.apply_action({"type": "spread_religion", "unit": preacher.id})
+	check_eq(repeated[0]["type"], "religion_spread")
+	check_eq(game.state.religious_conflicts["breaches"].size(), 1)
+	check_eq(int(game.state.religious_conflicts["promises"]["1,0"]["until_round"]), game.state.turn + 9)
+	var restored := GameState.from_json(game.state.to_json(), game.data)
+	check_eq(restored.religious_conflicts, game.state.religious_conflicts)
+	check_eq(restored.religious_conflicts["incidents"].size(), 2)
+	check_eq(restored.religious_conflicts["breaches"].size(), 1)
+	game.state.turn = 10
+	ReligiousConflictRules.close_round(game)
+	check(game.state.religious_conflicts["promises"].is_empty(), "обещание истекает после десяти кругов")
+
+
+func test_religious_protest_deadline_and_old_save() -> void:
+	var game := blank_game(32, 16)
+	var data: Dictionary = game.state.religious_conflicts
+	data["incidents"]["1"] = {"id": 1, "offender": 0, "victim": 1, "city": 7, "round": 1, "kind": "active_spread"}
+	data["next_id"] = 2
+	game.state.current_player = 1
+	var request_id: int = game.apply_action({"type": "religious_protest", "incident": 1})[0]["id"]
+	game.state.turn = 2
+	ReligiousConflictRules.end_turn(game, 0, [])
+	check_eq(data["requests"][str(request_id)]["status"], "pending")
+	game.state.turn = 3
+	ReligiousConflictRules.end_turn(game, 0, [])
+	check_eq(data["requests"][str(request_id)]["status"], "refused")
+	check_eq(game.apply_action({"type": "respond_religious_protest", "request": request_id, "accept": true})[0]["type"], "error")
+	var old := game.state.to_dict()
+	old["version"] = 11
+	old.erase("religious_conflicts")
+	var migrated := GameState.from_dict(old, game.data)
+	check(migrated.religious_conflicts["incidents"].is_empty(), "старое сохранение без конфликтов загружается")
+
+
+func test_ai_religious_protest_and_answer() -> void:
+	var game := blank_game(32, 16)
+	var data: Dictionary = game.state.religious_conflicts
+	data["incidents"]["1"] = {"id": 1, "offender": 0, "victim": 1, "city": 7, "round": 1, "kind": "active_spread"}
+	data["next_id"] = 2
+	game.state.current_player = 1
+	AIPlayer._religious_conflicts(game, 1)
+	check_eq(data["requests"].size(), 1)
+	game.state.current_player = 0
+	AIPlayer._religious_conflicts(game, 0)
+	check_eq(data["requests"].values()[0]["status"], "accepted")
+	check_eq(data["promises"].size(), 1)

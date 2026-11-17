@@ -13,6 +13,7 @@ static func take_turn(game: Game, pid: int) -> void:
 	if not game.state.result.is_empty():
 		return
 	_answer_demands(game, pid)
+	_religious_conflicts(game, pid)
 	_congress(game, pid)
 	_treaty_diplomacy(game, pid)
 	_supply_diplomacy(game, pid)
@@ -53,6 +54,17 @@ static func _answer_demands(game: Game, pid: int) -> void:
 			var city := game.state.city(int(demand["offer"]))
 			accept = accept and dependence - reverse >= 75.0 and city != null and city.population <= 3
 		game.apply_action({"type": "respond_demand", "pair": demand["pair"], "id": demand["id"], "accept": accept})
+
+
+static func _religious_conflicts(game: Game, pid: int) -> void:
+	var data: Dictionary = game.state.religious_conflicts
+	for request in data["requests"].values():
+		if int(request["offender"]) == pid and str(request["status"]) == "pending":
+			game.apply_action({"type": "respond_religious_protest", "request": int(request["id"]), "accept": true})
+	for incident in data["incidents"].values():
+		if int(incident["victim"]) == pid and ReligiousConflictRules.protest_error(game, pid, int(incident["id"])) == "":
+			game.apply_action({"type": "religious_protest", "incident": int(incident["id"])})
+			break
 
 
 static func _religion(game: Game, pid: int) -> void:
@@ -110,6 +122,43 @@ static func _religion(game: Game, pid: int) -> void:
 			var option: Dictionary = options[pid % options.size()]
 			game.apply_action({"type": "proclaim_belief", "unit": apostle.id,
 				"kind": kind, "id": option["id"]})
+	if not bool(religion.get("inquisition_started", false)):
+		var founder: Unit = null
+		for unit in game.state.units_of(pid):
+			if ReligionRules.inquisition_error(game, unit) == "":
+				founder = unit
+				break
+		if founder == null and str(religion.get("cult_belief", "")) != "" and str(religion.get("enhancer_belief", "")) != "":
+			for city in game.state.cities_of(pid):
+				if ReligionRules.apostle_error(game, pid, city) == "":
+					var result := game.apply_action({"type": "recruit_apostle", "city": city.id})
+					if not result.is_empty() and result[0]["type"] == "unit_created":
+						founder = game.state.unit(int(result[0]["unit"]))
+					break
+		if founder != null:
+			game.apply_action({"type": "start_inquisition", "unit": founder.id})
+	for unit in game.state.units_of(pid):
+		if unit.type == "INQUISITOR" and ReligionRules.purge_error(game, unit) == "":
+			game.apply_action({"type": "purge_religion", "unit": unit.id})
+		if unit.type in ["APOSTLE", "INQUISITOR"] and game.state.unit(unit.id) != null:
+			for tile in game.state.map.grid.neighbors(unit.tile):
+				var attacked := false
+				for target in game.state.units_at(tile):
+					if ReligionRules.theological_error(game, unit, target) == "":
+						game.apply_action({"type": "theological_attack", "unit": unit.id, "target_unit": target.id})
+						attacked = true
+						break
+				if attacked:
+					break
+	if bool(religion.get("inquisition_started", false)):
+		for city in game.state.cities_of(pid):
+			var foreign := false
+			for rid in city.religion_pressure:
+				if rid != player.religion_id and float(city.religion_pressure[rid]) > 0.0:
+					foreign = true
+			if foreign and ReligionRules.inquisitor_error(game, pid, city) == "":
+				game.apply_action({"type": "recruit_inquisitor", "city": city.id})
+				break
 	var missionaries := 0
 	for unit in game.state.units_of(pid):
 		if unit.type not in ["MISSIONARY", "APOSTLE"]:

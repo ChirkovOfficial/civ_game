@@ -184,7 +184,7 @@ func act(action: Dictionary) -> Array:
 	var events := game.apply_action(action)
 	_after_action()
 	var t: String = action.get("type", "")
-	if t in ["found_city", "found_religion", "spread_religion", "proclaim_belief", "build_improvement", "harvest", "skip_unit", "sleep_unit", "fortify", "build_road", "attack", "promote", "upgrade_unit", "build_fort", "pillage", "attach_commander"] and \
+	if t in ["found_city", "found_religion", "spread_religion", "proclaim_belief", "start_inquisition", "purge_religion", "theological_attack", "build_improvement", "harvest", "skip_unit", "sleep_unit", "fortify", "build_road", "attack", "promote", "upgrade_unit", "build_fort", "pillage", "attach_commander"] and \
 			(selected == null or game.state.unit(selected.id) == null or selected.moves_left <= 0.0 or not selected.orders.is_empty()):
 		_select_next_unit()
 	if t == "found_city":
@@ -257,6 +257,18 @@ func _on_events(events: Array) -> void:
 			hud.show_message("Провозглашено верование: %s" % ReligionRules.belief(game, str(e["kind"]) + "_beliefs", e["belief"])["name"], 3.0)
 		elif t == "religion_spread" and e["player"] == game.state.current_player:
 			hud.show_message("Вера распространена в городе %s" % game.state.city(e["city"]).name, 3.0)
+		elif t == "inquisition_started" and e["player"] == game.state.current_player:
+			hud.show_message("Инквизиция учреждена", 3.0)
+		elif t == "religion_purged" and e["player"] == game.state.current_player:
+			hud.show_message("Город очищен от чужой веры", 3.0)
+		elif t == "theological_combat":
+			hud.show_message("Теологический бой", 2.5)
+		elif t == "religious_incident" and e["victim"] == game.state.current_player:
+			hud.show_message("Чужая активная проповедь: можно заявить протест в разделе «Религия»", 4.0)
+		elif t == "religious_promise_breached" and e["victim"] == game.state.current_player:
+			hud.show_message("Нарушено обещание прекратить проповедь", 4.0)
+		elif t == "religious_promise_breached" and e["offender"] == game.state.current_player:
+			hud.show_message("Вы нарушили обещание прекратить проповедь", 4.0)
 		elif t == "village_reward" and e["player"] == game.state.current_player:
 			hud.show_message("Племенное поселение: %s" % e["text"], 3.0)
 		elif t == "camp_cleared" and e["player"] == game.state.current_player:

@@ -12,7 +12,7 @@
    "cost": 0,
    "religion_only": true,
    "charges": 3,
-   "abilities": ["SPREAD_RELIGION", "PROCLAIM_BELIEF"]
+   "abilities": ["SPREAD_RELIGION", "PROCLAIM_BELIEF", "START_INQUISITION", "THEOLOGICAL_ATTACK"]
   },
   {
    "id": "PROPHET",
@@ -38,6 +38,19 @@
    "religion_only": true,
    "charges": 3,
    "abilities": ["SPREAD_RELIGION"]
+  },
+  {
+   "id": "INQUISITOR",
+   "name": "Инквизитор",
+   "class": "CIVILIAN",
+   "layer": "RELIGIOUS",
+   "domain": "LAND",
+   "moves": 2,
+   "sight": 2,
+   "cost": 0,
+   "religion_only": true,
+   "charges": 3,
+   "abilities": ["PURGE_RELIGION", "THEOLOGICAL_ATTACK"]
   },
   {
    "id": "SETTLER",

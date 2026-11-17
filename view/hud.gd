@@ -568,6 +568,14 @@ func open_religion() -> void:
 							func(): act.call({"type": "proclaim_belief", "unit": apostle_id,
 								"kind": belief_kind, "id": option_id}); open_religion())
 				break
+		_label(_research_box, "Инквизиция: %s" % ("учреждена" if bool(mine.get("inquisition_started", false)) else "не учреждена"), 14)
+		if not bool(mine.get("inquisition_started", false)):
+			for unit in game.state.units_of(pid):
+				if ReligionRules.inquisition_error(game, unit) == "":
+					var apostle_id := unit.id
+					_button(_research_box, "Учредить инквизицию апостолом", func():
+						act.call({"type": "start_inquisition", "unit": apostle_id}); open_religion())
+					break
 	else:
 		var prophet: Unit = null
 		for unit in game.state.units_of(pid):
@@ -624,6 +632,43 @@ func open_religion() -> void:
 				var apostle_city_id := city.id
 				_button(_research_box, "Купить апостола в %s · %d веры" % [city.name, ReligionRules.faith_cost(game, pid, "APOSTLE")],
 					func(): act.call({"type": "recruit_apostle", "city": apostle_city_id}); open_religion())
+			var inquisitor_error := ReligionRules.inquisitor_error(game, pid, city)
+			if inquisitor_error == "":
+				var inquisitor_city_id := city.id
+				_button(_research_box, "Купить инквизитора в %s · %d веры" % [city.name, ReligionRules.faith_cost(game, pid, "INQUISITOR")],
+					func(): act.call({"type": "recruit_inquisitor", "city": inquisitor_city_id}); open_religion())
+	var conflict_data: Dictionary = game.state.religious_conflicts
+	for key in conflict_data["incidents"]:
+		var incident: Dictionary = conflict_data["incidents"][key]
+		if int(incident["victim"]) != pid:
+			continue
+		if ReligiousConflictRules.protest_error(game, pid, int(incident["id"])) == "":
+			var incident_id: int = incident["id"]
+			var city := game.state.city(incident["city"])
+			_label(_research_box, "Активная проповедь державы %s в городе %s, круг %d" % [
+				game.state.player(int(incident["offender"])).name, city.name if city != null else "утрачен", int(incident["round"])], 13)
+			_button(_research_box, "Потребовать прекратить проповедь на 10 кругов", func():
+				act.call({"type": "religious_protest", "incident": incident_id}); open_religion())
+	for key in conflict_data["requests"]:
+		var request: Dictionary = conflict_data["requests"][key]
+		if int(request["offender"]) == pid and str(request["status"]) == "pending":
+			var request_id: int = request["id"]
+			_label(_research_box, "Протест державы %s: прекратить активную проповедь" % game.state.player(int(request["victim"])).name, 13)
+			_button(_research_box, "Принять требование", func():
+				act.call({"type": "respond_religious_protest", "request": request_id, "accept": true}); open_religion())
+			_button(_research_box, "Отказать", func():
+				act.call({"type": "respond_religious_protest", "request": request_id, "accept": false}); open_religion())
+	for key in conflict_data["promises"]:
+		var promise: Dictionary = conflict_data["promises"][key]
+		if int(promise["victim"]) == pid or int(promise["offender"]) == pid:
+			_label(_research_box, "Обещание: %s не проповедует у %s до круга %d" % [
+				game.state.player(int(promise["offender"])).name,
+				game.state.player(int(promise["victim"])).name, int(promise["until_round"])], 13)
+	for key in conflict_data["breaches"]:
+		var breach: Dictionary = conflict_data["breaches"][key]
+		if int(breach["victim"]) == pid:
+			_label(_research_box, "Нарушение обещания державой %s, круг %d" % [
+				game.state.player(int(breach["offender"])).name, int(breach["round"])], 13)
 	if game.state.religions.size() > 0:
 		_label(_research_box, "Основанные религии", 16)
 		for rid in game.state.religions:
@@ -1227,8 +1272,27 @@ func show_unit(u: Unit) -> void:
 		_button(_unit_box, "Провозгласить верование…", open_religion)
 	if abilities.has("SPREAD_RELIGION"):
 		var spread_error := ReligionRules.spread_error(game, u)
-		_button(_unit_box, "Распространить религию", func(): act.call({"type": "spread_religion", "unit": u.id}),
+		var target_city := game.state.city_at(u.tile)
+		var warning := ""
+		if target_city != null and target_city.owner != u.owner:
+			var pair := "%d,%d" % [target_city.owner, u.owner]
+			if game.state.religious_conflicts["promises"].has(pair):
+				warning = " (нарушит обещание)"
+		_button(_unit_box, "Распространить религию%s" % warning, func(): act.call({"type": "spread_religion", "unit": u.id}),
 			spread_error != "", spread_error)
+	if abilities.has("START_INQUISITION") and ReligionRules.inquisition_error(game, u) == "":
+		_button(_unit_box, "Учредить инквизицию", func(): act.call({"type": "start_inquisition", "unit": u.id}))
+	if abilities.has("PURGE_RELIGION"):
+		var purge_error := ReligionRules.purge_error(game, u)
+		_button(_unit_box, "Очистить город от чужой веры", func(): act.call({"type": "purge_religion", "unit": u.id}),
+			purge_error != "", purge_error)
+	if abilities.has("THEOLOGICAL_ATTACK"):
+		for tile in game.state.map.grid.neighbors(u.tile):
+			for target in game.state.units_at(tile):
+				if ReligionRules.theological_error(game, u, target) == "":
+					var target_id := target.id
+					_button(_unit_box, "Теологический бой: %s" % game.data.unit_def(target.type)["name"],
+						func(): act.call({"type": "theological_attack", "unit": u.id, "target_unit": target_id}))
 	if abilities.has("BUILD_IMPROVEMENT"):
 		for iid in ImprovementRules.valid_improvements(game, u):
 			var imp: Dictionary = game.data.improvements[iid]
