@@ -33,6 +33,8 @@ const FEATURE_TINT := {
 	"RAINFOREST": Color("5d8a3e"),
 	"WOODS": Color("6f8f46"),
 	"GEOTHERMAL": Color("b98a6a"),
+	"REEF": Color("62aaa3"),
+	"ICE": Color("d7e7ec"),
 }
 
 const WALL_LAND := Color("8a6a4c")
@@ -90,6 +92,6 @@ static func top_color(map: GameMap, i: int) -> Color:
 	var c: Color = TERRAIN_COLORS.get(map.terrain[i], Color.MAGENTA)
 	var f := map.feature[i]
 	if FEATURE_TINT.has(f):
-		c = c.lerp(FEATURE_TINT[f], 0.55)
+		c = c.lerp(FEATURE_TINT[f], 0.35)
 	var v := (hash01(i) - 0.5) * 0.07
 	return Color(clampf(c.r + v, 0, 1), clampf(c.g + v, 0, 1), clampf(c.b + v * 0.6, 0, 1))

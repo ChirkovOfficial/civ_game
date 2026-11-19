@@ -6,12 +6,10 @@ extends Node3D
 
 const TERRAIN_SHADER := preload("res://view/map/shaders/terrain.gdshader")
 const FEATURE_SHADER := preload("res://view/map/shaders/feature.gdshader")
-const FOREST_SPRITE_SHADER := preload("res://view/map/shaders/forest_sprite.gdshader")
 const OVERLAY_SHADER := preload("res://view/map/shaders/overlay.gdshader")
-const FOREST_SHEET := preload("res://art/terrain/placeholder/forest_sheet.png")
-
-## Старые кроны и стволы сохранены для сравнения, по умолчанию не рисуются.
-@export var use_legacy_tree_meshes := false
+const NatureFlags := preload("res://view/map/nature_flags.gd")
+const FLAG_SHADER := preload("res://view/map/shaders/nature_flag.gdshader")
+const FLAG_SHEET := preload("res://art/map_flags/nature_flags.png")
 
 var game: Game
 var world_width: float
@@ -27,7 +25,7 @@ var _copies: Array[Node3D] = []
 var _layers := {}
 var _terrain_mat: ShaderMaterial
 var _feature_mat: ShaderMaterial
-var _forest_mat: ShaderMaterial
+var _flag_mat: ShaderMaterial
 var _water_mat: ShaderMaterial
 var _river_mat: ShaderMaterial
 var _border_mat: ShaderMaterial
@@ -49,8 +47,9 @@ func build(g: Game) -> void:
 
 	_terrain_mat = _make_material(TERRAIN_SHADER)
 	_feature_mat = _make_material(FEATURE_SHADER)
-	_forest_mat = _make_material(FOREST_SPRITE_SHADER)
-	_forest_mat.set_shader_parameter("forest_sheet", FOREST_SHEET)
+	_flag_mat = _make_material(FLAG_SHADER)
+	_flag_mat.set_shader_parameter("flag_sheet", FLAG_SHEET)
+	_flag_mat.set_shader_parameter("regions", NatureFlags.regions())
 	_water_mat = _make_material(OVERLAY_SHADER)
 	_water_mat.render_priority = 1
 	_river_mat = _make_material(OVERLAY_SHADER)
@@ -78,12 +77,7 @@ func refresh_geometry(parts: Dictionary = {}) -> void:
 	var all := parts.is_empty()
 	if all or parts.has("terrain"):
 		_set_layer("terrain", TerrainMeshBuilder.build_terrain(map), _terrain_mat)
-		if use_legacy_tree_meshes:
-			var trees := _build_trees(map)
-			_set_layer("crowns", trees[0], _feature_mat)
-			_set_layer("trunks", trees[1], _feature_mat)
-		else:
-			_set_layer("forest_sprites", _build_forest_sprites(map), _forest_mat)
+		# Природные особенности теперь обозначаются флагами; старые построители сохранены.
 	if all or parts.has("improvements"):
 		refresh_improvements()
 	if all or parts.has("borders"):
@@ -249,22 +243,32 @@ func refresh_resources(player: Player) -> void:
 	var map := game.state.map
 	var items: Array = []
 	for i in map.size():
-		var rid := map.resource[i]
-		if rid == "" or not (reveal_all or Yields.resource_visible(game.data, rid, player)):
+		if not reveal_all and not player.is_revealed(i):
 			continue
-		var cls: String = game.data.resources[rid].get("class", "bonus")
-		var pos := _tile_pos(i) + Vector3(0.38, 0.3, 0.28)
-		if map.is_water(i):
-			pos.y = MapStyle.WATER_Y + 0.2
-		items.append([Transform3D(Basis(), pos), MapStyle.RESOURCE_COLORS.get(cls, Color.WHITE), _custom(i)])
-	var gem := SphereMesh.new()
-	gem.radius = 0.09
-	gem.height = 0.2
-	gem.radial_segments = 4
-	gem.rings = 2
-	var mm := _new_multimesh(gem, items.size())
+		var ids: Array[String] = []
+		var feature := map.feature[i]
+		if NatureFlags.index(feature) >= 0:
+			ids.append(feature)
+		var rid := map.resource[i]
+		if rid != "" and (reveal_all or Yields.resource_visible(game.data, rid, player)):
+			ids.append(rid)
+		for k in ids.size():
+			var index := NatureFlags.index(ids[k])
+			if index < 0:
+				continue
+			var pos := _tile_pos(i)
+			pos.y = MapStyle.WATER_Y if map.is_water(i) else pos.y
+			pos += Vector3((float(k) - (ids.size() - 1) * 0.5) * 0.38, 0.68, -0.15)
+			var custom := _custom(i)
+			custom.b = float(index) / 63.0
+			items.append([Transform3D(Basis(), pos), Color.WHITE, custom])
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.36, 0.44)
+	var mm := _new_multimesh(quad, items.size())
 	_fill(mm, items)
-	_set_layer("resources", mm, _feature_mat)
+	_set_layer("nature_flags", mm, _flag_mat)
+	for node in _layers["nature_flags"]:
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 ## Улучшения клеток: по слою на каждую деталь каждого типа.
