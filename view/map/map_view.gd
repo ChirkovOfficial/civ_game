@@ -6,7 +6,12 @@ extends Node3D
 
 const TERRAIN_SHADER := preload("res://view/map/shaders/terrain.gdshader")
 const FEATURE_SHADER := preload("res://view/map/shaders/feature.gdshader")
+const FOREST_SPRITE_SHADER := preload("res://view/map/shaders/forest_sprite.gdshader")
 const OVERLAY_SHADER := preload("res://view/map/shaders/overlay.gdshader")
+const FOREST_SHEET := preload("res://art/terrain/placeholder/forest_sheet.png")
+
+## Старые кроны и стволы сохранены для сравнения, по умолчанию не рисуются.
+@export var use_legacy_tree_meshes := false
 
 var game: Game
 var world_width: float
@@ -22,6 +27,7 @@ var _copies: Array[Node3D] = []
 var _layers := {}
 var _terrain_mat: ShaderMaterial
 var _feature_mat: ShaderMaterial
+var _forest_mat: ShaderMaterial
 var _water_mat: ShaderMaterial
 var _river_mat: ShaderMaterial
 var _border_mat: ShaderMaterial
@@ -43,6 +49,8 @@ func build(g: Game) -> void:
 
 	_terrain_mat = _make_material(TERRAIN_SHADER)
 	_feature_mat = _make_material(FEATURE_SHADER)
+	_forest_mat = _make_material(FOREST_SPRITE_SHADER)
+	_forest_mat.set_shader_parameter("forest_sheet", FOREST_SHEET)
 	_water_mat = _make_material(OVERLAY_SHADER)
 	_water_mat.render_priority = 1
 	_river_mat = _make_material(OVERLAY_SHADER)
@@ -70,9 +78,12 @@ func refresh_geometry(parts: Dictionary = {}) -> void:
 	var all := parts.is_empty()
 	if all or parts.has("terrain"):
 		_set_layer("terrain", TerrainMeshBuilder.build_terrain(map), _terrain_mat)
-		var trees := _build_trees(map)
-		_set_layer("crowns", trees[0], _feature_mat)
-		_set_layer("trunks", trees[1], _feature_mat)
+		if use_legacy_tree_meshes:
+			var trees := _build_trees(map)
+			_set_layer("crowns", trees[0], _feature_mat)
+			_set_layer("trunks", trees[1], _feature_mat)
+		else:
+			_set_layer("forest_sprites", _build_forest_sprites(map), _forest_mat)
 	if all or parts.has("improvements"):
 		refresh_improvements()
 	if all or parts.has("borders"):
@@ -156,7 +167,41 @@ func _build_mountains(map: GameMap) -> MultiMesh:
 	return mm
 
 
-## Возвращает [кроны, стволы].
+## Плоские деревья из верхних двух рядов временного атласа. Варианты и позиции
+## зависят только от индекса клетки, поэтому не меняются при обновлении карты.
+func _build_forest_sprites(map: GameMap) -> MultiMesh:
+	var items: Array = []
+	for i in map.size():
+		var feature := map.feature[i]
+		if feature != "WOODS" and feature != "RAINFOREST":
+			continue
+		var base := _tile_pos(i)
+		var variants := [0, 1, 2, 3, 5, 7, 8, 9, 10, 11]
+		if feature == "RAINFOREST":
+			variants = [6, 7, 9, 10, 11, 0]
+		elif map.terrain[i] == "TUNDRA":
+			variants = [4, 4, 1]
+		var count := 3 if feature == "RAINFOREST" else 2
+		for k in count:
+			var choice := mini(variants.size() - 1, int(MapStyle.hash01(i, 80 + k) * variants.size()))
+			var cell: int = variants[choice]
+			var angle := (k + MapStyle.hash01(i, 90 + k) * 0.5) * TAU / count
+			var radius := 0.12 + 0.2 * MapStyle.hash01(i, 100 + k)
+			var scale := 0.82 + 0.28 * MapStyle.hash01(i, 110 + k)
+			var pos := base + Vector3(cos(angle) * radius, 0.95 * scale * 0.5 - 0.03,
+				sin(angle) * radius)
+			var transform := Transform3D(Basis().scaled(Vector3.ONE * scale), pos)
+			var tile_uv := TerrainMeshBuilder.tile_uv(map.grid, i)
+			items.append([transform, Color.WHITE,
+				Color(tile_uv.x, tile_uv.y, float(cell % 6) / 5.0, 0.0 if cell < 6 else 1.0)])
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.65, 0.95)
+	var mm := _new_multimesh(quad, items.size())
+	_fill(mm, items)
+	return mm
+
+
+## Старый 3D лес: возвращает [кроны, стволы]. Сохранён для переключателя выше.
 func _build_trees(map: GameMap) -> Array:
 	var crowns: Array = []
 	var trunks: Array = []
