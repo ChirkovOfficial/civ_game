@@ -2,6 +2,7 @@ extends Control
 ## Стартовое меню. Карта появляется после выбора партии.
 
 const GAME_SCENE := preload("res://view/main.tscn")
+const UiSkin := preload("res://view/ui_skin.gd")
 const TEXT := Color("#eae3d2")
 const MUTED := Color("#b6b5ae")
 const ACCENT := Color("#d4b57e")
@@ -18,6 +19,7 @@ var _new_game_options := {"map_size": "SMALL", "map_type": "CONTINENTS", "speed"
 
 
 func _ready() -> void:
+	theme = UiSkin.theme()
 	_data = GameData.get_default()
 	var config := ConfigFile.new()
 	if config.load(settings_path) == OK:
@@ -47,13 +49,7 @@ func _build_layout() -> void:
 	center.add_child(margins)
 	var card := PanelContainer.new()
 	card.custom_minimum_size.x = 410
-	var frame := StyleBoxFlat.new()
-	frame.bg_color = Color("#202b32")
-	frame.border_color = Color("#4b5150")
-	frame.set_border_width_all(1)
-	frame.border_width_top = 2
-	frame.set_corner_radius_all(8)
-	frame.set_content_margin_all(28)
+	var frame := UiSkin.panel()
 	card.add_theme_stylebox_override("panel", frame)
 	margins.add_child(card)
 	_panel = VBoxContainer.new()

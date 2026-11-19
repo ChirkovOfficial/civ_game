@@ -4,6 +4,10 @@ extends CanvasLayer
 ## Все изменения мира идут через act.call(action) — тот же API, что у ИИ.
 
 const PlaceholderIcons = preload("res://view/placeholder_icons.gd")
+const UiSkin = preload("res://view/ui_skin.gd")
+const Minimap = preload("res://view/minimap.gd")
+signal minimap_pressed(tile: int)
+signal minimap_zoom(direction: int)
 
 signal end_turn_pressed
 signal new_map_pressed
@@ -26,7 +30,10 @@ var act: Callable
 
 var _icons := {}
 var _root: Control
-var _top_box: HBoxContainer
+var _top_box: HFlowContainer
+var _minimap: Control
+var _city_scroll: ScrollContainer
+var _research_scroll: ScrollContainer
 var _unit_panel: PanelContainer
 var _unit_box: VBoxContainer
 var _tile_panel: PanelContainer
@@ -42,29 +49,35 @@ var _message_timer := 0.0
 
 var city_id := -1
 var _research_kind := ""
+var _city_tab := "Обзор"
 
 
 func _ready() -> void:
 	for k in YIELD_NAMES:
-		var tex = load(ICON_DIR + "yield_%s.svg" % k)
+		var tex = UiSkin.region(UiSkin.YIELDS[k])
 		if tex != null:
 			_icons[k] = tex
 	_root = Control.new()
+	_root.theme = UiSkin.theme()
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
 
 	var top := _panel(_root)
+	top.add_theme_stylebox_override("panel", UiSkin.box("button"))
 	top.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	top.set_anchor(SIDE_RIGHT, 1.0)
 	top.position = Vector2(10, 10)
+	top.offset_right = -10
 	_attach(top)
-	_top_box = HBoxContainer.new()
-	_top_box.add_theme_constant_override("separation", 14)
+	_top_box = HFlowContainer.new()
+	_top_box.add_theme_constant_override("h_separation", 8)
 	top.add_child(_top_box)
 
 	_tile_panel = _panel(_root)
 	_tile_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_tile_panel.position = Vector2(-12, -170)
+	_tile_panel.position = Vector2(255, -210)
+	_tile_panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_tile_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_tile_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_attach(_tile_panel)
@@ -74,7 +87,7 @@ func _ready() -> void:
 
 	_unit_panel = _panel(_root)
 	_unit_panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	_unit_panel.position = Vector2(10, -10)
+	_unit_panel.position = Vector2(255, -150)
 	_unit_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_attach(_unit_panel)
 	_unit_box = VBoxContainer.new()
@@ -83,10 +96,11 @@ func _ready() -> void:
 
 	_city_panel = _panel(_root)
 	_city_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_city_panel.position = Vector2(-10, 10)
+	_city_panel.position = Vector2(-10, 116)
 	_city_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_attach(_city_panel)
 	var scroll := ScrollContainer.new()
+	_city_scroll = scroll
 	scroll.custom_minimum_size = Vector2(380, 520)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_city_panel.add_child(scroll)
@@ -97,23 +111,33 @@ func _ready() -> void:
 
 	_research_panel = _panel(_root)
 	_research_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_research_panel.position = Vector2(-230, 64)
+	_research_panel.position = Vector2(-310, 116)
 	_attach(_research_panel)
 	var rscroll := ScrollContainer.new()
-	rscroll.custom_minimum_size = Vector2(440, 520)
+	_research_scroll = rscroll
+	rscroll.custom_minimum_size = Vector2(560, 480)
 	rscroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_research_panel.add_child(rscroll)
 	_research_box = VBoxContainer.new()
 	_research_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rscroll.add_child(_research_box)
 	_research_panel.visible = false
+	_minimap = Minimap.new()
+	_minimap.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_minimap.position = Vector2(10, -215)
+	_root.add_child(_minimap)
+	_minimap.tile_pressed.connect(func(tile: int): minimap_pressed.emit(tile))
+	_minimap.zoom_pressed.connect(func(direction: int): minimap_zoom.emit(direction))
+	get_viewport().size_changed.connect(_resize_panels)
+	_resize_panels()
 
-	var br := VBoxContainer.new()
-	br.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	br.position = Vector2(-12, -12)
-	br.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	var br := HFlowContainer.new()
+	br.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	br.offset_left = 255
+	br.offset_right = -12
+	br.offset_top = -125
+	br.offset_bottom = -34
 	br.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	br.alignment = BoxContainer.ALIGNMENT_END
 	_root.add_child(br)
 	_reveal_button = CheckButton.new()
 	_reveal_button.text = "Вся карта (F2)"
@@ -139,7 +163,7 @@ func _ready() -> void:
 	_button(br, "Главное меню", func(): menu_pressed.emit())
 	_end_turn_button = Button.new()
 	_end_turn_button.text = "Конец хода (Enter)"
-	_end_turn_button.icon = PlaceholderIcons.general("down")
+	_end_turn_button.icon = UiSkin.texture("turn")
 	_end_turn_button.add_theme_constant_override("icon_max_width", 24)
 	_end_turn_button.custom_minimum_size = Vector2(280, 56)
 	_end_turn_button.pressed.connect(func(): end_turn_pressed.emit())
@@ -168,14 +192,18 @@ func _ready() -> void:
 
 func _panel(parent: Control) -> PanelContainer:
 	var p := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.09, 0.1, 0.13, 0.86)
-	sb.set_corner_radius_all(6)
-	sb.set_content_margin_all(10)
-	p.add_theme_stylebox_override("panel", sb)
+	p.add_theme_stylebox_override("panel", UiSkin.panel())
 	# Добавляется в дерево позже, после якорей и позиции: так позиция считается от якоря.
 	p.set_meta("pending_parent", parent)
 	return p
+
+
+func _resize_panels() -> void:
+	var available := maxf(220.0, get_viewport().get_visible_rect().size.y - 440.0)
+	_city_scroll.custom_minimum_size.y = available
+	_city_scroll.size.y = available
+	_research_scroll.custom_minimum_size.y = available
+	_research_scroll.size.y = available
 
 
 func _attach(p: Control) -> void:
@@ -198,7 +226,7 @@ func _district_label(type: String, content: String, color: Color = Color.WHITE) 
 	row.add_theme_constant_override("separation", 6)
 	_city_box.add_child(row)
 	var badge := TextureRect.new()
-	badge.texture = PlaceholderIcons.district(type)
+	badge.texture = UiSkin.district(type)
 	badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	badge.custom_minimum_size = Vector2(28, 28)
@@ -270,6 +298,7 @@ func show_message(text: String, seconds: float = 2.5) -> void:
 
 func set_reveal(on: bool) -> void:
 	_reveal_button.set_pressed_no_signal(on)
+	_minimap.refresh(game, on)
 
 
 func is_modal_open() -> bool:
@@ -280,6 +309,7 @@ func is_modal_open() -> bool:
 
 func refresh_top() -> void:
 	_clear(_top_box)
+	_minimap.refresh(game, _reveal_button.button_pressed)
 	var pid := game.state.current_player
 	var p := game.state.player(pid)
 	var sw := ColorRect.new()
@@ -296,8 +326,8 @@ func refresh_top() -> void:
 	var has_cities := not game.state.cities_of(pid).is_empty()
 	_research_button("science", "tech", p.current_tech, float(y["science"]), has_cities)
 	_research_button("culture", "civic", p.current_civic, float(y["culture"]), has_cities)
-	_button_icon(_button(_top_box, "Правительство", open_government), PlaceholderIcons.district("GOVERNMENT_PLAZA"))
-	_button_icon(_button(_top_box, "Религия", open_religion), PlaceholderIcons.district("HOLY_SITE"))
+	_button_icon(_button(_top_box, "Правительство", open_government), UiSkin.district("GOVERNMENT_PLAZA"))
+	_button_icon(_button(_top_box, "Религия", open_religion), UiSkin.district("HOLY_SITE"))
 	var wars := 0
 	for other in game.state.players:
 		if other.id != pid and not other.is_barbarian and game.state.at_war(pid, other.id):
@@ -315,6 +345,8 @@ func refresh_top() -> void:
 
 func _research_button(icon: String, kind: String, current: String, per_turn: float, enabled: bool) -> void:
 	var p := game.state.player(game.state.current_player)
+	var card := VBoxContainer.new()
+	_top_box.add_child(card)
 	var b := Button.new()
 	b.icon = _icons.get(icon)
 	b.add_theme_constant_override("icon_max_width", 18)
@@ -330,7 +362,21 @@ func _research_button(icon: String, kind: String, current: String, per_turn: flo
 		b.text = "%s (%s)" % [tree[current]["name"], ("%d х." % t) if t > 0 else "—"]
 	b.disabled = not enabled
 	b.pressed.connect(func(): open_research(kind))
-	_top_box.add_child(b)
+	card.add_child(b)
+	if current != "":
+		var cost := EmpireRules.tech_cost(game, current) if kind == "tech" else EmpireRules.civic_cost(game, current)
+		var progress: Dictionary = p.tech_progress if kind == "tech" else p.civic_progress
+		var bar := ProgressBar.new()
+		bar.max_value = cost
+		bar.value = float(progress.get(current, 0))
+		bar.show_percentage = false
+		bar.custom_minimum_size.y = 8
+		bar.tooltip_text = "%s / %s" % [_fmt(bar.value), _fmt(cost)]
+		if kind == "civic":
+			var fill := UiSkin.box("fill", 7)
+			fill.modulate_color = Color("d58bff")
+			bar.add_theme_stylebox_override("fill", fill)
+		card.add_child(bar)
 
 
 # --- Выбор исследования ------------------------------------------------------------------------
@@ -1598,6 +1644,15 @@ func refresh_city() -> void:
 	var title := _label(head, "%s%s" % ["★ " if city.is_capital else "", city.name], 22)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_button(head, "✕", _close_city)
+	var tabs := HBoxContainer.new()
+	_city_box.add_child(tabs)
+	for tab in ["Обзор", "Производство"]:
+		var button := _button(tabs, tab, func():
+			_city_tab = tab
+			_city_scroll.scroll_vertical = 0
+			refresh_city())
+		button.disabled = _city_tab == tab
+	var overview_start := _city_box.get_child_count()
 	var lux := CityRules.luxury_amenities(game, city.owner)
 	var y := CityRules.city_yields(game, city, lux)
 	var row := HFlowContainer.new()
@@ -1694,6 +1749,10 @@ func refresh_city() -> void:
 		var band_err := RockBandRules.recruit_error(game, city.owner, city)
 		_button(_city_box, "Рок-группа — %d веры (запас %.0f)" % [band_cost, faith_balance],
 			func(): act.call({"type": "recruit_rock_band", "city": city.id}), band_err != "", band_err)
+	for child in _city_box.get_children().slice(overview_start):
+		child.visible = _city_tab == "Обзор"
+	if _city_tab == "Обзор":
+		return
 	_label(_city_box, "Производство", 18)
 	var item := city.current_item()
 	if item.is_empty():
@@ -1738,7 +1797,7 @@ func refresh_city() -> void:
 					_fmt(DistrictRules.cost(game, city, id))]
 				var tp := id
 				var bd := _button(line, label_text, func(): place_district.emit(tp))
-				_button_icon(bd, PlaceholderIcons.district(tp))
+				_button_icon(bd, UiSkin.district(tp))
 				bd.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				bd.alignment = HORIZONTAL_ALIGNMENT_LEFT
 				continue
@@ -1759,9 +1818,9 @@ func refresh_city() -> void:
 			var b := _button(line, "%s — %s х." % [label_text, str(t) if t > 0 else "∞"],
 				func(): act.call({"type": "set_production", "city": city.id, "kind": kind, "id": id, "tile": tile}))
 			if kind in ["district", "district_upgrade", "district_project", "district_repair"]:
-				_button_icon(b, PlaceholderIcons.district(id))
+				_button_icon(b, UiSkin.district(id))
 			elif kind == "building" and tile >= 0:
-				_button_icon(b, PlaceholderIcons.district(str(game.data.buildings[id]["district"])))
+				_button_icon(b, UiSkin.district(str(game.data.buildings[id]["district"])))
 			elif kind == "wonder":
 				_button_icon(b, PlaceholderIcons.general("star"))
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1830,7 +1889,7 @@ func _city_districts(city: City) -> void:
 					var chosen_tile := target_tile
 					_button_icon(_button(_city_box, "🏹 Военный лагерь: %s (%d ♥)" % [Abilities.unit_name(game, target_unit.owner, target_unit.type), target_unit.hp],
 						func(): act.call({"type": "district_attack", "city": city.id, "district_tile": district_tile, "target": chosen_tile})),
-						PlaceholderIcons.district("ENCAMPMENT"))
+						UiSkin.district("ENCAMPMENT"))
 
 
 ## Раздел «Городская жизнь»: санитария, порядок, эпидемия, губернатор и доктрина.

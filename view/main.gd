@@ -70,6 +70,10 @@ func _ready() -> void:
 	hud = Hud.new()
 	add_child(hud)
 	hud.act = act
+	hud.minimap_pressed.connect(func(tile: int): camera_rig.focus(map_view.tile_world(tile, camera_rig.position.x)))
+	hud.minimap_zoom.connect(func(direction: int):
+		camera_rig.target_distance = clampf(camera_rig.target_distance * (0.85 if direction > 0 else 1.18),
+			camera_rig.min_distance, camera_rig.max_distance))
 	hud.end_turn_pressed.connect(_end_turn)
 	hud.new_map_pressed.connect(_new_game)
 	hud.save_pressed.connect(save_game)
@@ -572,5 +576,6 @@ func _after_action() -> void:
 
 func _set_reveal(on: bool) -> void:
 	map_view.set_reveal_all(on)
+	hud.set_reveal(on)
 	map_view.refresh_resources(_viewer())
 	hud.show_tile(_viewer(), hover_tile, on)
