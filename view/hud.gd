@@ -3,6 +3,8 @@ extends CanvasLayer
 ## Интерфейс поверх карты (временный, до макетов художника).
 ## Все изменения мира идут через act.call(action) — тот же API, что у ИИ.
 
+const PlaceholderIcons = preload("res://view/placeholder_icons.gd")
+
 signal end_turn_pressed
 signal new_map_pressed
 signal save_pressed
@@ -115,6 +117,7 @@ func _ready() -> void:
 	_root.add_child(br)
 	_reveal_button = CheckButton.new()
 	_reveal_button.text = "Вся карта (F2)"
+	_reveal_button.icon = PlaceholderIcons.general("circle")
 	_reveal_button.toggled.connect(func(on): reveal_toggled.emit(on))
 	br.add_child(_reveal_button)
 	_button(br, "Победы и счёт", open_victory)
@@ -136,6 +139,8 @@ func _ready() -> void:
 	_button(br, "Главное меню", func(): menu_pressed.emit())
 	_end_turn_button = Button.new()
 	_end_turn_button.text = "Конец хода (Enter)"
+	_end_turn_button.icon = PlaceholderIcons.general("down")
+	_end_turn_button.add_theme_constant_override("icon_max_width", 24)
 	_end_turn_button.custom_minimum_size = Vector2(280, 56)
 	_end_turn_button.pressed.connect(func(): end_turn_pressed.emit())
 	br.add_child(_end_turn_button)
@@ -186,6 +191,26 @@ func _icon(kind: String, size: int = 20) -> TextureRect:
 	tr.custom_minimum_size = Vector2(size, size)
 	tr.tooltip_text = YIELD_NAMES.get(kind, kind)
 	return tr
+
+
+func _district_label(type: String, content: String, color: Color = Color.WHITE) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	_city_box.add_child(row)
+	var badge := TextureRect.new()
+	badge.texture = PlaceholderIcons.district(type)
+	badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	badge.custom_minimum_size = Vector2(28, 28)
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(badge)
+	var caption := _label(row, content, 0, color, true)
+	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+
+func _button_icon(button: Button, texture: Texture2D) -> void:
+	button.icon = texture
+	button.add_theme_constant_override("icon_max_width", 24)
 
 
 func _yield_chip(parent: Container, kind: String, text: String) -> void:
@@ -271,8 +296,8 @@ func refresh_top() -> void:
 	var has_cities := not game.state.cities_of(pid).is_empty()
 	_research_button("science", "tech", p.current_tech, float(y["science"]), has_cities)
 	_research_button("culture", "civic", p.current_civic, float(y["culture"]), has_cities)
-	_button(_top_box, "Правительство", open_government)
-	_button(_top_box, "Религия", open_religion)
+	_button_icon(_button(_top_box, "Правительство", open_government), PlaceholderIcons.district("GOVERNMENT_PLAZA"))
+	_button_icon(_button(_top_box, "Религия", open_religion), PlaceholderIcons.district("HOLY_SITE"))
 	var wars := 0
 	for other in game.state.players:
 		if other.id != pid and not other.is_barbarian and game.state.at_war(pid, other.id):
@@ -284,6 +309,7 @@ func refresh_top() -> void:
 	if incoming > 0:
 		db.text += " · +%d" % incoming
 	db.pressed.connect(open_diplomacy)
+	_button_icon(db, PlaceholderIcons.general("target"))
 	_top_box.add_child(db)
 
 
@@ -1492,35 +1518,40 @@ func show_unit(u: Unit) -> void:
 			var y := []
 			for k in imp.get("yields", {}):
 				y.append("+%s %s" % [_fmt(float(imp["yields"][k])), str(YIELD_NAMES[k]).to_lower()])
-			_button(_unit_box, "Построить: %s (%s)" % [imp["name"], ", ".join(y)],
+			var build_button := _button(_unit_box, "Построить: %s (%s)" % [imp["name"], ", ".join(y)],
 				func(): act.call({"type": "build_improvement", "unit": u.id, "improvement": iid}), u.moves_left <= 0.0)
+			_button_icon(build_button, PlaceholderIcons.general("hammer"))
 		var hv := ImprovementRules.harvest_preview(game, u)
 		if not hv.is_empty():
 			var parts := []
 			for k in hv["yields"]:
 				parts.append("+%s %s" % [_fmt(float(hv["yields"][k])), str(YIELD_NAMES[k]).to_lower()])
 			var what := "Собрать ресурс" if hv["what"] == "resource" else "Вырубить/осушить"
-			_button(_unit_box, "%s (%s в город)" % [what, ", ".join(parts)],
-				func(): act.call({"type": "harvest", "unit": u.id}), u.moves_left <= 0.0)
+			_button_icon(_button(_unit_box, "%s (%s в город)" % [what, ", ".join(parts)],
+				func(): act.call({"type": "harvest", "unit": u.id}), u.moves_left <= 0.0), PlaceholderIcons.general("plus"))
 	for pid in Combat.available_promotions(game, u):
 		var pr: Dictionary = game.data.promotions[pid]
-		_button(_unit_box, "★ Повышение: %s — %s" % [pr["name"], pr["text"]],
-			func(): act.call({"type": "promote", "unit": u.id, "promotion": pid}))
+		_button_icon(_button(_unit_box, "★ Повышение: %s — %s" % [pr["name"], pr["text"]],
+			func(): act.call({"type": "promote", "unit": u.id, "promotion": pid})), PlaceholderIcons.general("star"))
 	var target := UnitRules.upgrade_target(game, u)
 	if target != "":
 		var uerr := UnitRules.upgrade_error(game, u)
-		_button(_unit_box, "Модернизировать в «%s» (%d золота)" % [Abilities.unit_name(game, u.owner, target), UnitRules.upgrade_cost(game, u, target)],
-			func(): act.call({"type": "upgrade_unit", "unit": u.id}), uerr != "", uerr)
+		_button_icon(_button(_unit_box, "Модернизировать в «%s» (%d золота)" % [Abilities.unit_name(game, u.owner, target), UnitRules.upgrade_cost(game, u, target)],
+			func(): act.call({"type": "upgrade_unit", "unit": u.id}), uerr != "", uerr), PlaceholderIcons.general("arrow"))
 	if Abilities.has(game, u, "ROAD_INSTEAD_OF_MOVE") or Abilities.has(game, u, "BUILD_ROAD"):
 		var rerr := UnitRules.build_road_error(game, u)
-		_button(_unit_box, "Проложить дорогу (R)", func(): act.call({"type": "build_road", "unit": u.id}), rerr != "", rerr)
+		_button_icon(_button(_unit_box, "Проложить дорогу (R)", func(): act.call({"type": "build_road", "unit": u.id}), rerr != "", rerr),
+			PlaceholderIcons.general("hammer"))
 	if Abilities.has(game, u, "BUILD_FORT") and u.charges > 0:
 		var ferr := UnitRules.build_fort_error(game, u)
-		_button(_unit_box, "Построить форт", func(): act.call({"type": "build_fort", "unit": u.id}), ferr != "", ferr)
+		_button_icon(_button(_unit_box, "Построить форт", func(): act.call({"type": "build_fort", "unit": u.id}), ferr != "", ferr),
+			PlaceholderIcons.general("shield"))
 	if UnitRules.pillage_error(game, u) == "":
-		_button(_unit_box, "Разграбить улучшение", func(): act.call({"type": "pillage", "unit": u.id}))
+		_button_icon(_button(_unit_box, "Разграбить улучшение", func(): act.call({"type": "pillage", "unit": u.id})),
+			PlaceholderIcons.general("sword"))
 	if UnitRules.repair_error(game, u) == "":
-		_button(_unit_box, "Починить улучшение", func(): act.call({"type": "repair", "unit": u.id}))
+		_button_icon(_button(_unit_box, "Починить улучшение", func(): act.call({"type": "repair", "unit": u.id})),
+			PlaceholderIcons.general("plus"))
 	if not Army.slots_for(game, u.type).is_empty():
 		_button(_unit_box, "Снаряжение… (E)", func(): open_equipment(u.id))
 	if not u.commander.is_empty():
@@ -1598,8 +1629,8 @@ func refresh_city() -> void:
 			if Combat.city_attack_error(game, city, t) == "":
 				var tu: Unit = Combat.target_at(game, city.owner, t)["unit"]
 				var tt := t
-				_button(_city_box, "🏹 Обстрелять: %s (%d ♥)" % [Abilities.unit_name(game, tu.owner, tu.type), tu.hp],
-					func(): act.call({"type": "city_attack", "city": city.id, "target": tt}))
+				_button_icon(_button(_city_box, "🏹 Обстрелять: %s (%d ♥)" % [Abilities.unit_name(game, tu.owner, tu.type), tu.hp],
+					func(): act.call({"type": "city_attack", "city": city.id, "target": tt})), PlaceholderIcons.general("target"))
 	if not city.buildings.is_empty():
 		var names := []
 		for bid in city.buildings:
@@ -1707,6 +1738,7 @@ func refresh_city() -> void:
 					_fmt(DistrictRules.cost(game, city, id))]
 				var tp := id
 				var bd := _button(line, label_text, func(): place_district.emit(tp))
+				_button_icon(bd, PlaceholderIcons.district(tp))
 				bd.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				bd.alignment = HORIZONTAL_ALIGNMENT_LEFT
 				continue
@@ -1714,6 +1746,7 @@ func refresh_city() -> void:
 				label_text = "%s — %s ⚙ · выбрать клетку" % [label_text, _fmt(CityRules.item_cost(game, city, it))]
 				var wonder_id := id
 				var wonder_button := _button(line, label_text, func(): place_wonder.emit(wonder_id))
+				_button_icon(wonder_button, PlaceholderIcons.general("star"))
 				wonder_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				wonder_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 				continue
@@ -1725,6 +1758,12 @@ func refresh_city() -> void:
 					int(DistrictRules.entry_at(city, tile).get("tier", 1)))
 			var b := _button(line, "%s — %s х." % [label_text, str(t) if t > 0 else "∞"],
 				func(): act.call({"type": "set_production", "city": city.id, "kind": kind, "id": id, "tile": tile}))
+			if kind in ["district", "district_upgrade", "district_project", "district_repair"]:
+				_button_icon(b, PlaceholderIcons.district(id))
+			elif kind == "building" and tile >= 0:
+				_button_icon(b, PlaceholderIcons.district(str(game.data.buildings[id]["district"])))
+			elif kind == "wonder":
+				_button_icon(b, PlaceholderIcons.general("star"))
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			if kind in ["district", "district_upgrade", "district_project", "district_repair", "project", "cultural_project", "wonder"]:
@@ -1747,8 +1786,9 @@ func _city_districts(city: City) -> void:
 		var name := DistrictRules.display_name(game, city.owner, d["type"], int(d["tier"]))
 		if not d["complete"]:
 			var key := City.item_key({"kind": "district", "id": d["type"], "tile": d["tile"]})
-			_label(_city_box, "• %s — строится: %s/%s ⚙" % [name, _fmt(snappedf(float(city.progress.get(key, 0.0)), 0.1)),
-				_fmt(float(d["cost"]))], 0, Color(0.85, 0.8, 0.6), true)
+			_district_label(d["type"], "• %s — строится: %s/%s ⚙" % [name,
+				_fmt(snappedf(float(city.progress.get(key, 0.0)), 0.1)), _fmt(float(d["cost"]))],
+				Color(0.85, 0.8, 0.6))
 			continue
 		var o := DistrictRules.output(game, city, d)
 		var parts := []
@@ -1781,15 +1821,16 @@ func _city_districts(city: City) -> void:
 			line += "\n   ✿ Урбанизация Нерона +%d%%%s — рядом: %s" % [int(float(nero["bonus"]) * 100),
 				(" и +%d к эффектам" % int(nero["flat"])) if int(nero["flat"]) > 0 else "", ", ".join(nero["neighbors"])]
 			col = Color(0.78, 1.0, 0.7)
-		_label(_city_box, line, 0, col, true)
+		_district_label(d["type"], line, col)
 		if city.owner == game.state.current_player and d["type"] == "ENCAMPMENT" and DistrictRules.active(game, d):
 			var district_tile := int(d["tile"])
 			for target_tile in game.state.map.grid.tiles_in_radius(district_tile, int(game.data.const_value("city_ranged_range", 2))):
 				if Combat.district_attack_error(game, city, district_tile, target_tile) == "":
 					var target_unit: Unit = Combat.target_at(game, city.owner, target_tile)["unit"]
 					var chosen_tile := target_tile
-					_button(_city_box, "🏹 Военный лагерь: %s (%d ♥)" % [Abilities.unit_name(game, target_unit.owner, target_unit.type), target_unit.hp],
-						func(): act.call({"type": "district_attack", "city": city.id, "district_tile": district_tile, "target": chosen_tile}))
+					_button_icon(_button(_city_box, "🏹 Военный лагерь: %s (%d ♥)" % [Abilities.unit_name(game, target_unit.owner, target_unit.type), target_unit.hp],
+						func(): act.call({"type": "district_attack", "city": city.id, "district_tile": district_tile, "target": chosen_tile})),
+						PlaceholderIcons.district("ENCAMPMENT"))
 
 
 ## Раздел «Городская жизнь»: санитария, порядок, эпидемия, губернатор и доктрина.
