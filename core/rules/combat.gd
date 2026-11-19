@@ -18,6 +18,13 @@ static func melee_strength(game: Game, unit_type: String) -> int:
 	return int(game.data.unit_def(unit_type).get("combat", 0))
 
 
+static func embarked_defense(game: Game, unit: Unit) -> int:
+	var eras: Array = k(game, "eras", [])
+	var rank := maxi(0, eras.find(UnitRules.player_era(game, unit.owner)))
+	return int(k(game, "embark_defense_base", 10)) \
+		+ rank * int(k(game, "embark_defense_per_era", 5))
+
+
 static func ranged_strength(game: Game, unit_type: String) -> int:
 	return int(game.data.unit_def(unit_type).get("ranged", 0))
 
@@ -168,7 +175,9 @@ static func unit_mods(game: Game, u: Unit, role: String, ctx: Dictionary) -> Arr
 	var lost := 100 - u.hp
 	if lost > 0:
 		mods.append(["Ранения", -mini(int(k(game, "wound_penalty_max", 10)), lost / 10 * int(k(game, "wound_penalty_per_10hp", 1)))])
-	if role == "defense" and Movement.domain(game, u) == "LAND":
+	if role == "defense" and Movement.is_embarked(game, u):
+		return mods
+	if role == "defense" and Movement.domain(game, u) == "LAND" and not Movement.is_embarked(game, u):
 		var td: Dictionary = k(game, "terrain_defense", {})
 		if map.is_hills(u.tile):
 			mods.append(["Холмы", int(td.get("HILLS", 3))])
@@ -321,6 +330,11 @@ static func attack_error(game: Game, u: Unit, tile: int) -> String:
 		return "Этот юнит не сражается"
 	if u.moves_left <= 0.0:
 		return "Нет очков движения"
+	if Movement.is_embarked(game, u):
+		if is_ranged(game, u) or game.state.map.is_water(tile):
+			return "Посаженный юнит может атаковать только при высадке на сушу"
+		if Movement.step_cost(game, u, u.tile, tile) == Movement.IMPASSABLE:
+			return "Здесь нельзя высадиться"
 	var t := target_at(game, u.owner, tile)
 	if t["kind"] == "" or t["kind"] == "camp":
 		return "Здесь некого атаковать"
@@ -378,13 +392,17 @@ static func preview(game: Game, u: Unit, tile: int) -> Dictionary:
 		ctx["vs_player"] = d.owner
 		ctx["vs_irregular"] = d.owner == barb
 		ctx["vs_class"] = unit_class(game, d)
-		ctx["vs_domain"] = Movement.domain(game, d)
+		ctx["vs_domain"] = Movement.effective_domain(game, d)
 		ctx["vs_wounded"] = d.hp < 100
 		ctx["vs_fortified"] = d.fortify_turns > 0
 		def_base = melee_strength(game, d.type)
+		if Movement.is_embarked(game, d):
+			def_base = embarked_defense(game, d)
 		def_mods = unit_mods(game, d, "defense", {"vs_class": unit_class(game, u), "vs_ranged": ranged,
-			"vs_domain": Movement.domain(game, u), "vs_irregular": u.owner == barb, "vs_player": u.owner})
+			"vs_domain": Movement.effective_domain(game, u), "vs_irregular": u.owner == barb, "vs_player": u.owner})
 	var att_mods := unit_mods(game, u, "attack", ctx)
+	if Movement.is_embarked(game, u) and not ranged:
+		att_mods.append(["Высадка с моря", -int(k(game, "embark_attack_penalty", 10))])
 	if not ranged:
 		var dir := map.grid.direction_to(u.tile, tile)
 		if dir >= 0 and map.has_river_edge(u.tile, dir) and not has_flag(game, u, "ignore_river_penalty"):

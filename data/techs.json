@@ -37,7 +37,7 @@
       "era": "ANCIENT",
       "cost": 50,
       "prereqs": [],
-      "unlocks_text": "Галеры и рыбацкие лодки.",
+      "unlocks_text": "Галеры, рыбацкие лодки и посадка строителей на воду.",
       "boost": {"condition": "coastal_city"},
       "boost_text": "основать город на побережье"
     },
@@ -208,10 +208,9 @@
         "SAILING",
         "ASTROLOGY"
       ],
-      "unlocks_text": "Гавань I и квадриремы.",
+      "unlocks_text": "Гавань I, квадриремы и посадка всех сухопутных юнитов на воду.",
       "boost": {"condition": "improvements", "id": "FISHING_BOATS", "minimum": 2, "any_resource": true},
-      "boost_text": "улучшить 2 морских ресурса",
-      "planned_text": "Перевозка сухопутных юнитов по воде."
+      "boost_text": "улучшить 2 морских ресурса"
     },
     {
       "id": "APPRENTICESHIP",
@@ -452,7 +451,8 @@
       "prereqs": [
         "INDUSTRIALIZATION"
       ],
-      "unlocks_text": "Броненосец; район Канал; +2 ОД плывущим наземным юнитам",
+      "unlocks_text": "Броненосец; +2 ОД посаженным на воду сухопутным юнитам.",
+      "planned_text": "Район Канал.",
       "boost": {"condition": "districts", "id": "HARBOR", "minimum": 2, "tier": 2},
       "boost_text": "построить 2 Гавани II"
     },

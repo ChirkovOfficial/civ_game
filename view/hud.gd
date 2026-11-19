@@ -1391,6 +1391,8 @@ func show_unit(u: Unit) -> void:
 			_label(_unit_box, _trade_yields_text(u.trade_route), 0, Color.WHITE, true)
 		return
 	var lines := ["Очки движения: %s / %s" % [_fmt(u.moves_left), _fmt(Movement.max_moves(game, u))]]
+	if Movement.is_embarked(game, u):
+		lines.append("На воде · базовая оборона: %d" % Combat.embarked_defense(game, u))
 	if def.has("combat"):
 		var s := "Сила: %d" % def["combat"]
 		if def.has("ranged"):

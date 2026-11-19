@@ -23,13 +23,15 @@ static func player_era(game: Game, pid: int) -> String:
 static func fortify_error(game: Game, u: Unit) -> String:
 	if Movement.layer(game, u.type) != "COMBAT":
 		return "Укрепляться могут только боевые юниты"
+	if Movement.is_embarked(game, u):
+		return "На воде нельзя укрепляться"
 	return ""
 
 
 static func heal_amount(game: Game, u: Unit) -> int:
 	var map := game.state.map
 	var city := game.state.city_at(u.tile)
-	if Movement.domain(game, u) == "SEA":
+	if Movement.effective_domain(game, u) == "SEA":
 		var oc := game.state.city_owning(u.tile)
 		var own := oc != null and oc.owner == u.owner
 		if not own and not Combat.has_flag(game, u, "heal_anywhere"):
@@ -70,7 +72,7 @@ static func process_units_turn_start(game: Game, pid: int, events: Array) -> voi
 				var cl: Dictionary = game.data.equipment.get("climate", {})
 				u.hp = maxi(int(cl.get("extreme_cold_min_hp", 10)), u.hp - int(cl.get("extreme_cold_hp_loss", 10)))
 				events.append({"type": "unit_frostbite", "unit": u.id})
-		if u.orders.get("type", "") == "fortify":
+		if u.orders.get("type", "") == "fortify" and not Movement.is_embarked(game, u):
 			u.fortify_turns = mini(u.fortify_turns + 1, 2)
 		elif game.state.map.improvement[u.tile] == "FORT" and Movement.layer(game, u.type) == "COMBAT":
 			u.fortify_turns = 2

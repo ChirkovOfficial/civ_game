@@ -26,12 +26,16 @@ static func find_path(game: Game, unit: Unit, target: int) -> Array[Step]:
 	if target == unit.tile or not map.grid.is_valid_index(target):
 		return result
 	var me := game.state.player(unit.owner)
-	var max_m := Movement.max_moves(game, unit)
+	var max_m := Movement.max_moves_at(game, unit, unit.tile)
 	if max_m <= 0.0:
 		return result
 	if me.is_revealed(target) and not Movement.can_stand(game, unit, target):
 		return result
-	var key := max_m + 1.0
+	var embarked_m := float(game.data.const_value("embark_moves", 2))
+	var fast_tech := str(game.data.const_value("embark_fast_tech", ""))
+	if fast_tech != "" and me.has_tech(fast_tech):
+		embarked_m += float(game.data.const_value("embark_fast_bonus", 2))
+	var key := maxf(Movement.max_land_moves(game, unit), embarked_m) + 1.0
 	# Лучшие (turns, moves) по клетке.
 	var best_turns := {}
 	var best_moves := {}
@@ -53,7 +57,7 @@ static func find_path(game: Game, unit: Unit, target: int) -> Array[Step]:
 			if cur != unit.tile and not Movement.occupancy_allows(game, unit, cur, true, true):
 				continue
 			t += 1
-			m = max_m
+			m = Movement.max_moves_at(game, unit, cur)
 		for nb in map.grid.neighbors(cur):
 			var known := me.is_revealed(nb)
 			if not Movement.occupancy_allows(game, unit, nb, nb == target, true):
@@ -66,7 +70,7 @@ static func find_path(game: Game, unit: Unit, target: int) -> Array[Step]:
 			best_turns[nb] = t
 			best_moves[nb] = left
 			came_from[nb] = cur
-			var g := t * key + (max_m - left)
+			var g := t * key + (key - 1.0 - left)
 			open.push(g + _h(map, nb, target), nb)
 	if not came_from.has(target):
 		return result

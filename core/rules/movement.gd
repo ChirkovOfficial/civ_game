@@ -13,7 +13,37 @@ const IMPASSABLE := -1.0
 const ALL_MOVES := -2.0
 
 
+static func validate_data(data: GameData) -> PackedStringArray:
+	var errors := PackedStringArray()
+	for key in ["embark_early_tech", "embark_general_tech", "embark_fast_tech"]:
+		if not data.techs.has(str(data.const_value(key, ""))):
+			errors.append("Морское движение: неизвестная технология %s" % key)
+	for id in data.const_value("embark_early_units", []):
+		if not data.units.has(id):
+			errors.append("Морское движение: неизвестный юнит %s" % id)
+	if not data.districts.has(str(data.const_value("embark_port_district", ""))):
+		errors.append("Морское движение: неизвестный портовый район")
+	for key in ["embark_moves", "embark_defense_base", "embark_defense_per_era"]:
+		if int(data.const_value(key, 0)) <= 0:
+			errors.append("Морское движение: неверное значение %s" % key)
+	return errors
+
+
 static func max_moves(game: Game, unit: Unit) -> float:
+	return max_moves_at(game, unit, unit.tile)
+
+
+static func max_moves_at(game: Game, unit: Unit, tile: int) -> float:
+	if domain(game, unit) == "LAND" and game.state.map.is_water(tile):
+		var embarked := float(game.data.const_value("embark_moves", 2))
+		var fast_tech := str(game.data.const_value("embark_fast_tech", ""))
+		if fast_tech != "" and game.state.player(unit.owner).has_tech(fast_tech):
+			embarked += float(game.data.const_value("embark_fast_bonus", 2))
+		return embarked
+	return max_land_moves(game, unit)
+
+
+static func max_land_moves(game: Game, unit: Unit) -> float:
 	var m := float(game.data.unit_def(unit.type).get("moves", 1)) + Combat.promo_stat(game, unit, "moves", {})
 	m += Army.commander_moves(game, unit)
 	for mod in Army.equipment_mods(game, unit, "moves", {}):
@@ -23,6 +53,14 @@ static func max_moves(game: Game, unit: Unit) -> float:
 
 static func domain(game: Game, unit: Unit) -> String:
 	return game.data.unit_def(unit.type).get("domain", "LAND")
+
+
+static func is_embarked(game: Game, unit: Unit) -> bool:
+	return domain(game, unit) == "LAND" and game.state.map.is_water(unit.tile)
+
+
+static func effective_domain(game: Game, unit: Unit) -> String:
+	return "SEA" if is_embarked(game, unit) else domain(game, unit)
 
 
 static func layer(game: Game, unit_type: String) -> String:
@@ -40,8 +78,16 @@ static func can_stand(game: Game, unit: Unit, tile: int, known: bool = true) -> 
 		return false
 	var dom := domain(game, unit)
 	if dom == "LAND":
-		# Посадка на корабли (embark) — следующие вехи.
-		return map.is_land(tile) and not map.is_mountain(tile)
+		if map.is_land(tile):
+			return not map.is_mountain(tile)
+		var p := game.state.player(unit.owner)
+		var early: Array = game.data.const_value("embark_early_units", [])
+		var unlock := str(game.data.const_value("embark_early_tech", "")) if unit.type in early \
+			else str(game.data.const_value("embark_general_tech", ""))
+		if unlock == "" or not p.has_tech(unlock):
+			return false
+		var water_req := str(map.terrain_def(tile).get("requires_tech", ""))
+		return water_req == "" or p.has_tech(water_req)
 	if dom == "SEA":
 		if not map.is_water(tile):
 			return false
@@ -72,8 +118,10 @@ static func step_cost(game: Game, unit: Unit, from: int, to: int, known: bool = 
 	if not TreatyRules.border_allows(game, unit, from, to):
 		return IMPASSABLE
 	var map := game.state.map
+	if dom_is_land(game, unit) and map.is_water(from) != map.is_water(to):
+		return terrain_cost(game, to) if _port_transition(game, unit.owner, from, to) else ALL_MOVES
 	var dir := map.grid.direction_to(from, to)
-	if dom_is_land(game, unit) and map.has_river_edge(from, dir) and not _has_bridge(game, from, to):
+	if dom_is_land(game, unit) and dir >= 0 and map.has_river_edge(from, dir) and not _has_bridge(game, from, to):
 		return ALL_MOVES
 	if dom_is_land(game, unit) and map.road[from] > 0 and map.road[to] > 0:
 		return road_cost(game, mini(map.road[from], map.road[to]))
@@ -88,6 +136,22 @@ static func step_cost(game: Game, unit: Unit, from: int, to: int, known: bool = 
 		elif map.is_hills(to) and Combat.has_flag(game, unit, "hills_cost_1"):
 			cost = maxf(1.0, cost - 1.0)
 	return cost
+
+
+## Свой центр города или завершённая гавань позволяют пересечь берег без потери всех ОД.
+static func _port_transition(game: Game, pid: int, from: int, to: int) -> bool:
+	for tile in [from, to]:
+		var city := game.state.city_at(tile)
+		if city != null and city.owner == pid:
+			return true
+		var owner := game.state.city_owning(tile)
+		if owner != null and owner.owner == pid:
+			for district in owner.districts:
+				if district["type"] == game.data.const_value("embark_port_district", "HARBOR") \
+						and int(district["tile"]) == tile \
+						and district.get("complete", false) and game.state.map.pillaged[tile] == 0:
+					return true
+	return false
 
 
 static func road_cost(game: Game, level: int) -> float:
@@ -155,7 +219,7 @@ static func moves_after_step(game: Game, unit: Unit, from: int, to: int, moves: 
 	var cost := step_cost(game, unit, from, to, known)
 	if cost == IMPASSABLE or moves <= 0.0:
 		return -1.0
-	var full := moves >= max_moves(game, unit)
+	var full := moves >= max_moves_at(game, unit, from)
 	var left: float
 	if cost == ALL_MOVES:
 		left = 0.0
@@ -165,4 +229,4 @@ static func moves_after_step(game: Game, unit: Unit, from: int, to: int, moves: 
 		return -1.0
 	if known and in_enemy_zoc(game, unit, to, zoc_visible_only):
 		left = 0.0
-	return left
+	return minf(left, max_moves_at(game, unit, to))
