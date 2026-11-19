@@ -215,6 +215,8 @@ static func _base_amenities(game: Game, city: City) -> int:
 	a += int(DistrictRules.city_totals(game, city)["amenities"])
 	a += ParkRules.amenities(game, city)
 	a += int(CityLife.doctrine_effect(game, city).get("amenities", 0))
+	if city.carnival_turns > 0:
+		a += int(game.data.district_projects.get("ENTERTAINMENT_COMPLEX", {}).get("amenities", 0))
 	return a
 
 
@@ -398,6 +400,10 @@ static func item_name(game: Game, item: Dictionary, owner: int = -1) -> String:
 		return "Создать шедевр"
 	if item.get("kind", "") == "project":
 		return str(game.data.science_projects.get(item.get("id", ""), {}).get("name", item.get("id", "")))
+	if item.get("kind", "") == "district_project":
+		return str(DistrictRules.project_def(game, str(item.get("id", ""))).get("name", item.get("id", "")))
+	if item.get("kind", "") == "district_repair":
+		return "Ремонт: " + DistrictRules.display_name(game, owner, str(item.get("id", "")))
 	if item.get("kind", "") == "unit":
 		return Abilities.unit_name(game, owner, item["id"])
 	if item.get("kind", "") == "district":
@@ -420,6 +426,15 @@ static func item_cost(game: Game, city: City, item: Dictionary) -> float:
 		return float(e["cost"]) if not e.is_empty() else DistrictRules.cost(game, city, item["id"])
 	if item["kind"] == "district_upgrade":
 		return DistrictRules.upgrade_cost(game, city, DistrictRules.entry_at(city, int(item.get("tile", -1))))
+	if item["kind"] == "district_repair":
+		var repair_entry := DistrictRules.entry_at(city, int(item.get("tile", -1)))
+		return DistrictRules.repair_cost(game, repair_entry) if not repair_entry.is_empty() else 0.0
+	if item["kind"] == "district_project":
+		var project := DistrictRules.project_def(game, str(item["id"]))
+		var era := UnitRules.player_era(game, city.owner)
+		var era_index := maxi(0, Array(game.data.const_value("eras", [])).find(era))
+		base = float(project.get("cost", 0)) + era_index * float(game.data.district_project_setup.get("era_cost_step", 0))
+		return roundf(base * speed_mult(game))
 	if item["kind"] == "project":
 		base = float(game.data.science_projects.get(item["id"], {}).get("cost", 0))
 		return roundf(base * speed_mult(game))
@@ -451,6 +466,22 @@ static func build_error(game: Game, city: City, item: Dictionary) -> String:
 	var id: String = item.get("id", "")
 	if kind == "project":
 		return ScienceRules.project_error(game, city, id)
+	if kind == "district_project" or kind == "district_repair":
+		var entry := DistrictRules.entry_at(city, int(item.get("tile", -1)))
+		if entry.is_empty() or entry["type"] != id:
+			return "Нет такого района"
+		if not entry["complete"]:
+			return "Район ещё строится"
+		if kind == "district_project":
+			if DistrictRules.project_def(game, id).is_empty():
+				return "У района нет проекта"
+			if not DistrictRules.active(game, entry):
+				return "Район разграблен"
+		else:
+			if int(entry.get("hp", DistrictRules.max_hp(game, entry))) >= DistrictRules.max_hp(game, entry) \
+					and game.state.map.pillaged[int(entry["tile"])] == 0:
+				return "Район не повреждён"
+		return ""
 	if kind == "cultural_project":
 		return CultureRules.commission_error(game, city) if id == "GREAT_WORK" else "Неизвестный культурный проект"
 	if kind == "wonder":
@@ -473,7 +504,7 @@ static func build_error(game: Game, city: City, item: Dictionary) -> String:
 		if not rd.is_empty():
 			var ok := false
 			for d in DistrictRules.of_type(city, rd["type"], true):
-				if int(d["tier"]) >= int(rd.get("tier", 1)):
+				if DistrictRules.active(game, d) and int(d["tier"]) >= int(rd.get("tier", 1)):
 					ok = true
 			if not ok:
 				return "Нужен район «%s»" % DistrictRules.display_name(game, city.owner, rd["type"], int(rd.get("tier", 1)))
@@ -563,6 +594,10 @@ static func district_items(game: Game, city: City) -> Array:
 		if not d["complete"]:
 			result.append({"kind": "district", "id": d["type"], "tile": tile})
 			continue
+		for kind in ["district_repair", "district_project"]:
+			var special := {"kind": kind, "id": d["type"], "tile": tile}
+			if build_error(game, city, special) == "":
+				result.append(special)
 		for bid in game.data.building_ids:
 			if game.data.buildings[bid].get("district", "") != d["type"]:
 				continue
@@ -621,6 +656,14 @@ static func complete_item(game: Game, city: City, item: Dictionary, events: Arra
 		events.append({"type": "unit_created", "unit": u.id, "city": city.id})
 	elif item["kind"] == "project":
 		ScienceRules.complete(game, city, str(item["id"]), events)
+	elif item["kind"] == "district_project":
+		DistrictRules.complete_project(game, city, item, events)
+	elif item["kind"] == "district_repair":
+		var repaired := DistrictRules.entry_at(city, int(item["tile"]))
+		repaired["hp"] = DistrictRules.max_hp(game, repaired)
+		game.state.map.pillaged[int(item["tile"])] = 0
+		CityRules.assign_citizens(game, city)
+		events.append({"type": "district_repaired", "city": city.id, "district": item["id"], "tile": int(item["tile"])})
 	elif item["kind"] == "cultural_project":
 		CultureRules.complete_commission(game, city, events)
 	elif item["kind"] == "wonder":
@@ -628,6 +671,7 @@ static func complete_item(game: Game, city: City, item: Dictionary, events: Arra
 	elif item["kind"] == "district":
 		var e := DistrictRules.entry_at(city, int(item["tile"]))
 		e["complete"] = true
+		e["hp"] = DistrictRules.max_hp(game, e)
 		assign_citizens(game, city)
 		events.append({"type": "district_completed", "district": item["id"], "city": city.id, "tile": int(item["tile"])})
 	elif item["kind"] == "district_upgrade":
@@ -685,17 +729,23 @@ static func process_production(game: Game, city: City, per_turn: float, events: 
 		return
 	var key := City.item_key(item)
 	var multiplier := GovernmentRules.production_multiplier(game, city.owner, item)
+	var starting := float(city.progress.get(key, 0.0)) + city.overflow
 	var have := float(city.progress.get(key, 0.0)) + per_turn * multiplier + city.overflow
 	city.overflow = 0.0
 	var cost := item_cost(game, city, item)
+	var invested := minf(maxf(0.0, cost - starting), per_turn * multiplier)
 	if have < cost:
 		city.progress[key] = have
+		if item["kind"] == "district_project":
+			DistrictRules.project_income(game, city, item, invested, events)
 		return
 	if not complete_item(game, city, item, events):
 		city.progress[key] = cost
 		return
 	city.progress.erase(key)
-	city.overflow = (have - cost) / maxf(1.0, multiplier)
+	city.overflow += (have - cost) / maxf(1.0, multiplier)
+	if item["kind"] == "district_project":
+		DistrictRules.project_income(game, city, item, invested, events)
 	city.queue.pop_front()
 	if city.queue.is_empty():
 		events.append({"type": "production_needed", "city": city.id})

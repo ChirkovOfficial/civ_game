@@ -1680,15 +1680,17 @@ func refresh_city() -> void:
 		_city_box.add_child(pb)
 	var treasury := game.state.player(city.owner).treasury
 	var groups := {"unit": [], "building": [], "district": [], "wonder": [], "in_district": [], "project": [],
+		"district_project": [], "district_repair": [],
 		"cultural_project": []}
 	for it in CityRules.buildable_items(game, city):
 		var g: String = it["kind"]
-		if it.has("tile") and g not in ["district", "wonder"]:
+		if it.has("tile") and g not in ["district", "wonder", "district_project", "district_repair"]:
 			g = "in_district"
 		groups[g].append(it)
 	var titles := {"unit": "Юниты", "building": "Здания в центре", "district": "Районы", "wonder": "Чудеса света", "in_district": "Улучшение районов", "project": "Космические проекты",
+		"district_project": "Проекты районов", "district_repair": "Ремонт районов",
 		"cultural_project": "Культурные проекты"}
-	for g in ["unit", "building", "district", "wonder", "in_district", "project", "cultural_project"]:
+	for g in ["unit", "building", "district", "wonder", "in_district", "district_repair", "district_project", "project", "cultural_project"]:
 		if groups[g].is_empty():
 			continue
 		_label(_city_box, titles[g], 14, Color(0.8, 0.85, 1.0))
@@ -1725,7 +1727,7 @@ func refresh_city() -> void:
 				func(): act.call({"type": "set_production", "city": city.id, "kind": kind, "id": id, "tile": tile}))
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			if kind in ["district", "district_upgrade", "project", "cultural_project", "wonder"]:
+			if kind in ["district", "district_upgrade", "district_project", "district_repair", "project", "cultural_project", "wonder"]:
 				continue
 			var price := CityRules.purchase_cost(game, city, it)
 			var buy := _button(line, "%d" % price, func(): act.call({"type": "purchase", "city": city.id, "kind": kind, "id": id, "tile": tile}),
@@ -1759,6 +1761,8 @@ func _city_districts(city: City) -> void:
 			if v2 != 0.0:
 				parts.append("%+d %s" % [int(v2), pair[1]])
 		var line := "• %s" % name
+		line += " · прочность %d/%d%s" % [int(d.get("hp", DistrictRules.max_hp(game, d))),
+			DistrictRules.max_hp(game, d), " · разграблен" if not DistrictRules.active(game, d) else ""]
 		if int(d["tier"]) > 1:
 			line += " (ур. %d)" % int(d["tier"])
 		if not parts.is_empty():
@@ -1778,6 +1782,14 @@ func _city_districts(city: City) -> void:
 				(" и +%d к эффектам" % int(nero["flat"])) if int(nero["flat"]) > 0 else "", ", ".join(nero["neighbors"])]
 			col = Color(0.78, 1.0, 0.7)
 		_label(_city_box, line, 0, col, true)
+		if city.owner == game.state.current_player and d["type"] == "ENCAMPMENT" and DistrictRules.active(game, d):
+			var district_tile := int(d["tile"])
+			for target_tile in game.state.map.grid.tiles_in_radius(district_tile, int(game.data.const_value("city_ranged_range", 2))):
+				if Combat.district_attack_error(game, city, district_tile, target_tile) == "":
+					var target_unit: Unit = Combat.target_at(game, city.owner, target_tile)["unit"]
+					var chosen_tile := target_tile
+					_button(_city_box, "🏹 Военный лагерь: %s (%d ♥)" % [Abilities.unit_name(game, target_unit.owner, target_unit.type), target_unit.hp],
+						func(): act.call({"type": "district_attack", "city": city.id, "district_tile": district_tile, "target": chosen_tile}))
 
 
 ## Раздел «Городская жизнь»: санитария, порядок, эпидемия, губернатор и доктрина.

@@ -255,6 +255,17 @@ func apply_action(action: Dictionary) -> Array:
 					events.append(_error(err))
 				else:
 					Combat.city_attack(self, c, tile, events)
+		"district_attack":
+			var c := _own_city(action, events)
+			if c != null:
+				var district_tile := int(action.get("district_tile", -1))
+				var tile := int(action.get("target", -1))
+				var err := Combat.district_attack_error(self, c, district_tile, tile) \
+					if state.map.grid.is_valid_index(district_tile) and state.map.grid.is_valid_index(tile) else "Нет цели"
+				if err != "":
+					events.append(_error(err))
+				else:
+					Combat.district_attack(self, c, district_tile, tile, events)
 		"fortify":
 			var u := _own_unit(action, events)
 			if u != null:
@@ -297,11 +308,18 @@ func apply_action(action: Dictionary) -> Array:
 					events.append(_error(err))
 				else:
 					state.map.pillaged[u.tile] = 0
+					var district := DistrictRules.at(self, u.tile)
+					if district.size() == 2 and district[1]["type"] != DistrictRules.CENTER:
+						district[1]["hp"] = DistrictRules.max_hp(self, district[1])
 					u.moves_left = 0.0
 					u.acted = true
 					var oc := state.city_owning(u.tile)
 					CityRules.assign_citizens(self, oc)
-					events.append({"type": "improvement_built", "tile": u.tile, "improvement": state.map.improvement[u.tile]})
+					if district.size() == 2 and district[1]["type"] != DistrictRules.CENTER:
+						events.append({"type": "district_repaired", "city": oc.id,
+							"district": district[1]["type"], "tile": u.tile})
+					else:
+						events.append({"type": "improvement_built", "tile": u.tile, "improvement": state.map.improvement[u.tile]})
 		"build_road":
 			var u := _own_unit(action, events)
 			if u != null:
@@ -530,9 +548,9 @@ func _act_purchase(action: Dictionary, events: Array) -> void:
 		return
 	var item := _item_from(action)
 	var err := CityRules.build_error(self, c, item)
-	if item["kind"] in ["project", "cultural_project", "wonder"]:
+	if item["kind"] in ["project", "cultural_project", "wonder", "district_project"]:
 		err = "Проекты нельзя купить за золото"
-	if err == "" and (item["kind"] == "district" or item["kind"] == "district_upgrade"):
+	if err == "" and item["kind"] in ["district", "district_upgrade", "district_repair"]:
 		err = "Районы за золото не покупаются"
 	var p := state.player(c.owner)
 	var price := CityRules.purchase_cost(self, c, item)

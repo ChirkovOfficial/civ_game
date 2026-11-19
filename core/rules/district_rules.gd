@@ -2,7 +2,7 @@ class_name DistrictRules
 extends RefCounted
 ## Районы (ГДД 6, docs/CITIES.md).
 ##
-## Район — запись в City.districts: {"type", "tile", "tier", "buildings": [], "complete", "cost"}.
+## Район — запись в City.districts: {"type", "tile", "tier", "buildings": [], "complete", "cost", "hp", "has_attacked"}.
 ## Клетка района отмечена в GameMap.district. Однотипных районов в городе может быть
 ## несколько; ограничения — лимит по населению и правило скоплений.
 
@@ -290,7 +290,8 @@ static func cost(game: Game, city: City, type: String) -> float:
 ## Закладка района: клетка резервируется, улучшение и особенность убираются.
 static func place(game: Game, city: City, type: String, tile: int) -> Dictionary:
 	var map := game.state.map
-	var entry := {"type": type, "tile": tile, "tier": 1, "buildings": [], "complete": false, "cost": cost(game, city, type)}
+	var entry := {"type": type, "tile": tile, "tier": 1, "buildings": [], "complete": false,
+		"cost": cost(game, city, type), "hp": 0, "has_attacked": false}
 	city.districts.append(entry)
 	map.district[tile] = type
 	map.improvement[tile] = ""
@@ -315,6 +316,61 @@ static func entry_at(city: City, tile: int) -> Dictionary:
 	return {}
 
 
+static func max_hp(game: Game, entry: Dictionary) -> int:
+	return int(ddef(game, str(entry.get("type", ""))).get("district_hp", k(game, "district_hp", 100)))
+
+
+static func active(game: Game, entry: Dictionary) -> bool:
+	if not entry.has("tile"):
+		return bool(entry.get("complete", false)) and int(entry.get("hp", max_hp(game, entry))) > 0
+	return bool(entry.get("complete", false)) and int(entry.get("hp", max_hp(game, entry))) > 0 \
+		and game.state.map.pillaged[int(entry["tile"])] == 0
+
+
+static func repair_cost(game: Game, entry: Dictionary) -> float:
+	return roundf(maxf(1.0, float(entry["cost"]) * float(k(game, "district_repair_cost_frac", 0.25))))
+
+
+static func project_def(game: Game, type: String) -> Dictionary:
+	return game.data.district_projects.get(type, {})
+
+
+static func _grant_yield(game: Game, city: City, yield_type: String, amount: float, events: Array) -> void:
+	match yield_type:
+		"science":
+			EmpireRules.add_research(game, city.owner, "tech", amount, events)
+		"culture":
+			EmpireRules.add_research(game, city.owner, "civic", amount, events)
+		"gold":
+			game.state.player(city.owner).treasury += amount
+		"faith":
+			game.state.player(city.owner).faith += amount
+		"production":
+			city.overflow += amount
+
+
+static func project_income(game: Game, city: City, item: Dictionary, production: float, events: Array) -> void:
+	var def := project_def(game, str(item["id"]))
+	var amount := production * float(game.data.district_project_setup.get("production_yield_fraction", 0.15))
+	_grant_yield(game, city, str(def.get("yield", "")), amount, events)
+	events.append({"type": "district_project_income", "city": city.id, "district": item["id"],
+		"yield": def.get("yield", ""), "amount": amount})
+
+
+static func complete_project(game: Game, city: City, item: Dictionary, events: Array) -> void:
+	var def := project_def(game, str(item["id"]))
+	var player := game.state.player(city.owner)
+	for kind in def.get("great_people", {}):
+		player.great_person_points[kind] = float(player.great_person_points.get(kind, 0.0)) \
+			+ float(def["great_people"][kind])
+	if def.has("completion_yield"):
+		_grant_yield(game, city, str(def.get("yield", "")), float(def["completion_yield"]), events)
+	if def.has("amenity_turns"):
+		city.carnival_turns = maxi(city.carnival_turns, int(def["amenity_turns"]) + 1)
+	events.append({"type": "district_project_completed", "city": city.id, "district": item["id"],
+		"tile": int(item["tile"])})
+
+
 # --- Уровни районов ------------------------------------------------------------------------------
 
 static func tier_def(game: Game, type: String, tier: int) -> Dictionary:
@@ -327,6 +383,8 @@ static func tier_def(game: Game, type: String, tier: int) -> Dictionary:
 static func upgrade_error(game: Game, city: City, entry: Dictionary) -> String:
 	if not entry.get("complete", false):
 		return "Район ещё строится"
+	if not active(game, entry):
+		return "Район разграблен"
 	var next := tier_def(game, entry["type"], int(entry["tier"]) + 1)
 	if next.is_empty():
 		return "Это высший уровень"
@@ -357,6 +415,8 @@ static func building_error(game: Game, city: City, bid: String, tile: int) -> St
 		return "Нужен район «%s»" % display_name(game, city.owner, dtype)
 	if not entry["complete"]:
 		return "Район ещё строится"
+	if not active(game, entry):
+		return "Район разграблен"
 	if entry["buildings"].has(bid):
 		return "Уже построено"
 	var grp: String = b.get("exclusive_group", "")
@@ -443,7 +503,7 @@ static func city_ability(game: Game, owner: int, id: String) -> Dictionary:
 ## «Урбанизация Нерона»: {"bonus", "flat", "neighbors": [названия]} или {}.
 static func nero(game: Game, city: City, entry: Dictionary) -> Dictionary:
 	var ab := city_ability(game, city.owner, "NERO_URBANIZATION")
-	if ab.is_empty() or not entry.get("complete", false) or not is_specialized(game, entry["type"]):
+	if ab.is_empty() or not active(game, entry) or not is_specialized(game, entry["type"]):
 		return {}
 	var map := game.state.map
 	var names := []
@@ -452,7 +512,7 @@ static func nero(game: Game, city: City, entry: Dictionary) -> Dictionary:
 		if nd == "" or nd == CENTER or nd == entry["type"] or not is_specialized(game, nd):
 			continue
 		var a := at(game, nb)
-		if a.is_empty() or a[0].owner != city.owner or not a[1].get("complete", false):
+		if a.is_empty() or a[0].owner != city.owner or not active(game, a[1]):
 			continue
 		names.append(display_name(game, city.owner, nd, int(a[1].get("tier", 1))))
 	if names.size() < int(ab.get("min_neighbors", 2)):
@@ -468,7 +528,7 @@ static func nero(game: Game, city: City, entry: Dictionary) -> Dictionary:
 ## Полный выход района: {"yields", "housing", "amenities", "sanitation", "order", "specialist_slots"}.
 static func output(game: Game, city: City, entry: Dictionary) -> Dictionary:
 	var out := {"yields": {}, "housing": 0.0, "amenities": 0, "sanitation": 0.0, "order": 0.0, "specialist_slots": 0}
-	if not entry.get("complete", false) or game.state.map.pillaged[int(entry["tile"])] == 1:
+	if not active(game, entry):
 		return out
 	var type: String = entry["type"]
 	var def := ddef(game, type)
@@ -521,7 +581,7 @@ static func output(game: Game, city: City, entry: Dictionary) -> Dictionary:
 
 ## Места специалистов в районе: от уровней и зданий.
 static func specialist_slots(game: Game, entry: Dictionary) -> int:
-	if not entry.get("complete", false):
+	if not active(game, entry):
 		return 0
 	var n := 0
 	for t in range(1, int(entry["tier"]) + 1):
@@ -554,7 +614,7 @@ static func city_totals(game: Game, city: City) -> Dictionary:
 	var best_regional := {}
 	for c in game.state.cities_of(city.owner):
 		for d in c.districts:
-			if not d.get("complete", false):
+			if not active(game, d):
 				continue
 			# Региональный эффект уровня района (Фабрика — Промышленная зона II).
 			for t in range(1, int(d["tier"]) + 1):

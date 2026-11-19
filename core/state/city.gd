@@ -42,7 +42,7 @@ var wall_hp: int = 0
 ## Ход последнего нападения на город (лечение, починка стен) и обстрел в этот ход.
 var last_attacked_turn: int = -100
 var has_attacked: bool = false
-## Районы (docs/CITIES.md): [{"type", "tile", "tier", "buildings": [], "complete", "cost"}].
+## Районы: [{"type", "tile", "tier", "buildings": [], "complete", "cost", "hp", "has_attacked"}].
 ## Центр города районом в этом списке не считается — его здания в buildings.
 var districts: Array = []
 ## Специалисты по районам: "клетка" -> число жителей.
@@ -55,6 +55,8 @@ var doctrine_turns: int = 0
 var doctrine_since: int = 0
 ## Ходов эпидемии осталось (0 — эпидемии нет).
 var epidemic_turns: int = 0
+## Ходы действия «Карнавала» (проект Развлекательного комплекса).
+var carnival_turns: int = 0
 ## Державы, завершившие торговый путь в этот город.
 var trade_posts: Array[int] = []
 
@@ -90,6 +92,7 @@ func to_dict() -> Dictionary:
 		"districts": districts.duplicate(true), "specialists": specialists.duplicate(),
 		"doctrine": doctrine, "doctrine_turns": doctrine_turns, "doctrine_since": doctrine_since,
 		"epidemic_turns": epidemic_turns,
+		"carnival_turns": carnival_turns,
 		"trade_posts": trade_posts.duplicate(),
 	}
 
@@ -140,13 +143,16 @@ static func from_dict(d: Dictionary) -> City:
 		for b in dd["buildings"]:
 			bl.append(str(b))
 		c.districts.append({"type": str(dd["type"]), "tile": int(dd["tile"]), "tier": int(dd["tier"]),
-			"buildings": bl, "complete": bool(dd["complete"]), "cost": float(dd["cost"])})
+			"buildings": bl, "complete": bool(dd["complete"]), "cost": float(dd["cost"]),
+			"hp": int(dd.get("hp", 100 if bool(dd["complete"]) else 0)),
+			"has_attacked": bool(dd.get("has_attacked", false))})
 	for k in d.get("specialists", {}):
 		c.specialists[str(k)] = int(d["specialists"][k])
 	c.doctrine = str(d.get("doctrine", ""))
 	c.doctrine_turns = int(d.get("doctrine_turns", 0))
 	c.doctrine_since = int(d.get("doctrine_since", 0))
 	c.epidemic_turns = int(d.get("epidemic_turns", 0))
+	c.carnival_turns = int(d.get("carnival_turns", 0))
 	for pid in d.get("trade_posts", []):
 		c.trade_posts.append(int(pid))
 	for q in c.queue:

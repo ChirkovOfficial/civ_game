@@ -675,6 +675,9 @@ static func _choose_production(game: Game, city: City) -> void:
 		candidates.append_array(district_list)
 	if combat != "" and military < cities.size() * 2:
 		candidates.append({"kind": "unit", "id": combat})
+	for district in CityRules.district_items(game, city):
+		if district["kind"] == "district_project":
+			candidates.append(district)
 	var commanders := _count_units(game, pid, func(u: Unit) -> bool: return Army.is_commander(game, u) or not u.commander.is_empty()) \
 		+ _queued(game, pid, "COMMANDER")
 	if military >= 4 and commanders < military / 4:
@@ -818,7 +821,9 @@ static func _district_candidates(game: Game, city: City, threatened: bool) -> Ar
 	var result := []
 	var items := CityRules.district_items(game, city)
 	for it in items:
-		if it["kind"] == "district" and it.has("tile"):
+		if it["kind"] == "district_repair":
+			result.append(it)
+		elif it["kind"] == "district" and it.has("tile"):
 			result.append(it)
 	var buildings := []
 	for it in items:
@@ -1085,18 +1090,32 @@ static func _tactical(game: Game, pid: int) -> void:
 	var s := game.state
 	# Обстрел из городов.
 	for city in s.cities_of(pid):
-		if not Combat.city_can_strike(game, city):
-			continue
-		var best := -1
-		var best_hp := 999
-		for t in s.map.grid.tiles_in_radius(city.tile, int(game.data.const_value("city_ranged_range", 2))):
-			if Combat.city_attack_error(game, city, t) == "":
-				var hp: int = Combat.target_at(game, pid, t)["unit"].hp
-				if hp < best_hp:
-					best_hp = hp
-					best = t
-		if best >= 0:
-			game.apply_action({"type": "city_attack", "city": city.id, "target": best})
+		if Combat.city_can_strike(game, city):
+			var best := -1
+			var best_hp := 999
+			for t in s.map.grid.tiles_in_radius(city.tile, int(game.data.const_value("city_ranged_range", 2))):
+				if Combat.city_attack_error(game, city, t) == "":
+					var hp: int = Combat.target_at(game, pid, t)["unit"].hp
+					if hp < best_hp:
+						best_hp = hp
+						best = t
+			if best >= 0:
+				game.apply_action({"type": "city_attack", "city": city.id, "target": best})
+		for district in city.districts:
+			if district["type"] != "ENCAMPMENT" or not DistrictRules.active(game, district):
+				continue
+			var district_tile := int(district["tile"])
+			var best_target := -1
+			var best_target_hp := 999
+			for t in s.map.grid.tiles_in_radius(district_tile, int(game.data.const_value("city_ranged_range", 2))):
+				if Combat.district_attack_error(game, city, district_tile, t) == "":
+					var target_hp: int = Combat.target_at(game, pid, t)["unit"].hp
+					if target_hp < best_target_hp:
+						best_target_hp = target_hp
+						best_target = t
+			if best_target >= 0:
+				game.apply_action({"type": "district_attack", "city": city.id,
+					"district_tile": district_tile, "target": best_target})
 	# Повышения.
 	for u in s.units_of(pid):
 		var promos := Combat.available_promotions(game, u)

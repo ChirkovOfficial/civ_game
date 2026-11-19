@@ -35,7 +35,7 @@ static func points_per_turn(game: Game, pid: int) -> Dictionary:
 		result[kind] = 0.0
 	for city in game.state.cities_of(pid):
 		for district in city.districts:
-			if not bool(district["complete"]) or game.state.map.pillaged[int(district["tile"])] != 0:
+			if not DistrictRules.active(game, district):
 				continue
 			for kind in game.data.great_person_ids:
 				if district["type"] != game.data.great_people[kind]["district"]:

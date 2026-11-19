@@ -34,6 +34,133 @@ func _ring1(grid: HexGrid, center: int) -> Array:
 	return Array(grid.neighbors(center))
 
 
+func test_district_damage_pillage_repair_and_save() -> void:
+	var r := _setup(["WRITING"])
+	var g: Game = r[0]
+	var city: City = r[1]
+	var grid: HexGrid = r[2]
+	var tile: int = _ring1(grid, city.tile)[0]
+	var district := _build(g, city, "CAMPUS", tile)
+	check_eq(int(district["hp"]), 100)
+	var science_before := float(DistrictRules.output(g, city, district)["yields"].get("science", 0))
+	g.state.set_war(0, 1, true)
+	g.state.current_player = 1
+	var attacker := g.state.add_unit(1, "ARCHER", grid.ring(tile, 2)[0])
+	attacker.moves_left = 2.0
+	var hit := g.apply_action({"type": "attack", "unit": attacker.id, "target": tile})
+	check(hit.any(func(e: Dictionary) -> bool: return e["type"] == "combat"), "район можно атаковать")
+	check(int(district["hp"]) < 100, "район теряет прочность")
+	district["hp"] = 1
+	attacker.moves_left = 2.0
+	g.apply_action({"type": "attack", "unit": attacker.id, "target": tile})
+	check_eq(int(district["hp"]), 0)
+	check_eq(g.state.map.pillaged[tile], 1)
+	check_eq(DistrictRules.output(g, city, district)["yields"], {})
+	g.state.current_player = 0
+	var repair := {"kind": "district_repair", "id": "CAMPUS", "tile": tile}
+	check_eq(CityRules.build_error(g, city, repair), "")
+	var queued := g.apply_action({"type": "set_production", "city": city.id,
+		"kind": "district_repair", "id": "CAMPUS", "tile": tile})
+	check(queued.any(func(e: Dictionary) -> bool: return e["type"] == "city_updated"))
+	CityRules.process_production(g, city, CityRules.item_cost(g, city, repair), [])
+	check_eq(int(district["hp"]), 100)
+	check_eq(g.state.map.pillaged[tile], 0)
+	check_near(float(DistrictRules.output(g, city, district)["yields"].get("science", 0)), science_before)
+	var saved := City.from_dict(city.to_dict())
+	check_eq(int(saved.districts[0]["hp"]), 100)
+	check_eq(bool(saved.districts[0]["has_attacked"]), false)
+
+
+func test_encampment_strikes_once_without_city_walls() -> void:
+	var r := _setup(["BRONZE_WORKING"])
+	var g: Game = r[0]
+	var city: City = r[1]
+	var grid: HexGrid = r[2]
+	var tile: int = grid.ring(city.tile, 2)[0]
+	var district := _build(g, city, "ENCAMPMENT", tile)
+	var target_tile: int = grid.ring(tile, 1)[0]
+	var enemy := g.state.add_unit(1, "WARRIOR", target_tile)
+	enemy.hp = 100
+	g.state.set_war(0, 1, true)
+	check_eq(city.wall_hp, 0)
+	check_eq(Combat.district_attack_error(g, city, tile, target_tile), "")
+	var shot := g.apply_action({"type": "district_attack", "city": city.id,
+		"district_tile": tile, "target": target_tile})
+	check(shot.any(func(e: Dictionary) -> bool: return e["type"] == "combat"))
+	check(enemy.hp < 100, "лагерь наносит урон")
+	check(bool(district["has_attacked"]), "один выстрел за ход")
+	check(Combat.district_attack_error(g, city, tile, target_tile) != "")
+	var saved := City.from_dict(city.to_dict())
+	check(bool(saved.districts[0]["has_attacked"]), "выстрел сохраняется")
+	EmpireRules.process_turn_start(g, 0, [])
+	check(not bool(district["has_attacked"]), "выстрел восстанавливается на новом ходу")
+
+
+func test_repeatable_district_project_income_and_reward() -> void:
+	var r := _setup(["WRITING"])
+	var g: Game = r[0]
+	var city: City = r[1]
+	var grid: HexGrid = r[2]
+	var tile: int = _ring1(grid, city.tile)[0]
+	_build(g, city, "CAMPUS", tile)
+	var item := {"kind": "district_project", "id": "CAMPUS", "tile": tile}
+	check_eq(CityRules.build_error(g, city, item), "")
+	var cost := CityRules.item_cost(g, city, item)
+	check(cost > 0.0)
+	var selected := g.apply_action({"type": "set_production", "city": city.id,
+		"kind": "district_project", "id": "CAMPUS", "tile": tile})
+	check(selected.any(func(e: Dictionary) -> bool: return e["type"] == "city_updated"))
+	var events := []
+	CityRules.process_production(g, city, cost / 2.0, events)
+	check(events.any(func(e: Dictionary) -> bool: return e["type"] == "district_project_income"), "доход во время проекта")
+	check_near(float(city.progress.get(City.item_key(item), 0.0)), cost / 2.0)
+	CityRules.process_production(g, city, cost / 2.0, events)
+	check(events.any(func(e: Dictionary) -> bool: return e["type"] == "district_project_completed"))
+	check_near(float(g.state.player(0).great_person_points.get("SCIENTIST", 0.0)), 10.0)
+	check_eq(CityRules.build_error(g, city, item), "", "проект можно повторить")
+	check_eq(city.queue.size(), 0)
+
+
+func test_district_pillage_builder_repair_and_carnival() -> void:
+	var r := _setup(["WRITING", "GAMES_RECREATION"])
+	var g: Game = r[0]
+	var city: City = r[1]
+	var grid: HexGrid = r[2]
+	var tile: int = _ring1(grid, city.tile)[0]
+	var district := _build(g, city, "CAMPUS", tile)
+	g.state.set_war(0, 1, true)
+	g.state.current_player = 1
+	var raider := g.state.add_unit(1, "WARRIOR", tile)
+	raider.moves_left = 2.0
+	var pillage := g.apply_action({"type": "pillage", "unit": raider.id})
+	check(pillage.any(func(e: Dictionary) -> bool: return e["type"] == "pillaged"))
+	check_eq(int(district["hp"]), 0)
+	check_eq(g.state.map.pillaged[tile], 1)
+	g.state.remove_unit(raider.id)
+	g.state.current_player = 0
+	var builder := g.state.add_unit(0, "BUILDER", tile)
+	builder.moves_left = 2.0
+	var repair := g.apply_action({"type": "repair", "unit": builder.id})
+	check(repair.any(func(e: Dictionary) -> bool: return e["type"] == "district_repaired"))
+	check_eq(int(district["hp"]), 100)
+	check_eq(g.state.map.pillaged[tile], 0)
+	city.population = 4
+	var arena_tile: int = _ring1(grid, city.tile)[3]
+	_build(g, city, "ENTERTAINMENT_COMPLEX", arena_tile)
+	var carnival := {"kind": "district_project", "id": "ENTERTAINMENT_COMPLEX", "tile": arena_tile}
+	check_eq(CityRules.build_error(g, city, carnival), "")
+	var before := int(CityRules.amenity_info(g, city)["have"])
+	CityRules.complete_item(g, city, carnival, [])
+	check_eq(int(CityRules.amenity_info(g, city)["have"]), before + 2)
+	var saved := City.from_dict(city.to_dict())
+	check_eq(saved.carnival_turns, city.carnival_turns)
+	for i in 10:
+		city.carnival_turns = maxi(0, city.carnival_turns - 1)
+	check_eq(int(CityRules.amenity_info(g, city)["have"]), before + 2)
+	city.carnival_turns = maxi(0, city.carnival_turns - 1)
+	check_eq(int(CityRules.amenity_info(g, city)["have"]), before)
+
+
 func test_place_and_complete() -> void:
 	var r := _setup(["WRITING"])
 	var g: Game = r[0]

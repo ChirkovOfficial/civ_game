@@ -175,7 +175,10 @@ static func pillage_error(game: Game, u: Unit) -> String:
 		return "Нет очков движения"
 	var map := game.state.map
 	var imp := map.improvement[u.tile]
-	if imp == "" or map.pillaged[u.tile] == 1 or (game.data.improvements.get(imp, {}).get("special", false) \
+	var district := DistrictRules.at(game, u.tile)
+	var can_pillage_district: bool = district.size() == 2 and district[1]["type"] != DistrictRules.CENTER \
+		and DistrictRules.active(game, district[1])
+	if (imp == "" and not can_pillage_district) or map.pillaged[u.tile] == 1 or (game.data.improvements.get(imp, {}).get("special", false) \
 			and imp != "NATIONAL_PARK"):
 		return "Здесь нечего грабить"
 	var oc := game.state.city_owning(u.tile)
@@ -187,6 +190,11 @@ static func pillage_error(game: Game, u: Unit) -> String:
 static func pillage(game: Game, u: Unit, events: Array) -> void:
 	var cfg: Dictionary = game.data.improvements_extra.get("pillage", {})
 	game.state.map.pillaged[u.tile] = 1
+	var district := DistrictRules.at(game, u.tile)
+	if district.size() == 2 and district[1]["type"] != DistrictRules.CENTER:
+		district[1]["hp"] = 0
+		events.append({"type": "district_pillaged", "city": district[0].id,
+			"district": district[1]["type"], "tile": u.tile})
 	var gold := float(cfg.get("gold", 25))
 	if Combat.has_flag(game, u, "loot"):
 		gold *= 1.5
@@ -204,7 +212,10 @@ static func pillage(game: Game, u: Unit, events: Array) -> void:
 static func repair_error(game: Game, u: Unit) -> String:
 	if not game.data.unit_def(u.type).get("abilities", []).has("BUILD_IMPROVEMENT"):
 		return "Чинить могут строители"
-	if game.state.map.pillaged[u.tile] == 0:
+	var district := DistrictRules.at(game, u.tile)
+	var damaged_district: bool = district.size() == 2 and district[1]["type"] != DistrictRules.CENTER \
+		and int(district[1].get("hp", DistrictRules.max_hp(game, district[1]))) < DistrictRules.max_hp(game, district[1])
+	if game.state.map.pillaged[u.tile] == 0 and not damaged_district:
 		return "Здесь нечего чинить"
 	var oc := game.state.city_owning(u.tile)
 	if oc == null or oc.owner != u.owner:

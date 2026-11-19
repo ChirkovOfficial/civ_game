@@ -35,6 +35,8 @@ var science_projects: Dictionary = {}
 var science_project_ids: Array[String] = []
 var buildings: Dictionary = {}
 var districts: Dictionary = {}
+var district_projects: Dictionary = {}
+var district_project_setup: Dictionary = {}
 var improvements: Dictionary = {}
 var harvest: Dictionary = {}
 ## Прочие разделы improvements.json (например, "pillage").
@@ -94,6 +96,9 @@ func load_all(dir: String = DATA_DIR) -> void:
 	districts = _index(d_list)
 	for x in d_list:
 		district_ids.append(x["id"])
+	district_project_setup = _read(dir + "district_projects.json")
+	for project in district_project_setup.get("projects", []):
+		district_projects[str(project["district"])] = project
 	var imp := _read(dir + "improvements.json")
 	var imp_list: Array = imp.get("improvements", [])
 	improvements = _index(imp_list)
@@ -272,6 +277,15 @@ func validate() -> PackedStringArray:
 				errors.append("Район %s: соседство с несуществующим районом %s" % [did, a.get("id", "")])
 			if a["source"] == "improvement" and not improvements.has(a.get("id", "")):
 				errors.append("Район %s: соседство с несуществующим улучшением %s" % [did, a.get("id", "")])
+	for did in district_projects:
+		var project: Dictionary = district_projects[did]
+		if not districts.has(did):
+			errors.append("Проект района %s: неизвестный район" % did)
+		if float(project.get("cost", 0)) <= 0.0 or str(project.get("yield", "")) not in constants.get("yield_types", []):
+			errors.append("Проект района %s: неверная стоимость или доход" % did)
+		for person in project.get("great_people", {}):
+			if not great_people.has(person):
+				errors.append("Проект района %s: неизвестный великий человек %s" % [did, person])
 	for cid in civs:
 		for did in civs[cid].get("district_names", {}):
 			if not districts.has(did) and did != "CITY_CENTER":

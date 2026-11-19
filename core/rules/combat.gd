@@ -319,6 +319,10 @@ static func target_at(game: Game, attacker_owner: int, tile: int) -> Dictionary:
 		return {"kind": "unit", "unit": best}
 	if not civilians.is_empty():
 		return {"kind": "civilian", "units": civilians}
+	var district := DistrictRules.at(game, tile)
+	if district.size() == 2 and district[0].owner != attacker_owner and district[1]["type"] != DistrictRules.CENTER \
+			and DistrictRules.active(game, district[1]):
+		return {"kind": "district", "city": district[0], "entry": district[1]}
 	if game.state.map.improvement[tile] == "BARBARIAN_CAMP":
 		return {"kind": "camp"}
 	return {"kind": ""}
@@ -341,6 +345,8 @@ static func attack_error(game: Game, u: Unit, tile: int) -> String:
 	var other_owner := -1
 	if t["kind"] == "city":
 		other_owner = t["city"].owner
+	elif t["kind"] == "district":
+		other_owner = t["city"].owner
 	elif t["kind"] == "unit":
 		other_owner = t["unit"].owner
 	else:
@@ -359,7 +365,7 @@ static func attack_error(game: Game, u: Unit, tile: int) -> String:
 	else:
 		if dist != 1:
 			return "Цель должна быть рядом"
-		if t["kind"] == "civilian" or t["kind"] == "unit" or t["kind"] == "city":
+		if t["kind"] == "civilian" or t["kind"] == "unit" or t["kind"] == "city" or t["kind"] == "district":
 			if Movement.step_cost(game, u, u.tile, tile) == Movement.IMPASSABLE and t["kind"] != "city":
 				return "Сюда не пройти"
 	return ""
@@ -387,6 +393,20 @@ static func preview(game: Game, u: Unit, tile: int) -> Dictionary:
 		var military_bonus := TreatyRules.shared_enemy_bonus(game, t["city"].owner, u.owner)
 		if military_bonus > 0:
 			def_mods.append(["Военный союз", military_bonus])
+	elif t["kind"] == "district":
+		ctx["vs_district"] = true
+		ctx["vs_player"] = t["city"].owner
+		var cs: Array = city_strength(game, t["city"])
+		def_base = int(cs[0])
+		def_mods = cs[1]
+		var district_visibility := DiplomaticVisibility.combat_bonus(game, t["city"].owner, u.owner)
+		if district_visibility > 0:
+			def_mods.append(["Дипломатическая видимость", district_visibility])
+		var district_alliance := TreatyRules.shared_enemy_bonus(game, t["city"].owner, u.owner)
+		if district_alliance > 0:
+			def_mods.append(["Военный союз", district_alliance])
+		if t["entry"]["type"] == "ENCAMPMENT":
+			def_mods.append(["Военный лагерь", int(k(game, "encampment_defense_bonus", 5))])
 	elif t["kind"] == "unit":
 		var d: Unit = t["unit"]
 		ctx["vs_player"] = d.owner
@@ -458,11 +478,35 @@ static func attack(game: Game, u: Unit, tile: int, events: Array) -> void:
 				_advance(game, u, tile, events)
 		"city":
 			_attack_city(game, u, t["city"], delta, ranged, events)
+		"district":
+			_attack_district(game, u, t["city"], t["entry"], delta, ranged, events)
 	if game.state.unit(u.id) != null:
 		if not has_flag(game, u, "move_after_attack"):
 			u.moves_left = 0.0
 		else:
 			u.moves_left = maxf(0.0, u.moves_left - 1.0)
+
+
+static func _attack_district(game: Game, u: Unit, city: City, entry: Dictionary, delta: int,
+		ranged: bool, events: Array) -> void:
+	var dmg := damage(game, delta, _roll(game))
+	var counter := 0
+	if not ranged and entry["type"] == "ENCAMPMENT":
+		counter = damage(game, -delta, _roll(game))
+		u.hp -= counter
+	entry["hp"] = maxi(0, int(entry["hp"]) - dmg)
+	events.append({"type": "combat", "attacker": u.id, "district": entry["type"], "city": city.id,
+		"tile": int(entry["tile"]), "dmg_to_def": dmg, "dmg_to_att": counter, "ranged": ranged})
+	if int(entry["hp"]) == 0:
+		game.state.map.pillaged[int(entry["tile"])] = 1
+		CityRules.assign_citizens(game, city)
+		events.append({"type": "district_pillaged", "city": city.id, "district": entry["type"], "tile": int(entry["tile"])})
+	if u.hp <= 0:
+		events.append({"type": "unit_killed", "unit": u.id, "owner": u.owner, "by": city.owner})
+		Army.on_unit_killed(game, u, events)
+		game.state.remove_unit(u.id)
+	elif int(entry["hp"]) == 0 and not ranged:
+		_advance(game, u, int(entry["tile"]), events)
 
 
 static func _advance(game: Game, u: Unit, tile: int, events: Array) -> void:
@@ -662,6 +706,42 @@ static func city_attack(game: Game, city: City, tile: int, events: Array) -> voi
 	d.hp -= dmg
 	city.has_attacked = true
 	events.append({"type": "combat", "city_attacker": city.id, "defender": d.id, "tile": tile, "dmg_to_def": dmg, "ranged": true})
+	if d.hp <= 0:
+		events.append({"type": "unit_killed", "unit": d.id, "owner": d.owner, "by": city.owner})
+		Army.on_unit_killed(game, d, events)
+		game.state.remove_unit(d.id)
+
+
+static func district_attack_error(game: Game, city: City, district_tile: int, tile: int) -> String:
+	var entry := DistrictRules.entry_at(city, district_tile)
+	if entry.is_empty() or entry["type"] != "ENCAMPMENT" or not DistrictRules.active(game, entry):
+		return "Нужен действующий военный лагерь"
+	if bool(entry.get("has_attacked", false)):
+		return "Военный лагерь уже стрелял в этом ходу"
+	if game.state.map.grid.distance(district_tile, tile) > int(k(game, "city_ranged_range", 2)):
+		return "Цель вне дальности"
+	var target := target_at(game, city.owner, tile)
+	if target["kind"] != "unit":
+		return "Нет цели"
+	if not game.state.at_war(city.owner, target["unit"].owner):
+		return "Нужно объявить войну"
+	if not Visibility.visible_tiles(game, district_tile, int(k(game, "city_ranged_range", 2))).has(tile):
+		return "Нет прямой видимости"
+	return ""
+
+
+static func district_attack(game: Game, city: City, district_tile: int, tile: int, events: Array) -> void:
+	var entry := DistrictRules.entry_at(city, district_tile)
+	var d: Unit = target_at(game, city.owner, tile)["unit"]
+	var def := melee_strength(game, d.type) + _sum(unit_mods(game, d, "defense", {"vs_ranged": true,
+		"vs_irregular": game.state.player(city.owner).is_barbarian, "vs_player": city.owner}))
+	var bonus := DiplomaticVisibility.combat_bonus(game, city.owner, d.owner) \
+		+ TreatyRules.shared_enemy_bonus(game, city.owner, d.owner)
+	var dmg := damage(game, city_ranged_strength(game, city) + bonus - def, _roll(game))
+	d.hp -= dmg
+	entry["has_attacked"] = true
+	events.append({"type": "combat", "district_attacker": district_tile, "city": city.id,
+		"defender": d.id, "tile": tile, "dmg_to_def": dmg, "ranged": true})
 	if d.hp <= 0:
 		events.append({"type": "unit_killed", "unit": d.id, "owner": d.owner, "by": city.owner})
 		Army.on_unit_killed(game, d, events)

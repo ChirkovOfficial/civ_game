@@ -414,6 +414,9 @@ static func process_turn_start(game: Game, pid: int, events: Array) -> void:
 	var hp_max := int(game.data.const_value("city_hp", 200))
 	for city in cities:
 		city.has_attacked = false
+		city.carnival_turns = maxi(0, city.carnival_turns - 1)
+		for district in city.districts:
+			district["has_attacked"] = false
 		if city.last_attacked_turn < game.state.turn - 1:
 			city.hp = mini(hp_max, city.hp + int(game.data.const_value("city_heal", 20)))
 		var wall_max := 0

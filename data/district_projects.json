@@ -1,0 +1,14 @@
+{
+  "production_yield_fraction": 0.15,
+  "era_cost_step": 25,
+  "projects": [
+    {"district": "CAMPUS", "name": "Гранты Кампусу", "cost": 80, "yield": "science", "great_people": {"SCIENTIST": 10}},
+    {"district": "HOLY_SITE", "name": "Молитвы в Священном месте", "cost": 80, "yield": "faith", "completion_yield": 15},
+    {"district": "THEATER_SQUARE", "name": "Театральный фестиваль", "cost": 80, "yield": "culture", "great_people": {"WRITER": 4, "ARTIST": 3, "MUSICIAN": 3}},
+    {"district": "COMMERCIAL_HUB", "name": "Коммерческие инвестиции", "cost": 80, "yield": "gold", "great_people": {"MERCHANT": 10}},
+    {"district": "HARBOR", "name": "Портовые экспедиции", "cost": 80, "yield": "gold", "completion_yield": 15},
+    {"district": "INDUSTRIAL_ZONE", "name": "Промышленные гранты", "cost": 80, "yield": "production", "great_people": {"ENGINEER": 10}},
+    {"district": "ENCAMPMENT", "name": "Военная подготовка", "cost": 80, "yield": "production", "completion_yield": 15},
+    {"district": "ENTERTAINMENT_COMPLEX", "name": "Карнавал", "cost": 80, "yield": "culture", "amenities": 2, "amenity_turns": 10}
+  ]
+}
