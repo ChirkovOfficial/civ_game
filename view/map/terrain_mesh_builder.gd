@@ -51,13 +51,15 @@ static func build_terrain(map: GameMap) -> ArrayMesh:
 		for k in 6:
 			corner_cols.append(_corner_color(map, colors, heights, i, k))
 		# Верхняя грань: 6 треугольников из центра.
+		st.set_uv(Vector2(MapStyle.biome_index(map, i), 0.0))
 		for k in 6:
 			var a := _corner(c2, k)
 			var b := _corner(c2, k + 1)
-			_v(st, center, Vector3.UP, center_col, uv)
-			_v(st, Vector3(b.x, h, b.y), Vector3.UP, corner_cols[(k + 1) % 6], uv)
-			_v(st, Vector3(a.x, h, a.y), Vector3.UP, corner_cols[k], uv)
+			_v(st, center, Vector3.UP, Color(center_col, 1.0), uv)
+			_v(st, Vector3(b.x, h, b.y), Vector3.UP, Color(corner_cols[(k + 1) % 6], 0.0), uv)
+			_v(st, Vector3(a.x, h, a.y), Vector3.UP, Color(corner_cols[k], 0.0), uv)
 		# Стенки уступов — к более низким соседям (или к «дну» на краю карты).
+		st.set_uv(Vector2(MapStyle.biome_index(map, i), 1.0))
 		for d in 6:
 			var nb := grid.neighbor(i, d)
 			var low := MapStyle.H_MAP_BOTTOM if nb < 0 else heights[nb]
@@ -116,6 +118,7 @@ static func build_water(map: GameMap) -> ArrayMesh:
 		var uv := tile_uv(grid, i)
 		var y := MapStyle.WATER_Y
 		var center := Vector3(c2.x, y, c2.y)
+		st.set_uv(Vector2(4 if map.feature[i] == "ICE" else MapStyle.biome_index(map, i), 0.0))
 		for k in 6:
 			var a := _corner(c2, k)
 			var b := _corner(c2, k + 1)

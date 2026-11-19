@@ -4,6 +4,10 @@ extends RefCounted
 ## появления рисованных текстур — их можно смело менять здесь.
 
 const HEX_SIZE := 1.0
+const BIOME_ORDER := ["GRASS", "PLAINS", "DESERT", "TUNDRA", "SNOW", "COAST", "LAKE", "OCEAN"]
+
+static func biome_index(map: GameMap, tile: int) -> int:
+	return maxi(0, BIOME_ORDER.find(map.terrain[tile]))
 
 # Высоты верхней грани клетки (диорама с террасами).
 const H_FLAT := 0.0

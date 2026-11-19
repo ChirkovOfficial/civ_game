@@ -10,6 +10,7 @@ const OVERLAY_SHADER := preload("res://view/map/shaders/overlay.gdshader")
 const NatureFlags := preload("res://view/map/nature_flags.gd")
 const FLAG_SHADER := preload("res://view/map/shaders/nature_flag.gdshader")
 const FLAG_SHEET := preload("res://art/map_flags/nature_flags.png")
+const BIOME_ATLAS := preload("res://art/terrain/biomes/biome_atlas.png")
 
 var game: Game
 var world_width: float
@@ -46,11 +47,14 @@ func build(g: Game) -> void:
 	fog_texture = ImageTexture.create_from_image(fog_image)
 
 	_terrain_mat = _make_material(TERRAIN_SHADER)
+	_terrain_mat.set_shader_parameter("biome_atlas", BIOME_ATLAS)
 	_feature_mat = _make_material(FEATURE_SHADER)
 	_flag_mat = _make_material(FLAG_SHADER)
 	_flag_mat.set_shader_parameter("flag_sheet", FLAG_SHEET)
 	_flag_mat.set_shader_parameter("regions", NatureFlags.regions())
 	_water_mat = _make_material(OVERLAY_SHADER)
+	_water_mat.set_shader_parameter("biome_atlas", BIOME_ATLAS)
+	_water_mat.set_shader_parameter("textured_water", true)
 	_water_mat.render_priority = 1
 	_river_mat = _make_material(OVERLAY_SHADER)
 	_river_mat.render_priority = 2
@@ -77,7 +81,10 @@ func refresh_geometry(parts: Dictionary = {}) -> void:
 	var all := parts.is_empty()
 	if all or parts.has("terrain"):
 		_set_layer("terrain", TerrainMeshBuilder.build_terrain(map), _terrain_mat)
-		# Природные особенности теперь обозначаются флагами; старые построители сохранены.
+		var trees := _build_trees(map)
+		_set_layer("crowns", trees[0], _feature_mat)
+		_set_layer("conifers", trees[1], _feature_mat)
+		_set_layer("trunks", trees[2], _feature_mat)
 	if all or parts.has("improvements"):
 		refresh_improvements()
 	if all or parts.has("borders"):
@@ -195,9 +202,11 @@ func _build_forest_sprites(map: GameMap) -> MultiMesh:
 	return mm
 
 
-## Старый 3D лес: возвращает [кроны, стволы]. Сохранён для переключателя выше.
+## Низкий 3D лес: [лиственные кроны, хвойные кроны, стволы].
+## Деревья занимают всю площадь гекса, но остаются существенно ниже юнитов.
 func _build_trees(map: GameMap) -> Array:
 	var crowns: Array = []
+	var conifers: Array = []
 	var trunks: Array = []
 	for i in map.size():
 		var f := map.feature[i]
@@ -205,37 +214,51 @@ func _build_trees(map: GameMap) -> Array:
 			continue
 		var base := _tile_pos(i)
 		var conifer := f == "WOODS" and (map.terrain[i] == "TUNDRA" or map.terrain[i] == "SNOW")
-		var count := 4 if f == "RAINFOREST" else 3
+		var count := 18 if f == "RAINFOREST" else 14
 		for k in count:
-			var ang := (k + MapStyle.hash01(i, 40 + k) * 0.6) * TAU / count
-			var r := 0.22 + MapStyle.hash01(i, 50 + k) * 0.32
+			var ang := k * 2.39996 + MapStyle.hash01(i, 40) * TAU
+			var r := 0.73 * sqrt((float(k) + 0.5) / count)
 			var pos := base + Vector3(cos(ang) * r, 0, sin(ang) * r)
-			var s := 0.8 + MapStyle.hash01(i, 60 + k) * 0.5
-			var palette: Array[Color] = MapStyle.WOODS_COLORS
+			var s := 0.8 + MapStyle.hash01(i, 60 + k) * 0.35
+			var palette: Array[Color] = [Color("568346"), Color("668846"), Color("7e994d"), Color("4f7743")]
 			if f == "RAINFOREST":
 				palette = MapStyle.RAINFOREST_COLORS
-				s *= 1.15
 			elif conifer:
 				palette = MapStyle.CONIFER_COLORS
 			var col: Color = palette[int(MapStyle.hash01(i, 70 + k) * palette.size()) % palette.size()]
-			var crown_basis := Basis().scaled(Vector3(s, s * (1.6 if conifer else 1.0), s))
-			crowns.append([Transform3D(crown_basis, pos + Vector3(0, 0.24 * s + 0.12, 0)), col, _custom(i)])
-			trunks.append([Transform3D(Basis().scaled(Vector3.ONE * s), pos + Vector3(0, 0.1 * s, 0)), MapStyle.TRUNK_COLOR, _custom(i)])
+			var pine := conifer or (f == "WOODS" and k % 3 != 0)
+			var crown_basis := Basis().scaled(Vector3(s, s, s))
+			if pine:
+				for tier in 3:
+					var size := s * (1.0 - float(tier) * 0.24)
+					var tier_basis := Basis().scaled(Vector3.ONE * size)
+					conifers.append([Transform3D(tier_basis, pos + Vector3(0, (0.12 + tier * 0.055) * s, 0)),
+						col.lightened(0.035 * tier), _custom(i)])
+			else:
+				crowns.append([Transform3D(crown_basis, pos + Vector3(0, 0.15 * s, 0)), col, _custom(i)])
+			trunks.append([Transform3D(Basis().scaled(Vector3.ONE * s), pos + Vector3(0, 0.045 * s, 0)), MapStyle.TRUNK_COLOR, _custom(i)])
 	var crown_mesh := SphereMesh.new()
-	crown_mesh.radius = 0.25
-	crown_mesh.height = 0.42
+	crown_mesh.radius = 0.11
+	crown_mesh.height = 0.17
 	crown_mesh.radial_segments = 8
 	crown_mesh.rings = 4
 	var trunk_mesh := CylinderMesh.new()
-	trunk_mesh.top_radius = 0.03
-	trunk_mesh.bottom_radius = 0.04
-	trunk_mesh.height = 0.24
+	trunk_mesh.top_radius = 0.012
+	trunk_mesh.bottom_radius = 0.018
+	trunk_mesh.height = 0.09
 	trunk_mesh.radial_segments = 5
 	var mm_c := _new_multimesh(crown_mesh, crowns.size())
 	_fill(mm_c, crowns)
+	var pine_mesh := CylinderMesh.new()
+	pine_mesh.top_radius = 0.0
+	pine_mesh.bottom_radius = 0.105
+	pine_mesh.height = 0.15
+	pine_mesh.radial_segments = 7
+	var mm_p := _new_multimesh(pine_mesh, conifers.size())
+	_fill(mm_p, conifers)
 	var mm_t := _new_multimesh(trunk_mesh, trunks.size())
 	_fill(mm_t, trunks)
-	return [mm_c, mm_t]
+	return [mm_c, mm_p, mm_t]
 
 
 ## Маркеры ресурсов зависят от технологий игрока (стратегические скрыты).
@@ -246,9 +269,6 @@ func refresh_resources(player: Player) -> void:
 		if not reveal_all and not player.is_revealed(i):
 			continue
 		var ids: Array[String] = []
-		var feature := map.feature[i]
-		if NatureFlags.index(feature) >= 0:
-			ids.append(feature)
 		var rid := map.resource[i]
 		if rid != "" and (reveal_all or Yields.resource_visible(game.data, rid, player)):
 			ids.append(rid)
@@ -258,12 +278,12 @@ func refresh_resources(player: Player) -> void:
 				continue
 			var pos := _tile_pos(i)
 			pos.y = MapStyle.WATER_Y if map.is_water(i) else pos.y
-			pos += Vector3((float(k) - (ids.size() - 1) * 0.5) * 0.38, 0.68, -0.15)
+			pos += Vector3(0.32, 0.45, 0.18)
 			var custom := _custom(i)
 			custom.b = float(index) / 63.0
 			items.append([Transform3D(Basis(), pos), Color.WHITE, custom])
 	var quad := QuadMesh.new()
-	quad.size = Vector2(0.36, 0.44)
+	quad.size = Vector2(0.24, 0.30)
 	var mm := _new_multimesh(quad, items.size())
 	_fill(mm, items)
 	_set_layer("nature_flags", mm, _flag_mat)

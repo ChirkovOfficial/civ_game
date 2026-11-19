@@ -16,6 +16,8 @@ func test_flags_respect_exploration_technology_and_removed_feature() -> void:
 	var g := blank_game(8, 6)
 	g.state.map.feature[10] = "WOODS"
 	g.state.map.resource[10] = "IRON"
+	for index in g.data.features.size():
+		g.state.map.feature[20 + index] = str(g.data.features.keys()[index])
 	var player := g.state.player(0)
 	var view := MapView.new()
 	view.build(g)
@@ -24,15 +26,32 @@ func test_flags_respect_exploration_technology_and_removed_feature() -> void:
 	check_eq(layer.multimesh.instance_count, 0, "Неразведанный тайл скрыт")
 	player.revealed[10] = 1
 	view.refresh_resources(player)
-	check_eq(layer.multimesh.instance_count, 1, "Виден лес, железо скрыто до технологии")
+	check_eq(layer.multimesh.instance_count, 0, "У леса нет флага, железо скрыто до технологии")
 	player.known_techs["BRONZE_WORKING"] = true
 	view.refresh_resources(player)
-	check_eq(layer.multimesh.instance_count, 2, "Особенность и ресурс показаны отдельно")
+	check_eq(layer.multimesh.instance_count, 1, "Флаг есть только у ресурса")
+	var trees_before: int = view._layers["trunks"][1].multimesh.instance_count
+	check(trees_before >= 14, "Низкие деревья покрывают лесные тайлы")
 	g.state.map.feature[10] = ""
 	view.refresh_geometry({"terrain": true})
 	view.refresh_resources(player)
-	check_eq(layer.multimesh.instance_count, 1, "Флаг вырубленного леса пропал")
-	check(not view._layers.has("crowns") and not view._layers.has("forest_sprites") \
-		and not view._layers.has("resources"), "Старые природные объекты отключены")
+	check_eq(layer.multimesh.instance_count, 1, "Удаление особенности не убрало ресурсный флаг")
+	check_eq(view._layers["trunks"][1].multimesh.instance_count, trees_before - 14, "Исчезли деревья только вырубленного тайла")
+	check(not view._layers.has("forest_sprites") and not view._layers.has("resources"), "Плоские деревья и старые маркеры отключены")
 	check(view._layers.has("mountains"), "Горный слой сохранён")
 	view.free()
+
+func test_biome_mesh_uses_each_atlas_region() -> void:
+	var g := blank_game(8, 6)
+	for index in MapStyle.BIOME_ORDER.size():
+		g.state.map.terrain[index] = MapStyle.BIOME_ORDER[index]
+		check_eq(MapStyle.biome_index(g.state.map, index), index)
+	var mesh := TerrainMeshBuilder.build_terrain(g.state.map)
+	var arrays := mesh.surface_get_arrays(0)
+	var uvs: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
+	for index in 8:
+		check(uvs.has(Vector2(index, 0)), "Поверхность биома имеет свою область атласа")
+	var water := TerrainMeshBuilder.build_water(g.state.map)
+	var water_uvs: PackedVector2Array = water.surface_get_arrays(0)[Mesh.ARRAY_TEX_UV]
+	for index in [5, 6, 7]:
+		check(water_uvs.has(Vector2(index, 0)), "Вода имеет отдельную текстуру")
