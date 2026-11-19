@@ -2,6 +2,12 @@ class_name EmpireRules
 extends RefCounted
 ## Уровень державы: доходы, казна, содержание, исследования (ГДД 2, 4.3–4.6, 21, 22).
 
+const BOOST_CONDITIONS := ["met_major", "stat", "known_tech", "known_civic", "pantheon", "religion",
+	"government_slots", "treasury", "alliances", "trade_routes", "units", "revealed_continents",
+	"revealed_mountain", "other_continent_city", "renewable_sources", "coastal_city", "cities",
+	"population", "city_population", "city_buildings", "religious_cities", "parks", "great_works",
+	"wonders", "districts", "distinct_districts", "specialized_district", "improvements"]
+
 
 # --- Доходы державы ---------------------------------------------------------------------------
 
@@ -67,6 +73,30 @@ static func _effective_unit_upkeep(game: Game, u: Unit, delta: float) -> float:
 
 # --- Исследования -----------------------------------------------------------------------------
 
+static func validate_data(data: GameData) -> PackedStringArray:
+	var errors := PackedStringArray()
+	for definitions in [data.techs, data.civics]:
+		for id in definitions:
+			var def: Dictionary = definitions[id]
+			if def.get("future_shuffled", false) or def.get("repeatable", false):
+				continue
+			var boost: Dictionary = def.get("boost", {})
+			if def.has("boost_text") and boost.is_empty():
+				errors.append("Условия эврики/вдохновения нет: %s" % id)
+			if boost.is_empty():
+				continue
+			var condition := str(boost.get("condition", ""))
+			if condition not in BOOST_CONDITIONS or int(boost.get("minimum", 1)) < 1:
+				errors.append("Неверное условие эврики/вдохновения: %s" % id)
+			var target := str(boost.get("id", ""))
+			if (condition == "known_tech" and not data.techs.has(target)) \
+					or (condition == "known_civic" and not data.civics.has(target)) \
+					or (condition == "units" and target != "" and not data.units.has(target)) \
+					or (condition == "districts" and target != "" and not data.districts.has(target)) \
+					or (condition == "improvements" and target != "" and not data.improvements.has(target)):
+				errors.append("Неизвестный объект эврики/вдохновения: %s" % id)
+	return errors
+
 ## Уникальная технология занимает тот же узел и сохраняет его идентификатор в сохранениях.
 static func tech_display(game: Game, pid: int, tech_id: String) -> Dictionary:
 	var def: Dictionary = game.data.techs.get(tech_id, {})
@@ -126,33 +156,159 @@ static func apply_research_boosts(game: Game, pid: int, events: Array) -> void:
 			events.append({"type": "research_boost", "player": pid, "kind": kind, "id": id})
 
 
+static func record_research_events(game: Game, events: Array) -> void:
+	for event in events:
+		var pid := int(event.get("player", event.get("by", -1)))
+		if pid < 0 or pid >= game.state.players.size() or game.state.player(pid).is_barbarian:
+			continue
+		var p := game.state.player(pid)
+		match str(event.get("type", "")):
+			"unit_killed":
+				_add_research_stat(p, "unit_kills")
+				if event.has("by_unit_type"):
+					_add_research_stat(p, "kills_as:" + str(event["by_unit_type"]))
+				var owner := int(event.get("owner", -1))
+				if owner >= 0 and owner < game.state.players.size() and game.state.player(owner).is_barbarian:
+					_add_research_stat(p, "barbarian_kills")
+			"camp_cleared", "trade_started", "wonder_completed":
+				_add_research_stat(p, str(event["type"]))
+			"great_person_recruited":
+				_add_research_stat(p, "great_people")
+				_add_research_stat(p, "great_person:" + str(event.get("kind", "")))
+
+
+static func _add_research_stat(p: Player, key: String) -> void:
+	p.research_stats[key] = int(p.research_stats.get(key, 0)) + 1
+
+
 static func _boost_reached(game: Game, pid: int, boost: Dictionary) -> bool:
-	var condition: String = boost["condition"]
-	if condition == "met_major":
-		return not game.state.player(pid).met.is_empty()
+	var condition: String = str(boost.get("condition", ""))
+	var p := game.state.player(pid)
 	var total := 0
 	var minimum := int(boost.get("minimum", 1))
+	var wanted := str(boost.get("id", ""))
+	match condition:
+		"met_major":
+			return p.met.size() >= minimum
+		"stat":
+			return int(p.research_stats.get(wanted, 0)) >= minimum
+		"known_tech":
+			return p.has_tech(wanted)
+		"known_civic":
+			return p.has_civic(wanted)
+		"pantheon":
+			return p.pantheon != ""
+		"religion":
+			return p.religion_id != ""
+		"government_slots":
+			return GovernmentRules.slots(GovernmentRules.active_government(game, p)).size() >= minimum
+		"treasury":
+			return p.treasury >= minimum
+		"alliances":
+			for other in game.state.players:
+				if other.id != pid and not other.is_barbarian and TreatyRules.alliance_level(game, pid, other.id) > 0:
+					total += 1
+			return total >= minimum
+		"trade_routes":
+			for unit in game.state.units_of(pid):
+				if not unit.trade_route.is_empty():
+					total += 1
+			return total >= minimum
+		"units":
+			for unit in game.state.units_of(pid):
+				if wanted != "" and unit.type != wanted:
+					continue
+				var def: Dictionary = game.data.unit_def(unit.type)
+				if boost.has("class") and def.get("class", "") != boost["class"]:
+					continue
+				if boost.get("combat", false) and def.get("class", "") in ["CIVILIAN", "SUPPORT", "RELIGIOUS"]:
+					continue
+				if boost.has("domain") and def.get("domain", "") != boost["domain"]:
+					continue
+				total += 1
+			return total >= minimum
+		"revealed_continents":
+			var seen := {}
+			for tile in game.state.map.terrain.size():
+				var continent := game.state.map.continent[tile]
+				if continent >= 0 and p.is_revealed(tile):
+					seen[continent] = true
+			return seen.size() >= minimum
+		"revealed_mountain":
+			for tile in game.state.map.terrain.size():
+				if p.is_revealed(tile) and game.state.map.relief[tile] == GameMap.RELIEF_MOUNTAIN:
+					return true
+			return false
+		"other_continent_city":
+			var capital_continent := -1
+			for city in game.state.cities_of(pid):
+				if city.is_capital:
+					capital_continent = game.state.map.continent[city.tile]
+					break
+			if capital_continent < 0:
+				return false
+			for city in game.state.cities_of(pid):
+				if game.state.map.continent[city.tile] >= 0 and game.state.map.continent[city.tile] != capital_continent:
+					total += 1
+			return total >= minimum
+		"renewable_sources":
+			for tile in game.state.map.improvement.size():
+				if game.state.map.owner_city[tile] < 0 or game.state.city(game.state.map.owner_city[tile]).owner != pid:
+					continue
+				if game.state.map.pillaged[tile] == 0 and game.state.map.improvement[tile] in ["WIND_FARM", "SOLAR_FARM"]:
+					total += 1
+			return total >= minimum
+	var distinct := {}
 	for city in game.state.cities_of(pid):
 		match condition:
 			"coastal_city":
 				if game.state.map.is_coastal_land(city.tile):
 					return true
+			"cities":
+				total += 1
 			"population":
 				total += city.population
-			"specialized_district":
+			"city_population":
+				if city.population >= minimum:
+					return true
+			"city_buildings":
+				if city.buildings.has(wanted):
+					total += 1
+			"religious_cities":
+				if p.religion_id != "" and ReligionRules.majority(game, city) == p.religion_id:
+					total += 1
+			"parks":
+				total += city.parks.size()
+			"great_works":
+				total += city.great_works
+			"wonders":
+				for wonder in city.wonders:
+					if wonder.get("complete", false):
+						total += 1
+			"districts", "distinct_districts", "specialized_district":
 				for district in city.districts:
-					if district["complete"] and game.data.districts.get(district["type"], {}).get("specialized", false):
-						return true
+					if not district.get("complete", false):
+						continue
+					if condition == "specialized_district":
+						if game.data.districts.get(district["type"], {}).get("specialized", false):
+							return true
+					elif condition == "distinct_districts" and not game.data.districts.get(district["type"], {}).get("specialized", false):
+						continue
+					elif (wanted == "" or district["type"] == wanted) and int(district["tier"]) >= int(boost.get("tier", 1)):
+						total += 1
+						distinct[district["type"]] = true
 			"improvements":
 				for tile in CityRules.owned_tiles(game, city):
 					var improvement := game.state.map.improvement[tile]
 					if improvement != "" and game.state.map.pillaged[tile] == 0 and \
 							not game.data.improvements.get(improvement, {}).get("special", false) \
-							and improvement == str(boost.get("id", improvement)):
+							and improvement == str(boost.get("id", improvement)) \
+							and (not boost.has("resource") or game.state.map.resource[tile] == boost["resource"]) \
+							and (not boost.get("any_resource", false) or game.state.map.resource[tile] != ""):
 						total += 1
-		if total >= minimum:
+		if condition != "distinct_districts" and total >= minimum:
 			return true
-	return false
+	return distinct.size() >= minimum if condition == "distinct_districts" else false
 
 
 static func _available(tree: Dictionary, ids: Array[String], known: Dictionary) -> Array[String]:

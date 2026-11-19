@@ -49,6 +49,10 @@ static func work_tourism(game: Game, city: City) -> float:
 	for i in mini(active_works(game, city), city.great_work_types.size()):
 		var def: Dictionary = game.data.culture_content.get("works", {}).get(city.great_work_types[i], {})
 		amount += float(def.get("tourism", config(game, "work_tourism"))) - config(game, "work_tourism")
+		for tech in def.get("tech_tourism_multiplier", {}):
+			if game.state.player(city.owner).has_tech(tech):
+				amount += float(def.get("tourism", config(game, "work_tourism"))) \
+					* (float(def["tech_tourism_multiplier"][tech]) - 1.0)
 	return amount
 
 
@@ -163,7 +167,7 @@ static func tourism_per_turn(game: Game, pid: int) -> float:
 				if game.data.buildings.get(building, {}).has("wall_hp"):
 					amount += config(game, "wall_tourism")
 					break
-	return amount
+	return amount * (1.0 + GovernmentRules.sum_effect(game, pid, "tourism_bonus"))
 
 
 static func _has_route(game: Game, a: int, b: int) -> bool:

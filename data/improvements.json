@@ -4,6 +4,7 @@
   {
    "id": "FARM",
    "name": "Ферма",
+   "adjacent_farm_bonuses": {"FEUDALISM": {"per": 2, "food": 1}, "REPLACEABLE_PARTS": {"per": 1, "food": 1}},
    "yields": {
     "food": 1
    },
@@ -34,6 +35,7 @@
    "id": "MINE",
    "name": "Рудник",
    "tech": "MINING",
+   "tech_yields": {"APPRENTICESHIP": {"production": 1}},
    "yields": {
     "production": 1
    },
@@ -55,6 +57,7 @@
    "id": "QUARRY",
    "name": "Каменоломня",
    "tech": "MINING",
+   "tech_yields": {"BANKING": {"gold": 1}},
    "yields": {
     "production": 1
    },

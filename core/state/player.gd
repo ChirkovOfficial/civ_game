@@ -41,6 +41,8 @@ var civic_progress: Dictionary = {}   # id -> 🎭
 var produced: Dictionary = {}
 ## Одноразовые эврики и вдохновения: "tech:ID" или "civic:ID".
 var research_boosts: Dictionary = {}
+## Исторические события для эврик и вдохновений; счётчики не сбрасываются при изучении узла.
+var research_stats: Dictionary = {}
 ## Сколько имён городов уже использовано из списка цивилизации.
 var city_names_used: int = 0
 
@@ -85,6 +87,7 @@ func to_dict() -> Dictionary:
 		"current_tech": current_tech, "tech_progress": tech_progress.duplicate(),
 		"current_civic": current_civic, "civic_progress": civic_progress.duplicate(),
 		"research_boosts": _sorted_keys(research_boosts),
+		"research_stats": research_stats.duplicate(),
 		"government": government, "policy_slots": policy_slots.duplicate(),
 		"produced": produced.duplicate(), "city_names_used": city_names_used,
 		"is_barbarian": is_barbarian, "met": _sorted_keys(met), "stockpile": stockpile.duplicate(),
@@ -131,6 +134,8 @@ static func from_dict(d: Dictionary) -> Player:
 		p.civic_progress[k] = float(d["civic_progress"][k])
 	for id in d.get("research_boosts", []):
 		p.research_boosts[id] = true
+	for key in d.get("research_stats", {}):
+		p.research_stats[str(key)] = int(d["research_stats"][key])
 	for k in d.get("produced", {}):
 		p.produced[k] = int(d["produced"][k])
 	p.city_names_used = int(d.get("city_names_used", 0))

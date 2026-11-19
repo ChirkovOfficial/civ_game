@@ -318,6 +318,7 @@ func validate() -> PackedStringArray:
 			errors.append("Стартовый юнит %s не существует" % uid)
 	errors.append_array(_validate_tree(techs, "Технология"))
 	errors.append_array(GovernmentRules.validate_data(self))
+	errors.append_array(EmpireRules.validate_data(self))
 	errors.append_array(TradeRules.validate_data(self))
 	errors.append_array(ReligionRules.validate_data(self))
 	errors.append_array(ScienceRules.validate_data(self))

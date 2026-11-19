@@ -35,6 +35,7 @@
         "CODE_OF_LAWS"
       ],
       "unlocks_text": "Торговцы, лимит торговых путей и «Караван-сараи».",
+      "boost": {"condition": "revealed_continents", "minimum": 2},
       "boost_text": "открыть второй континент"
     },
     {
@@ -46,6 +47,7 @@
         "CRAFTSMANSHIP"
       ],
       "unlocks_text": "Фланги и поддержка.",
+      "boost": {"condition": "stat", "id": "camp_cleared"},
       "boost_text": "зачистить лагерь варваров"
     },
     {
@@ -81,9 +83,9 @@
       "prereqs": [
         "CODE_OF_LAWS"
       ],
-      "unlocks_text": "Курс «Меценатство».",
-      "boost_text": "основать пантеон",
-      "planned_text": "Курсы для основания религии."
+      "unlocks_text": "Курсы «Меценатство» и «Откровение».",
+      "boost": {"condition": "pantheon"},
+      "boost_text": "основать пантеон"
     },
     {
       "id": "POLITICAL_PHILOSOPHY",
@@ -95,7 +97,8 @@
         "EARLY_EMPIRE"
       ],
       "unlocks_text": "Автократия, Олигархия и Античная республика.",
-      "boost_text": "встретить 3 ГГ"
+      "boost": {"condition": "met_major"},
+      "boost_text": "встретить другую державу"
     },
     {
       "id": "DRAMA_POETRY",
@@ -107,6 +110,7 @@
         "EARLY_EMPIRE"
       ],
       "unlocks_text": "Театральная площадь I.",
+      "boost": {"condition": "stat", "id": "wonder_completed"},
       "boost_text": "построить чудо"
     },
     {
@@ -118,6 +122,7 @@
         "STATE_WORKFORCE"
       ],
       "unlocks_text": "Развлекательный комплекс I.",
+      "boost": {"condition": "known_tech", "id": "CONSTRUCTION"},
       "boost_text": "изучить Строительство"
     },
     {
@@ -130,6 +135,7 @@
         "STATE_WORKFORCE"
       ],
       "unlocks_text": "Курс «Ветераны».",
+      "boost": {"condition": "districts", "id": "ENCAMPMENT"},
       "boost_text": "построить Военный лагерь"
     },
     {
@@ -142,6 +148,7 @@
         "POLITICAL_PHILOSOPHY"
       ],
       "unlocks_text": "Священное место II.",
+      "boost": {"condition": "religion"},
       "boost_text": "основать религию",
       "planned_text": "Расширение религиозных доктрин."
     },
@@ -154,9 +161,9 @@
         "EARLY_EMPIRE",
         "MILITARY_TRAINING"
       ],
-      "unlocks_text": "Курс «Крепостное право».",
-      "boost_text": "построить 6 Ферм",
-      "planned_text": "Соседство ферм."
+      "unlocks_text": "Курс «Крепостное право»; фермы получают +1 пищи за каждые две соседние фермы.",
+      "boost": {"condition": "improvements", "id": "FARM", "minimum": 6},
+      "boost_text": "построить 6 Ферм"
     },
     {
       "id": "CIVIL_SERVICE",
@@ -167,6 +174,7 @@
         "POLITICAL_PHILOSOPHY"
       ],
       "unlocks_text": "Базовые союзы и «Академические обмены».",
+      "boost": {"condition": "city_population", "minimum": 10},
       "boost_text": "вырастить город до 10 жителей",
       "planned_text": "Расширение доктрин политического убеждения."
     },
@@ -180,7 +188,8 @@
         "FOREIGN_TRADE"
       ],
       "unlocks_text": "Курс «Торговые гильдии».",
-      "boost_text": "построить 2 Рынка"
+      "boost": {"condition": "districts", "id": "COMMERCIAL_HUB", "minimum": 2, "tier": 2},
+      "boost_text": "построить 2 Коммерческих центра II"
     },
     {
       "id": "MERCENARIES",
@@ -192,6 +201,7 @@
         "FEUDALISM"
       ],
       "unlocks_text": "Курс «Профессиональная армия».",
+      "boost": {"condition": "units", "minimum": 8, "domain": "LAND", "combat": true},
       "boost_text": "иметь 8 наземных боевых юнитов"
     },
     {
@@ -204,7 +214,8 @@
         "CIVIL_SERVICE"
       ],
       "unlocks_text": "Правительство «Монархия».",
-      "boost_text": "построить 2 Храма"
+      "boost": {"condition": "districts", "id": "HOLY_SITE", "minimum": 2, "tier": 2},
+      "boost_text": "построить 2 Священных места II"
     },
     {
       "id": "NAVAL_TRADITION",
@@ -216,6 +227,7 @@
         "MILITARY_TRAINING"
       ],
       "unlocks_text": "Курс «Морское хозяйство».",
+      "boost": {"condition": "stat", "id": "kills_as:QUADRIREME"},
       "boost_text": "убить юнит Квадриремой"
     },
     {
@@ -228,6 +240,7 @@
         "GUILDS"
       ],
       "unlocks_text": "Театральная площадь II и развлекательный комплекс II.",
+      "boost": {"condition": "stat", "id": "great_person:ARTIST"},
       "boost_text": "завербовать Великого художника"
     },
     {
@@ -239,9 +252,9 @@
         "THEOLOGY",
         "DIVINE_RIGHT"
       ],
-      "unlocks_text": "Теократия.",
-      "boost_text": "6 городов исповедуют вашу религию",
-      "planned_text": "Религиозные курсы."
+      "unlocks_text": "Теократия и курс «Паломничество».",
+      "boost": {"condition": "religious_cities", "minimum": 6},
+      "boost_text": "6 городов исповедуют вашу религию"
     },
     {
       "id": "EXPLORATION",
@@ -252,9 +265,9 @@
         "NAVAL_TRADITION",
         "GUILDS"
       ],
-      "unlocks_text": "Торговая республика.",
-      "boost_text": "построить 2 Каравеллы",
-      "planned_text": "Дополнительные торговые эффекты."
+      "unlocks_text": "Торговая республика и курс «Морская торговля».",
+      "boost": {"condition": "units", "id": "CARAVEL", "minimum": 2},
+      "boost_text": "построить 2 Каравеллы"
     },
     {
       "id": "MERCANTILISM",
@@ -266,6 +279,7 @@
         "EXPLORATION"
       ],
       "unlocks_text": "Курс «Треугольная торговля».",
+      "boost": {"condition": "stat", "id": "great_person:MERCHANT"},
       "boost_text": "завербовать Великого торговца",
       "planned_text": "Защита торговых маршрутов."
     },
@@ -278,9 +292,9 @@
         "CIVIL_SERVICE",
         "DIVINE_RIGHT"
       ],
-      "unlocks_text": "Открывает дальнейшее развитие дипломатии.",
-      "boost_text": "заключить союз",
-      "planned_text": "Посольства и специализация союзов."
+      "unlocks_text": "Посольства, специализация союзов и дипломатические курсы.",
+      "boost": {"condition": "alliances"},
+      "boost_text": "заключить союз"
     },
     {
       "id": "THE_ENLIGHTENMENT",
@@ -291,9 +305,9 @@
         "HUMANISM",
         "DIPLOMATIC_SERVICE"
       ],
-      "unlocks_text": "Курс «Рационализм».",
-      "boost_text": "завербовать 3 великих людей",
-      "planned_text": "Дополнительные научные и культурные курсы."
+      "unlocks_text": "Курсы «Рационализм» и «Научный метод».",
+      "boost": {"condition": "stat", "id": "great_people", "minimum": 3},
+      "boost_text": "завербовать 3 великих людей"
     },
     {
       "id": "COLONIALISM",
@@ -304,7 +318,8 @@
         "MERCANTILISM"
       ],
       "unlocks_text": "Колониальные налоги (Э: +25%💰 в городах на чужих континентах), Радж (Д: +2 каждого дохода за ГГ-сюзерена), Родная страна-подобные",
-      "boost_text": "изучить Астрономию"
+      "boost": {"condition": "known_tech", "id": "CARTOGRAPHY"},
+      "boost_text": "изучить Картографию"
     },
     {
       "id": "CIVIL_ENGINEERING",
@@ -315,6 +330,7 @@
         "MERCANTILISM"
       ],
       "unlocks_text": "Общественные работы (Э: +30%⚙ строителей, +2 заряда), Небоскрёбы (Э: +15%⚙ чудес эпохи и позже); Фермы на холмах; ТГ",
+      "boost": {"condition": "distinct_districts", "minimum": 7},
       "boost_text": "построить 7 разных специализированных районов"
     },
     {
@@ -326,7 +342,8 @@
         "THE_ENLIGHTENMENT"
       ],
       "unlocks_text": "Корпуса и флоты; казусы белли; Великая армия (В: +50%⚙ юнитов эпохи), Национальная идентичность (В: −50% штраф от ранений); ТГ",
-      "boost_text": "объявить войну по казус белли"
+      "boost": {"condition": "stat", "id": "unit_kills", "minimum": 3},
+      "boost_text": "победить 3 вражеских юнита"
     },
     {
       "id": "OPERA_BALLET",
@@ -337,7 +354,8 @@
         "THE_ENLIGHTENMENT"
       ],
       "unlocks_text": "Большой театр; Великая опера (Э: +100%🎭 зданий Театр. площади при населении ≥10)",
-      "boost_text": "построить Художественный музей"
+      "boost": {"condition": "districts", "id": "THEATER_SQUARE", "tier": 2},
+      "boost_text": "построить Театральную площадь II"
     },
     {
       "id": "NATURAL_HISTORY",
@@ -348,7 +366,8 @@
         "COLONIALISM"
       ],
       "unlocks_text": "юнит Археолог; Зоопарк, район Аквапарк; Эрмитаж; древности на карте",
-      "boost_text": "построить Археологический музей"
+      "boost": {"condition": "great_works", "minimum": 3},
+      "boost_text": "создать 3 шедевра"
     },
     {
       "id": "SCORCHED_EARTH",
@@ -359,6 +378,7 @@
         "NATIONALISM"
       ],
       "unlocks_text": "Тотальная война (В: +100% дохода от грабежа), Военные исследования (В: +🔬 от Военных академий)",
+      "boost": {"condition": "units", "id": "FIELD_CANNON", "minimum": 2},
       "boost_text": "построить 2 Полевые пушки"
     },
     {
@@ -371,6 +391,7 @@
         "NATIONALISM"
       ],
       "unlocks_text": "район Пригород; Мединский квартал (Э: +2 жилья городам с ≥3 районами)",
+      "boost": {"condition": "city_population", "minimum": 15},
       "boost_text": "вырастить город до 15 жителей"
     },
     {
@@ -383,7 +404,8 @@
         "URBANIZATION"
       ],
       "unlocks_text": "юнит Натуралист, Национальные парки; посадка леса; туризм от стен",
-      "boost_text": "Пригород на клетке с Захватывающим престижем"
+      "boost": {"condition": "districts", "id": "RESIDENTIAL_RICH"},
+      "boost_text": "построить Богатый квартал"
     },
     {
       "id": "MASS_MEDIA",
@@ -395,6 +417,7 @@
         "URBANIZATION"
       ],
       "unlocks_text": "Бродвей, Статуя Христа; Пропаганда (В: −25% усталость от войны); ТГ",
+      "boost": {"condition": "known_tech", "id": "RADIO"},
       "boost_text": "изучить Радио"
     },
     {
@@ -406,7 +429,8 @@
         "URBANIZATION"
       ],
       "unlocks_text": "Армии и армады; Всеобщая воинская повинность (В: −2💰 содержания каждого юнита), Массовый призыв (В: −100% цена модернизации… −содержание)",
-      "boost_text": "иметь 3 Корпуса"
+      "boost": {"condition": "units", "minimum": 6, "domain": "LAND", "combat": true},
+      "boost_text": "иметь 6 наземных боевых юнитов"
     },
     {
       "id": "CAPITALISM",
@@ -417,7 +441,8 @@
         "MASS_MEDIA"
       ],
       "unlocks_text": "Экономический союз (Э: +100% соседство Комм. центров и Гаваней), Невмешательство (Э: +2 ОВЛ торговцев и адмиралов за Банк/Верфь… +💰); +3 посла",
-      "boost_text": "построить 3 Биржи"
+      "boost": {"condition": "districts", "id": "COMMERCIAL_HUB", "minimum": 3, "tier": 3},
+      "boost_text": "построить 3 Коммерческих центра III"
     },
     {
       "id": "IDEOLOGY",
@@ -428,7 +453,9 @@
         "MASS_MEDIA",
         "MOBILIZATION"
       ],
-      "unlocks_text": "открывает три пути ниже; +послы"
+      "unlocks_text": "открывает три пути ниже; +послы",
+      "boost": {"condition": "alliances"},
+      "boost_text": "заключить союз"
     },
     {
       "id": "NUCLEAR_PROGRAM",
@@ -439,7 +466,8 @@
         "IDEOLOGY"
       ],
       "unlocks_text": "ускорение строительства электростанций; курс Военные исследования+",
-      "boost_text": "построить Исследовательскую лабораторию"
+      "boost": {"condition": "districts", "id": "CAMPUS", "tier": 3},
+      "boost_text": "построить Кампус III"
     },
     {
       "id": "SUFFRAGE",
@@ -450,7 +478,8 @@
         "IDEOLOGY"
       ],
       "unlocks_text": "форма Демократия; Новый курс (Э: +4 жилья +2 довольства −8💰 городам с ≥3 районами), Арсенал демократии",
-      "boost_text": "построить 4 Канализации"
+      "boost": {"condition": "districts", "id": "RESIDENTIAL_URBAN", "minimum": 4, "tier": 2},
+      "boost_text": "построить 4 Городских квартала II"
     },
     {
       "id": "TOTALITARIANISM",
@@ -461,7 +490,8 @@
         "IDEOLOGY"
       ],
       "unlocks_text": "форма Парламентская монархия",
-      "boost_text": "построить 3 Военные академии"
+      "boost": {"condition": "districts", "id": "ENCAMPMENT", "minimum": 3, "tier": 2},
+      "boost_text": "построить 3 Военных лагеря II"
     },
     {
       "id": "CLASS_STRUGGLE",
@@ -472,7 +502,8 @@
         "IDEOLOGY"
       ],
       "unlocks_text": "форма Коммунизм; Пятилетка (Э: +100% соседство Кампусов и Промзон), Коллективизация (Э: +4🍞 внутренним торговым путям)",
-      "boost_text": "построить 3 Фабрики"
+      "boost": {"condition": "districts", "id": "INDUSTRIAL_ZONE", "minimum": 3, "tier": 2},
+      "boost_text": "построить 3 Промышленные зоны II"
     },
     {
       "id": "CULTURAL_HERITAGE",
@@ -483,7 +514,8 @@
         "CONSERVATION"
       ],
       "unlocks_text": "Туризм наследия (Э: +100% туризма от шедевров… артефактов); Сиднейская опера; ТГ",
-      "boost_text": "иметь тематический музей"
+      "boost": {"condition": "great_works", "minimum": 6},
+      "boost_text": "создать 6 шедевров"
     },
     {
       "id": "COLD_WAR",
@@ -494,6 +526,7 @@
         "IDEOLOGY"
       ],
       "unlocks_text": "юнит Рок-группа; Политика сдерживания (Д: +послы в ГГ с иной формой правления у сюзерена), Международные воды (В: +100%⚙ современных кораблей)",
+      "boost": {"condition": "known_tech", "id": "NUCLEAR_FISSION"},
       "boost_text": "изучить Расщепление ядра (мирный атом)"
     },
     {
@@ -505,6 +538,7 @@
         "IDEOLOGY"
       ],
       "unlocks_text": "Стадион, Лыжный курорт; Маракана; Спортивные СМИ (Э: +100% эффект Стадионов и Радиоцентров)",
+      "boost": {"condition": "districts", "id": "ENTERTAINMENT_COMPLEX", "minimum": 4},
       "boost_text": "построить 4 Развлекательных комплекса"
     },
     {
@@ -516,7 +550,8 @@
         "COLD_WAR"
       ],
       "unlocks_text": "переброска войск между аэропортами; Сила быстрого реагирования (В: +ОД на чужих континентах)",
-      "boost_text": "Аэропорт на чужом континенте"
+      "boost": {"condition": "other_continent_city"},
+      "boost_text": "основать город на другом континенте"
     },
     {
       "id": "SPACE_RACE",
@@ -527,6 +562,7 @@
         "COLD_WAR"
       ],
       "unlocks_text": "Интегрированная космическая ячейка (В: +15%⚙ космических проектов); ТГ",
+      "boost": {"condition": "districts", "id": "SPACEPORT"},
       "boost_text": "построить Космопорт"
     },
     {
@@ -539,6 +575,7 @@
         "RAPID_DEPLOYMENT"
       ],
       "unlocks_text": "возобновляемая энергия +; проект «Декарбонизация»/улавливание углерода",
+      "boost": {"condition": "renewable_sources", "minimum": 6},
       "boost_text": "иметь 6 возобновляемых источников энергии"
     },
     {
@@ -551,6 +588,7 @@
         "SPACE_RACE"
       ],
       "unlocks_text": "Электронная коммерция (Э: +5⚙ +10💰 от международных путей), Онлайн-сообщества (Э: +50% туризма к державам с вашим торговым путём); Плантации +2💰; ТГ",
+      "boost": {"condition": "districts", "id": "AIRPORT", "minimum": 3},
       "boost_text": "построить 3 Аэропорта"
     },
     {
@@ -563,6 +601,7 @@
         "SPACE_RACE"
       ],
       "unlocks_text": "+25% туризма; Коммуникационное управление; ТГ",
+      "boost": {"condition": "known_tech", "id": "TELECOMMUNICATIONS"},
       "boost_text": "изучить Телекоммуникации"
     },
     {
@@ -574,7 +613,9 @@
         "ENVIRONMENTALISM",
         "GLOBALIZATION"
       ],
-      "unlocks_text": "открывает три института форм 4 уровня"
+      "unlocks_text": "открывает три института форм 4 уровня",
+      "boost": {"condition": "government_slots", "minimum": 8},
+      "boost_text": "принять правительство с 8 слотами курсов"
     },
     {
       "id": "VENTURE_POLITICS",
@@ -585,7 +626,8 @@
         "NEAR_FUTURE_GOVERNANCE"
       ],
       "unlocks_text": "форма Либертарианство",
-      "boost_text": "построить 8 Комм. центров/Гаваней"
+      "boost": {"condition": "districts", "id": "COMMERCIAL_HUB", "minimum": 4, "tier": 3},
+      "boost_text": "построить 4 Коммерческих центра III"
     },
     {
       "id": "DISTRIBUTED_SOVEREIGNTY",
@@ -596,7 +638,8 @@
         "NEAR_FUTURE_GOVERNANCE"
       ],
       "unlocks_text": "форма Цифровая демократия",
-      "boost_text": "быть сюзереном 4 ГГ"
+      "boost": {"condition": "alliances"},
+      "boost_text": "иметь действующий союз"
     },
     {
       "id": "OPTIMIZATION_IMPERATIVE",
@@ -607,7 +650,8 @@
         "NEAR_FUTURE_GOVERNANCE"
       ],
       "unlocks_text": "форма Неокоммунизм",
-      "boost_text": "построить 3 Космопорта… или 6 Лабораторий"
+      "boost": {"condition": "districts", "id": "CAMPUS", "minimum": 4, "tier": 3},
+      "boost_text": "построить 4 Кампуса III"
     },
     {
       "id": "INFORMATION_WARFARE",

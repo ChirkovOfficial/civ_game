@@ -406,6 +406,7 @@ func apply_action(action: Dictionary) -> Array:
 				"city_founded", "city_captured", "city_conceded", "city_destroyed", "player_eliminated"]:
 			VictoryRules.check_religion(self, events)
 			break
+	EmpireRules.record_research_events(self, events)
 	if not events.is_empty():
 		events_emitted.emit(events)
 	return events

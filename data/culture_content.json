@@ -14,7 +14,7 @@
   "great_person_tier_points": 1,
   "great_person_patronage_gold_per_point": 8,
   "works": {
-    "WRITING": {"culture": 2, "tourism": 4},
+    "WRITING": {"culture": 2, "tourism": 4, "tech_tourism_multiplier": {"PRINTING": 2}},
     "ART": {"culture": 3, "tourism": 5},
     "MUSIC": {"culture": 4, "tourism": 6}
   },

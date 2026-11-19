@@ -3,7 +3,7 @@ extends RefCounted
 ## Полное состояние партии (ГДД 25.2). Сериализуется целиком: сохранения,
 ## реплеи и тесты опираются на to_dict()/from_dict().
 
-const SAVE_VERSION := 19
+const SAVE_VERSION := 20
 
 ## Основанные религии: id -> {name, founder, holy_city, follower_belief, founder_belief, cult_belief, enhancer_belief}.
 var religions: Dictionary = {}

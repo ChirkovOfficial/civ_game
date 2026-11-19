@@ -426,11 +426,13 @@ static func attack(game: Game, u: Unit, tile: int, events: Array) -> void:
 			if not killed:
 				add_xp(game, d, int(k(game, "xp_defense", 2)), att_owner == barb)
 			if killed:
-				events.append({"type": "unit_killed", "unit": d.id, "owner": d.owner, "by": att_owner})
+				events.append({"type": "unit_killed", "unit": d.id, "owner": d.owner, "by": att_owner,
+					"by_unit_type": u.type})
 				Army.on_unit_killed(game, d, events)
 				game.state.remove_unit(d.id)
 			if u.hp <= 0:
-				events.append({"type": "unit_killed", "unit": u.id, "owner": att_owner, "by": d.owner})
+				events.append({"type": "unit_killed", "unit": u.id, "owner": att_owner, "by": d.owner,
+					"by_unit_type": d.type})
 				Army.on_unit_killed(game, u, events)
 				game.state.remove_unit(u.id)
 				return

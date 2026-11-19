@@ -53,3 +53,24 @@ func test_effects_and_roundtrip() -> void:
 	legacy.erase("government")
 	legacy.erase("policy_slots")
 	check_eq(GovernmentRules.active_government(g, Player.from_dict(legacy))["id"], "CHIEFDOM")
+
+
+func test_new_policies_are_free_and_cultural_government_changes_tourism() -> void:
+	var g := blank_game()
+	var p := g.state.player(0)
+	var city := CityRules.found_city(g, 0, g.state.map.grid.index_of(3, 5))
+	city.districts.append({"type": "THEATER_SQUARE", "tile": city.tile + 1, "tier": 2,
+		"buildings": [], "complete": true, "cost": 0.0})
+	city.great_works = 1
+	city.great_work_types.append("WRITING")
+	for id in ["POLITICAL_PHILOSOPHY", "OPERA_BALLET", "SUFFRAGE"]:
+		p.known_civics[id] = true
+	check_eq(g.apply_action({"type": "set_government", "id": "ANCIENT_REPUBLIC"})[0]["type"], "government_changed")
+	var baseline := CultureRules.tourism_per_turn(g, 0)
+	check_eq(g.apply_action({"type": "set_policy", "slot": 3, "id": "PRINTING_HOUSES"})[0]["type"], "policy_changed")
+	check_near(CultureRules.tourism_per_turn(g, 0), baseline * 1.10)
+	check_eq(g.apply_action({"type": "set_government", "id": "DEMOCRACY"})[0]["type"], "government_changed")
+	check_near(CultureRules.tourism_per_turn(g, 0), baseline * 1.25)
+	var policy_slot := p.policy_slots.find("PRINTING_HOUSES")
+	check_eq(g.apply_action({"type": "set_policy", "slot": policy_slot, "id": ""})[0]["type"], "policy_changed")
+	check_near(CultureRules.tourism_per_turn(g, 0), baseline * 1.15)

@@ -161,6 +161,10 @@ static func effect_text(def: Dictionary) -> String:
 		parts.append("−%d%% к цене модернизации" % roundi(100.0 * float(def["upgrade_discount"])))
 	if def.has("builder_charges"):
 		parts.append("+%d заряда новым строителям" % int(def["builder_charges"]))
+	if def.has("tourism_bonus"):
+		parts.append("+%d%% к туризму" % roundi(100.0 * float(def["tourism_bonus"])))
+	if def.has("prophet_points"):
+		parts.append("%+d очков Великого пророка за ход" % int(def["prophet_points"]))
 	for key in ["route_yields", "international_route_yields"]:
 		for yield_name in def.get(key, {}):
 			var suffix := "международного пути" if key == "international_route_yields" else "торгового пути"

@@ -104,8 +104,22 @@ static func tile_yields(game: Game, tile: int, player: Player) -> Dictionary:
 	var map := game.state.map
 	var y := Yields.tile_yields(map, game.data, tile, player)
 	var imp := map.improvement[tile]
-	if imp != "":
-		Yields.add_into(y, game.data.improvements.get(imp, {}).get("yields", {}))
+	if imp != "" and map.pillaged[tile] == 0:
+		var def: Dictionary = game.data.improvements.get(imp, {})
+		Yields.add_into(y, def.get("yields", {}))
+		for tech in def.get("tech_yields", {}):
+			if player.has_tech(tech):
+				Yields.add_into(y, def["tech_yields"][tech])
+		if def.has("adjacent_farm_bonuses"):
+			var adjacent_farms := 0
+			for neighbor in map.grid.neighbors(tile):
+				if map.improvement[neighbor] == "FARM" and map.pillaged[neighbor] == 0:
+					adjacent_farms += 1
+			for unlock in def.get("adjacent_farm_bonuses", {}):
+				if (game.data.techs.has(unlock) and player.has_tech(unlock)) \
+						or (game.data.civics.has(unlock) and player.has_civic(unlock)):
+					var bonus: Dictionary = def["adjacent_farm_bonuses"][unlock]
+					y["food"] = float(y.get("food", 0.0)) + floori(float(adjacent_farms) / float(bonus["per"])) * float(bonus["food"])
 	Yields.add_into(y, ReligionRules.pantheon_tile_yields(game, tile, player))
 	var city := game.state.city_at(tile)
 	if city != null:

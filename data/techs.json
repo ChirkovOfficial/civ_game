@@ -48,7 +48,8 @@
       "cost": 50,
       "prereqs": [],
       "unlocks_text": "Священное место I.",
-      "boost_text": "найти чудо природы"
+      "boost": {"condition": "revealed_mountain"},
+      "boost_text": "разведать горную клетку"
     },
     {
       "id": "IRRIGATION",
@@ -59,6 +60,7 @@
         "POTTERY"
       ],
       "unlocks_text": "Плантации и осушение болот.",
+      "boost": {"condition": "improvements", "id": "FARM", "any_resource": true},
       "boost_text": "улучшить ресурс фермой"
     },
     {
@@ -82,6 +84,7 @@
         "ANIMAL_HUSBANDRY"
       ],
       "unlocks_text": "Лучники.",
+      "boost": {"condition": "stat", "id": "kills_as:SLINGER"},
       "boost_text": "убить юнит Пращником"
     },
     {
@@ -93,7 +96,7 @@
         "MINING"
       ],
       "unlocks_text": "Античные стены и жилой квартал.",
-      "boost": {"condition": "improvements", "id": "QUARRY", "minimum": 1},
+      "boost": {"condition": "improvements", "id": "QUARRY"},
       "boost_text": "построить Каменоломню"
     },
     {
@@ -105,6 +108,7 @@
         "MINING"
       ],
       "unlocks_text": "Копейщики, военный лагерь I, открытие железа.",
+      "boost": {"condition": "stat", "id": "barbarian_kills", "minimum": 3},
       "boost_text": "убить 3 варваров"
     },
     {
@@ -116,6 +120,7 @@
         "MINING"
       ],
       "unlocks_text": "Тяжёлые колесницы и водяная мельница.",
+      "boost": {"condition": "improvements", "id": "MINE", "any_resource": true},
       "boost_text": "улучшить ресурс рудником"
     },
     {
@@ -128,6 +133,7 @@
         "THE_WHEEL"
       ],
       "unlocks_text": "Всадники.",
+      "boost": {"condition": "improvements", "id": "PASTURE"},
       "boost_text": "построить Пастбище"
     },
     {
@@ -139,6 +145,7 @@
         "BRONZE_WORKING"
       ],
       "unlocks_text": "Мечники и железное снаряжение.",
+      "boost": {"condition": "improvements", "id": "MINE", "resource": "IRON"},
       "boost_text": "построить рудник на Железе"
     },
     {
@@ -151,6 +158,7 @@
         "THE_WHEEL"
       ],
       "unlocks_text": "Коммерческий центр I.",
+      "boost": {"condition": "stat", "id": "trade_started"},
       "boost_text": "создать торговый путь"
     },
     {
@@ -162,6 +170,7 @@
         "WRITING"
       ],
       "unlocks_text": "Военный лагерь II и командующие. Катапульты.",
+      "boost": {"condition": "distinct_districts", "minimum": 3},
       "boost_text": "построить 3 разных специализированных района"
     },
     {
@@ -174,6 +183,7 @@
         "THE_WHEEL"
       ],
       "unlocks_text": "Лесопилки и осадные башни. У Рима этот узел заменяется «Римским бетоном».",
+      "boost": {"condition": "city_buildings", "id": "WATER_MILL"},
       "boost_text": "построить Водяную мельницу"
     },
     {
@@ -186,6 +196,7 @@
         "CONSTRUCTION"
       ],
       "unlocks_text": "Акведуки, бани II, городской квартал и улучшение жилой застройки до II уровня.",
+      "boost": {"condition": "city_buildings", "id": "ANCIENT_WALLS"},
       "boost_text": "построить Античные стены"
     },
     {
@@ -198,6 +209,7 @@
         "ASTROLOGY"
       ],
       "unlocks_text": "Гавань I и квадриремы.",
+      "boost": {"condition": "improvements", "id": "FISHING_BOATS", "minimum": 2, "any_resource": true},
       "boost_text": "улучшить 2 морских ресурса",
       "planned_text": "Перевозка сухопутных юнитов по воде."
     },
@@ -210,9 +222,9 @@
         "CURRENCY",
         "CONSTRUCTION"
       ],
-      "unlocks_text": "Промышленная зона I и латники.",
-      "boost_text": "построить 3 Рудника",
-      "planned_text": "Усиление рудников."
+      "unlocks_text": "Промышленная зона I, латники и +1 производство рудникам.",
+      "boost": {"condition": "improvements", "id": "MINE", "minimum": 3},
+      "boost_text": "построить 3 Рудника"
     },
     {
       "id": "EDUCATION",
@@ -224,6 +236,7 @@
         "CURRENCY"
       ],
       "unlocks_text": "Кампус II.",
+      "boost": {"condition": "stat", "id": "great_person:SCIENTIST"},
       "boost_text": "завербовать Великого учёного"
     },
     {
@@ -236,6 +249,7 @@
         "IRON_WORKING"
       ],
       "unlocks_text": "Арбалетчики и следопыты.",
+      "boost": {"condition": "units", "id": "ARCHER", "minimum": 3},
       "boost_text": "иметь 3 Лучников"
     },
     {
@@ -248,6 +262,7 @@
         "IRON_WORKING"
       ],
       "unlocks_text": "Рыцари.",
+      "boost": {"condition": "known_civic", "id": "FEUDALISM"},
       "boost_text": "изучить институт Феодализм"
     },
     {
@@ -260,6 +275,7 @@
         "IRON_WORKING"
       ],
       "unlocks_text": "Средневековые стены и лёгкая кавалерия.",
+      "boost": {"condition": "government_slots", "minimum": 6},
       "boost_text": "форма правления с 6 слотами курсов"
     },
     {
@@ -271,6 +287,7 @@
         "MACHINERY"
       ],
       "unlocks_text": "Требушеты, пикинёры, военный инженер, открытие и добыча селитры.",
+      "boost": {"condition": "districts", "id": "AQUEDUCT"},
       "boost_text": "построить Акведук"
     },
     {
@@ -282,6 +299,7 @@
         "ENGINEERING"
       ],
       "unlocks_text": "Дамбы.",
+      "boost": {"condition": "districts", "id": "AQUEDUCT"},
       "boost_text": "построить акведук"
     },
     {
@@ -294,6 +312,7 @@
         "EDUCATION"
       ],
       "unlocks_text": "Каравеллы и выход в океан.",
+      "boost": {"condition": "districts", "id": "HARBOR", "minimum": 2},
       "boost_text": "построить 2 Гавани"
     },
     {
@@ -306,6 +325,7 @@
         "MACHINERY"
       ],
       "unlocks_text": "Промышленная зона II и Гавань II.",
+      "boost": {"condition": "improvements", "id": "LUMBER_MILL"},
       "boost_text": "построить Лесопилку"
     },
     {
@@ -317,9 +337,9 @@
         "CURRENCY",
         "EDUCATION"
       ],
-      "unlocks_text": "Коммерческий центр II и богатый квартал II.",
-      "boost_text": "изучить институт Гильдии",
-      "planned_text": "Открытие финансовой гонки."
+      "unlocks_text": "Коммерческий центр II, богатый квартал II, +1 золото каменоломням и Мировая биржа.",
+      "boost": {"condition": "known_civic", "id": "GUILDS"},
+      "boost_text": "изучить институт Гильдии"
     },
     {
       "id": "GUNPOWDER",
@@ -331,7 +351,8 @@
         "APPRENTICESHIP"
       ],
       "unlocks_text": "Мушкетёры.",
-      "boost_text": "построить Арсенал"
+      "boost": {"condition": "districts", "id": "ENCAMPMENT", "tier": 2},
+      "boost_text": "построить Военный лагерь II"
     },
     {
       "id": "PRINTING",
@@ -342,9 +363,9 @@
         "EDUCATION",
         "MACHINERY"
       ],
-      "unlocks_text": "Подготовка к военной модернизации.",
-      "boost_text": "построить 2 Университета",
-      "planned_text": "Усиление культуры и дипломатической видимости."
+      "unlocks_text": "+1 дипломатическая видимость; удвоенный туризм литературных шедевров.",
+      "boost": {"condition": "districts", "id": "CAMPUS", "minimum": 2, "tier": 2},
+      "boost_text": "построить 2 Кампуса II"
     },
     {
       "id": "SQUARE_RIGGING",
@@ -356,6 +377,7 @@
         "GUNPOWDER"
       ],
       "unlocks_text": "Фрегаты.",
+      "boost": {"condition": "stat", "id": "kills_as:MUSKETMAN"},
       "boost_text": "убить юнит Мушкетёром"
     },
     {
@@ -368,6 +390,7 @@
         "GUNPOWDER"
       ],
       "unlocks_text": "Бомбарды, отряды с пиками и мушкетами, форты военных инженеров, стены Возрождения.",
+      "boost": {"condition": "units", "id": "CROSSBOWMAN", "minimum": 2},
       "boost_text": "иметь 2 Арбалетчиков"
     },
     {
@@ -380,7 +403,8 @@
         "SQUARE_RIGGING"
       ],
       "unlocks_text": "Фабрика, Угольная электростанция; показывает Уголь; Рудники +1⚙; Рурская долина",
-      "boost_text": "построить 3 Мастерские"
+      "boost": {"condition": "districts", "id": "INDUSTRIAL_ZONE", "minimum": 3, "tier": 2},
+      "boost_text": "построить 3 Промышленные зоны II"
     },
     {
       "id": "SCIENTIFIC_THEORY",
@@ -392,6 +416,7 @@
         "BANKING"
       ],
       "unlocks_text": "Плантации +1🍞; Оксфордский университет",
+      "boost": {"condition": "known_civic", "id": "THE_ENLIGHTENMENT"},
       "boost_text": "изучить институт Просвещение"
     },
     {
@@ -403,6 +428,7 @@
         "METAL_CASTING"
       ],
       "unlocks_text": "Полевая пушка, Кирасир",
+      "boost": {"condition": "improvements", "id": "FORT", "minimum": 2},
       "boost_text": "иметь 2 Форта"
     },
     {
@@ -415,6 +441,7 @@
         "METAL_CASTING"
       ],
       "unlocks_text": "Кавалерия, линейная пехота, военный лагерь III",
+      "boost": {"condition": "stat", "id": "kills_as:KNIGHT"},
       "boost_text": "убить юнит Рыцарем"
     },
     {
@@ -426,7 +453,8 @@
         "INDUSTRIALIZATION"
       ],
       "unlocks_text": "Броненосец; район Канал; +2 ОД плывущим наземным юнитам",
-      "boost_text": "построить 2 Верфи"
+      "boost": {"condition": "districts", "id": "HARBOR", "minimum": 2, "tier": 2},
+      "boost_text": "построить 2 Гавани II"
     },
     {
       "id": "SANITATION",
@@ -437,7 +465,8 @@
         "SCIENTIFIC_THEORY"
       ],
       "unlocks_text": "Канализация, Медик",
-      "boost_text": "построить 2 Пригорода"
+      "boost": {"condition": "districts", "id": "RESIDENTIAL_URBAN", "minimum": 2},
+      "boost_text": "построить 2 Городских квартала"
     },
     {
       "id": "ECONOMICS",
@@ -449,7 +478,8 @@
         "SCIENTIFIC_THEORY"
       ],
       "unlocks_text": "Биржа; Биг-Бен",
-      "boost_text": "построить 2 Банка"
+      "boost": {"condition": "districts", "id": "COMMERCIAL_HUB", "minimum": 2, "tier": 3},
+      "boost_text": "построить 2 Коммерческих центра III"
     },
     {
       "id": "RIFLING",
@@ -461,6 +491,7 @@
         "MILITARY_SCIENCE"
       ],
       "unlocks_text": "Рейнджер",
+      "boost": {"condition": "improvements", "id": "MINE", "resource": "NITER"},
       "boost_text": "построить рудник на Селитре"
     },
     {
@@ -473,7 +504,8 @@
         "SCIENTIFIC_THEORY"
       ],
       "unlocks_text": "район Аэропорт (гражданский); туризм от улучшений с культурой",
-      "boost_text": "построить чудо промышленной эры или позже"
+      "boost": {"condition": "stat", "id": "wonder_completed"},
+      "boost_text": "завершить любое чудо света"
     },
     {
       "id": "REPLACEABLE_PARTS",
@@ -484,6 +516,7 @@
         "ECONOMICS"
       ],
       "unlocks_text": "Пехота; Фермы: +1🍞 за каждую соседнюю ферму",
+      "boost": {"condition": "units", "id": "MUSKETMAN", "minimum": 3},
       "boost_text": "иметь 3 Мушкетёров"
     },
     {
@@ -495,6 +528,7 @@
         "RIFLING"
       ],
       "unlocks_text": "Артиллерия; Городские укрепления (всем городам); Лесопилки +1⚙; Эйфелева башня",
+      "boost": {"condition": "improvements", "id": "MINE", "resource": "COAL"},
       "boost_text": "построить рудник на Угле"
     },
     {
@@ -506,7 +540,8 @@
         "RIFLING"
       ],
       "unlocks_text": "показывает Нефть; Нефтяная скважина; Линкор",
-      "boost_text": "построить 2 Угольные электростанции"
+      "boost": {"condition": "districts", "id": "INDUSTRIAL_ZONE", "minimum": 2, "tier": 4},
+      "boost_text": "построить 2 угольные электростанции"
     },
     {
       "id": "ELECTRICITY",
@@ -517,6 +552,7 @@
         "STEAM_POWER"
       ],
       "unlocks_text": "Подводная лодка, Морской порт, Нефтяная электростанция, ГЭС, Ветропарк",
+      "boost": {"condition": "units", "id": "PRIVATEER", "minimum": 3},
       "boost_text": "иметь 3 Каперов"
     },
     {
@@ -529,6 +565,7 @@
         "STEAM_POWER"
       ],
       "unlocks_text": "Радиовещательный центр; Приморский курорт; показывает Алюминий; Корректировщик",
+      "boost": {"condition": "parks"},
       "boost_text": "построить Национальный парк"
     },
     {
@@ -540,7 +577,8 @@
         "SANITATION"
       ],
       "unlocks_text": "Исследовательская лаборатория, Расчёт ПТО, Горный тоннель",
-      "boost_text": "иметь действующий Научный союз"
+      "boost": {"condition": "alliances"},
+      "boost_text": "иметь действующий союз"
     },
     {
       "id": "COMBUSTION",
@@ -552,7 +590,8 @@
         "REFINING"
       ],
       "unlocks_text": "Танк, Конвой снабжения",
-      "boost_text": "извлечь артефакт Археологом"
+      "boost": {"condition": "great_works", "minimum": 3},
+      "boost_text": "создать 3 шедевра"
     },
     {
       "id": "ADVANCED_FLIGHT",
@@ -563,6 +602,7 @@
         "RADIO"
       ],
       "unlocks_text": "Аэропорт: переброска войск между своими аэропортами, +туризм",
+      "boost": {"condition": "districts", "id": "AIRPORT", "minimum": 2},
       "boost_text": "построить 2 Аэропорта"
     },
     {
@@ -575,7 +615,8 @@
         "CHEMISTRY"
       ],
       "unlocks_text": "район Космопорт; проект «Спутник Земли»; Каменоломни +1⚙",
-      "boost_text": "завербовать Великого учёного эры или построить Аэропорт"
+      "boost": {"condition": "districts", "id": "AIRPORT"},
+      "boost_text": "построить Аэропорт"
     },
     {
       "id": "ADVANCED_BALLISTICS",
@@ -587,6 +628,7 @@
         "STEEL"
       ],
       "unlocks_text": "Пулемёт",
+      "boost": {"condition": "districts", "id": "INDUSTRIAL_ZONE", "minimum": 2, "tier": 4},
       "boost_text": "построить 2 электростанции"
     },
     {
@@ -599,6 +641,7 @@
         "COMBUSTION"
       ],
       "unlocks_text": "Эсминец, Флагман",
+      "boost": {"condition": "units", "id": "IRONCLAD", "minimum": 2},
       "boost_text": "построить 2 Броненосца"
     },
     {
@@ -610,6 +653,7 @@
         "COMBUSTION"
       ],
       "unlocks_text": "Морская нефтяная платформа, Спецназ, Морской ветропарк; Рыбацкие лодки +1🍞",
+      "boost": {"condition": "improvements", "id": "OIL_WELL"},
       "boost_text": "построить Нефтяную скважину"
     },
     {
@@ -622,6 +666,7 @@
         "RADIO"
       ],
       "unlocks_text": "+25% туризма; Дамба от наводнений",
+      "boost": {"condition": "government_slots", "minimum": 8},
       "boost_text": "форма правления с 8 слотами"
     },
     {
@@ -634,7 +679,8 @@
         "COMBINED_ARMS"
       ],
       "unlocks_text": "показывает Уран; Атомная электростанция (только мирное использование)",
-      "boost_text": "построить Исследовательскую лабораторию в 2 городах"
+      "boost": {"condition": "districts", "id": "CAMPUS", "minimum": 2, "tier": 3},
+      "boost_text": "построить Кампус III в 2 городах"
     },
     {
       "id": "SYNTHETIC_MATERIALS",
@@ -645,7 +691,8 @@
         "PLASTICS"
       ],
       "unlocks_text": "Разведбронеход; Геотермальная станция; Лагеря +1💰",
-      "boost_text": "построить 2 Исследовательские лаборатории"
+      "boost": {"condition": "districts", "id": "CAMPUS", "minimum": 2, "tier": 3},
+      "boost_text": "построить 2 Кампуса III"
     },
     {
       "id": "TELECOMMUNICATIONS",
@@ -656,7 +703,8 @@
         "COMPUTERS"
       ],
       "unlocks_text": "Подлодка нового поколения",
-      "boost_text": "построить 2 Радиовещательных центра"
+      "boost": {"condition": "districts", "id": "THEATER_SQUARE", "minimum": 2, "tier": 3},
+      "boost_text": "построить 2 Театральные площади III"
     },
     {
       "id": "SATELLITES",
@@ -668,7 +716,8 @@
         "ROCKETRY"
       ],
       "unlocks_text": "проект «Высадка на Луну»; Мотопехота; открывает всю карту (после спутника)",
-      "boost_text": "выполнить проект «Спутник Земли»"
+      "boost": {"condition": "districts", "id": "SPACEPORT"},
+      "boost_text": "построить Космопорт"
     },
     {
       "id": "GUIDANCE_SYSTEMS",
@@ -680,6 +729,7 @@
         "ADVANCED_BALLISTICS"
       ],
       "unlocks_text": "Реактивная артиллерия",
+      "boost": {"condition": "districts", "id": "INDUSTRIAL_ZONE", "minimum": 2, "tier": 4},
       "boost_text": "построить 2 электростанции"
     },
     {
@@ -691,6 +741,7 @@
         "NUCLEAR_FISSION"
       ],
       "unlocks_text": "Ракетный крейсер",
+      "boost": {"condition": "units", "id": "FLAGSHIP", "minimum": 2},
       "boost_text": "иметь 2 Флагмана"
     },
     {
@@ -702,6 +753,7 @@
         "SYNTHETIC_MATERIALS"
       ],
       "unlocks_text": "Современный танк, Современное ПТО",
+      "boost": {"condition": "units", "id": "TANK", "minimum": 3},
       "boost_text": "иметь 3 Танка"
     },
     {
@@ -713,6 +765,7 @@
         "SYNTHETIC_MATERIALS"
       ],
       "unlocks_text": "+1 обзор всем наземным юнитам (маскировка и разведка)",
+      "boost": {"condition": "units", "id": "ARMORED_SCOUT", "minimum": 3},
       "boost_text": "иметь 3 Разведбронехода"
     },
     {
@@ -724,6 +777,7 @@
         "COMPUTERS"
       ],
       "unlocks_text": "Гигантский боевой робот; Пастбища +1⚙",
+      "boost": {"condition": "known_civic", "id": "GLOBALIZATION"},
       "boost_text": "изучить институт Глобализация"
     },
     {
@@ -735,6 +789,7 @@
         "LASERS"
       ],
       "unlocks_text": "Термоядерная электростанция (мирная энергетика)",
+      "boost": {"condition": "districts", "id": "INDUSTRIAL_ZONE", "tier": 6},
       "boost_text": "построить Атомную электростанцию"
     },
     {
@@ -746,6 +801,7 @@
         "COMPOSITES"
       ],
       "unlocks_text": "проект «Марсианская колония»",
+      "boost": {"condition": "improvements", "id": "MINE", "resource": "ALUMINUM"},
       "boost_text": "построить рудник на Алюминии"
     },
     {

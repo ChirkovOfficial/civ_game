@@ -890,22 +890,88 @@ static func _district_pick(game: Game, city: City, type: String) -> Dictionary:
 ## Губернаторы: в самые большие города; доктрина по обстановке.
 static func _choose_government(game: Game, pid: int) -> void:
 	var p := game.state.player(pid)
-	var tier := int(GovernmentRules.active_government(game, p)["tier"])
-	var best := ""
-	for def in game.data.governments.values():
-		if int(def["tier"]) > tier and GovernmentRules.government_error(game, p, def["id"]) == "":
-			best = def["id"]
-			tier = int(def["tier"])
-	if best != "":
+	var current: Dictionary = GovernmentRules.active_government(game, p)
+	var best := str(current["id"])
+	var tier := int(current["tier"])
+	var best_score := _government_effect_score(game, pid, current)
+	var government_ids := game.data.governments.keys()
+	government_ids.sort()
+	for id in government_ids:
+		var def: Dictionary = game.data.governments[id]
+		if def.has("civic") and not p.has_civic(def["civic"]):
+			continue
+		var candidate_tier := int(def["tier"])
+		var score := _government_effect_score(game, pid, def)
+		if candidate_tier > tier or (candidate_tier == tier and score > best_score + 0.1):
+			best = str(id)
+			tier = candidate_tier
+			best_score = score
+	if best != current["id"]:
 		game.apply_action({"type": "set_government", "id": best})
 	var slots := GovernmentRules.slots(GovernmentRules.active_government(game, p))
+	var desired: Array[String] = []
+	var used := {}
+	var policy_ids := game.data.policies.keys()
+	policy_ids.sort()
+	for index in slots.size():
+		var chosen := ""
+		var chosen_score := 0.0
+		for id in policy_ids:
+			if used.has(id) or not p.has_civic(game.data.policies[id]["civic"]) \
+					or not GovernmentRules.fits(game, slots[index], id):
+				continue
+			var score := _government_effect_score(game, pid, game.data.policies[id])
+			if score > chosen_score:
+				chosen = str(id)
+				chosen_score = score
+		desired.append(chosen)
+		if chosen != "":
+			used[chosen] = true
+	if desired == p.policy_slots:
+		return
 	for index in slots.size():
 		if GovernmentRules.policy_at(p, index) != "":
+			game.apply_action({"type": "set_policy", "slot": index, "id": ""})
+	for index in slots.size():
+		if desired[index] != "":
+			game.apply_action({"type": "set_policy", "slot": index, "id": desired[index]})
+
+
+static func _government_effect_score(game: Game, pid: int, effect: Dictionary) -> float:
+	var city_count := maxi(1, game.state.cities_of(pid).size())
+	var score := 0.0
+	var weights := {"food": 0.45, "production": 0.7, "gold": 0.25,
+		"science": 0.55, "culture": 0.55, "faith": 0.35}
+	for key in effect.get("yields", {}):
+		score += float(effect["yields"][key]) * float(weights.get(key, 0.3)) \
+			* (1 if effect.get("capital_only", false) else city_count)
+	var routes := 0
+	var international := 0
+	for unit in game.state.units_of(pid):
+		if unit.trade_route.is_empty():
 			continue
-		for id in game.data.policies:
-			if GovernmentRules.policy_error(game, p, index, id) == "":
-				game.apply_action({"type": "set_policy", "slot": index, "id": id})
-				break
+		routes += 1
+		var destination: City = game.state.city(int(unit.trade_route.get("destination", -1)))
+		if destination != null and destination.owner != pid:
+			international += 1
+	for key in effect.get("route_yields", {}):
+		score += float(effect["route_yields"][key]) * float(weights.get(key, 0.3)) * maxi(1, routes)
+	for key in effect.get("international_route_yields", {}):
+		score += float(effect["international_route_yields"][key]) * float(weights.get(key, 0.3)) * maxi(1, international)
+	if effect.has("production_bonus"):
+		score += float(effect["production_bonus"]) * 8.0
+	var combat_units := 0
+	for unit in game.state.units_of(pid):
+		if game.data.unit_def(unit.type).get("class", "") not in ["CIVILIAN", "SUPPORT", "RELIGIOUS"]:
+			combat_units += 1
+	score -= float(effect.get("unit_upkeep", 0.0)) * combat_units * 0.2
+	score += float(effect.get("tourism_bonus", 0.0)) * 10.0
+	score += float(effect.get("tile_discount", 0.0)) * 8.0
+	score += float(effect.get("upgrade_discount", 0.0)) * 8.0
+	score += float(effect.get("builder_charges", 0)) * 1.5
+	score += float(effect.get("barbarian_strength", 0)) * 0.2
+	score += float(effect.get("prophet_points", 0)) * (0.8 if game.state.player(pid).religion_id == "" else 0.0)
+	return score
 
 
 static func _choose_doctrines(game: Game, pid: int) -> void:

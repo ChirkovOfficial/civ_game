@@ -598,6 +598,7 @@ static func process_turn(game: Game, pid: int) -> void:
 	for city in game.state.cities_of(pid):
 		for site in DistrictRules.of_type(city, "HOLY_SITE", true):
 			game.state.player(pid).prophet_points += int(site["tier"]) * float(cfg(game, "prophet_points_per_holy_site_tier"))
+	game.state.player(pid).prophet_points += GovernmentRules.sum_effect(game, pid, "prophet_points")
 
 
 static func process_round(game: Game) -> void:
