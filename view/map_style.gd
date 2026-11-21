@@ -1,6 +1,6 @@
 class_name MapStyle
 extends RefCounted
-## Визуальные параметры карты: высоты террас и палитра. Временные цвета до
+## Визуальные параметры карты: общая плоскость и палитра. Временные цвета до
 ## появления рисованных текстур — их можно смело менять здесь.
 
 const HEX_SIZE := 1.0
@@ -9,15 +9,9 @@ const BIOME_ORDER := ["GRASS", "PLAINS", "DESERT", "TUNDRA", "SNOW", "COAST", "L
 static func biome_index(map: GameMap, tile: int) -> int:
 	return maxi(0, BIOME_ORDER.find(map.terrain[tile]))
 
-# Высоты верхней грани клетки (диорама с террасами).
+# Общий уровень всех тайлов. Горы и холмы изображаются отдельными моделями.
 const H_FLAT := 0.0
-const H_HILLS := 0.34
-const H_MOUNTAIN := 0.34
-const H_COAST_BED := -0.30
-const H_LAKE_BED := -0.26
-const H_OCEAN_BED := -0.62
-const H_MAP_BOTTOM := -1.2
-const WATER_Y := -0.1
+const WATER_Y := H_FLAT
 
 const TERRAIN_COLORS := {
 	"GRASS": Color("86a15a"),
@@ -71,17 +65,8 @@ const RESOURCE_COLORS := {
 const FOG_UNEXPLORED := Color("1e2229")
 
 
-static func tile_height(map: GameMap, i: int) -> float:
-	match map.terrain[i]:
-		"OCEAN":
-			return H_OCEAN_BED
-		"COAST":
-			return H_COAST_BED
-		"LAKE":
-			return H_LAKE_BED
-	if map.relief[i] == GameMap.RELIEF_FLAT:
-		return H_FLAT
-	return H_HILLS
+static func tile_height(_map: GameMap, _i: int) -> float:
+	return H_FLAT
 
 
 ## Детерминированный «шум» по номеру клетки для живописных вариаций цвета.

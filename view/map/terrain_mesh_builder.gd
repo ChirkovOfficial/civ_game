@@ -1,6 +1,6 @@
 class_name TerrainMeshBuilder
 extends RefCounted
-## Построение геометрии карты: террасы гексов, стенки уступов, реки, горы.
+## Построение геометрии карты: плоские гексы, вода, реки и отдельные горы.
 ## Каждой вершине в UV2 записываются координаты клетки в текстуре тумана войны.
 ##
 ## Порядок обхода треугольников — по часовой стрелке со стороны лицевой грани
@@ -58,41 +58,7 @@ static func build_terrain(map: GameMap) -> ArrayMesh:
 			_v(st, center, Vector3.UP, Color(center_col, 1.0), uv)
 			_v(st, Vector3(b.x, h, b.y), Vector3.UP, Color(corner_cols[(k + 1) % 6], 0.0), uv)
 			_v(st, Vector3(a.x, h, a.y), Vector3.UP, Color(corner_cols[k], 0.0), uv)
-		# Стенки уступов — к более низким соседям (или к «дну» на краю карты).
-		st.set_uv(Vector2(MapStyle.biome_index(map, i), 1.0))
-		for d in 6:
-			var nb := grid.neighbor(i, d)
-			var low := MapStyle.H_MAP_BOTTOM if nb < 0 else heights[nb]
-			if low >= h - 0.001:
-				continue
-			var a := _corner(c2, d)
-			var b := _corner(c2, d + 1)
-			var mid := (a + b) * 0.5 - c2
-			var normal := Vector3(mid.x, 0, mid.y).normalized()
-			var wall := _wall_color(map, i, h - low)
-			var wall_low := wall.darkened(0.25)
-			var at := Vector3(a.x, h, a.y)
-			var bt := Vector3(b.x, h, b.y)
-			var ab := Vector3(a.x, low, a.y)
-			var bb := Vector3(b.x, low, b.y)
-			_v(st, at, normal, wall, uv)
-			_v(st, bt, normal, wall, uv)
-			_v(st, bb, normal, wall_low, uv)
-			_v(st, at, normal, wall, uv)
-			_v(st, bb, normal, wall_low, uv)
-			_v(st, ab, normal, wall_low, uv)
 	return st.commit()
-
-
-static func _wall_color(map: GameMap, i: int, drop: float) -> Color:
-	if map.is_water(i):
-		return MapStyle.WALL_SEABED
-	var base := MapStyle.WALL_ROCK if map.is_hills(i) or map.is_mountain(i) else MapStyle.WALL_LAND
-	if map.terrain[i] == "SNOW":
-		base = base.lerp(Color.WHITE, 0.4)
-	elif map.terrain[i] == "DESERT":
-		base = base.lerp(Color("c9a46a"), 0.5)
-	return base.lightened(clampf(0.15 - drop * 0.1, 0.0, 0.15))
 
 
 static func _v(st: SurfaceTool, p: Vector3, normal: Vector3, col: Color, uv2: Vector2) -> void:

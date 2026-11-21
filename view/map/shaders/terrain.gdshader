@@ -13,7 +13,7 @@ void vertex() {
 	fog_state = fog_lookup(UV2);
 	// Неразведанные клетки — ровная «пелена» без рельефа, чтобы не выдавать карту.
 	if (fog_state < 0.25) {
-		VERTEX.y = 0.02;
+		VERTEX.y = 0.0;
 	}
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }

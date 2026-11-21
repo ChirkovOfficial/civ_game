@@ -521,13 +521,13 @@ func set_reveal_all(value: bool) -> void:
 
 # --- Координаты -------------------------------------------------------------------------
 
-## Позиция центра клетки на верхней грани, в копии, ближайшей к точке near_x.
+## Позиция центра клетки на общей плоскости, в копии, ближайшей к точке near_x.
 func tile_world(i: int, near_x: float = INF) -> Vector3:
 	var p := _tile_pos(i)
 	if map_is_water(i):
 		p.y = MapStyle.WATER_Y
 	if not reveal_all and viewer != null and not viewer.is_revealed(i):
-		p.y = 0.02   # неразведанное — ровная пелена, рельеф не выдаём
+		p.y = MapStyle.H_FLAT   # разведанная карта и пелена имеют общий уровень
 	if near_x != INF:
 		p.x += round((near_x - p.x) / world_width) * world_width
 	return p

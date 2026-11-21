@@ -12,6 +12,9 @@ uniform bool textured_water = false;
 uniform sampler2D biome_atlas : source_color, filter_linear, repeat_disable;
 
 void vertex() {
+	// Служебное смещение водного наложения на 2 мм исключает мерцание
+	// с общей плоскостью земли; стенки и перепады геометрии не создаются.
+	if (textured_water) { VERTEX.y += 0.002; }
 	biome = UV.x;
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	fog_state = fog_lookup(UV2);
