@@ -1,0 +1,5 @@
+# Материалы ландшафта
+
+Созданы встроенным image_gen. На меши назначены материалы с этой текстурой и UV; изображение также упаковано в исходный .blend.
+
+Asset type: material texture atlas for stylized realistic 3D strategy landscape models. Generate exactly FOUR seamless square albedo materials filling a strict 2x2 square grid, no gutters no borders no text. Flat overhead scanned-like surfaces, no lighting or cast shadows, no perspective, no objects or whole trees. Top left: dense small muted olive green foliage canopy surface, tiny overlapping leaf impressions, soft variegated greens. Top right: richer dark tropical green foliage leaf surface, subtly elongated leaves. Bottom left: weathered gray brown tree bark with fine longitudinal irregular grain, no large cracks or holes. Bottom right: layered slate gray rock with warm gray veins, subtle weathering, restrained small moss traces. Hand painted naturalistic strategy art, detailed but low contrast, realistic quiet earthy palette, no cartoon outlines. Designed to wrap meshes and combine with mesh vertex tint. Each quadrant completely filled and independently repeatable.

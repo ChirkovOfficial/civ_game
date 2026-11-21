@@ -1,0 +1,481 @@
+{
+  "hex_radius": 1.0,
+  "source": "source/landscape_kit_v1.blend",
+  "assets": [
+    {
+      "id": "tree_oak_a",
+      "file": "models/tree_oak_a.gltf",
+      "source_triangles": 2184,
+      "export_triangles": 1200,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.26674187183380127,
+          -0.23183251917362213,
+          -0.0032725699711591005
+        ],
+        "max": [
+          0.23053476214408875,
+          0.24145424365997314,
+          0.473911851644516
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "tree_oak_b",
+      "file": "models/tree_oak_b.gltf",
+      "source_triangles": 2184,
+      "export_triangles": 1200,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.23060794174671173,
+          -0.19770373404026031,
+          -0.003571672597900033
+        ],
+        "max": [
+          0.1921318918466568,
+          0.2087641954421997,
+          0.4107983708381653
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "tree_birch_a",
+      "file": "models/tree_birch_a.gltf",
+      "source_triangles": 2184,
+      "export_triangles": 1200,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.26404881477355957,
+          -0.22923944890499115,
+          -0.0013344602193683386
+        ],
+        "max": [
+          0.25183966755867004,
+          0.28057780861854553,
+          0.5008623003959656
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "tree_pine_a",
+      "file": "models/tree_pine_a.gltf",
+      "source_triangles": 3656,
+      "export_triangles": 2002,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.16374430060386658,
+          -0.141510471701622,
+          -0.0006145904189907014
+        ],
+        "max": [
+          0.17385625839233398,
+          0.1431064009666443,
+          0.5285413265228271
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "tree_pine_b",
+      "file": "models/tree_pine_b.gltf",
+      "source_triangles": 3656,
+      "export_triangles": 2010,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.14995817840099335,
+          -0.11560452729463577,
+          -0.00018836055824067444
+        ],
+        "max": [
+          0.14467309415340424,
+          0.11037832498550415,
+          0.4505690932273865
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "tree_palm_a",
+      "file": "models/tree_palm_a.gltf",
+      "source_triangles": 1330,
+      "export_triangles": 730,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.20713090896606445,
+          -0.3172958791255951,
+          -0.0021002208814024925
+        ],
+        "max": [
+          0.3556450605392456,
+          0.2893340587615967,
+          0.5598617196083069
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "tree_palm_b",
+      "file": "models/tree_palm_b.gltf",
+      "source_triangles": 1330,
+      "export_triangles": 730,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.19652186334133148,
+          -0.25578734278678894,
+          -0.0012838299153372645
+        ],
+        "max": [
+          0.2900187075138092,
+          0.2592190206050873,
+          0.4820556044578552
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "tree_jungle_a",
+      "file": "models/tree_jungle_a.gltf",
+      "source_triangles": 2462,
+      "export_triangles": 1354,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.22505302727222443,
+          -0.22409848868846893,
+          -0.0032725699711591005
+        ],
+        "max": [
+          0.2525995671749115,
+          0.22917936742305756,
+          0.4595847725868225
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "shrub_a",
+      "file": "models/shrub_a.gltf",
+      "source_triangles": 480,
+      "export_triangles": 480,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.18790453672409058,
+          -0.15130823850631714,
+          -0.01602315343916416
+        ],
+        "max": [
+          0.18571433424949646,
+          0.13767285645008087,
+          0.1372007131576538
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "fern_a",
+      "file": "models/fern_a.gltf",
+      "source_triangles": 720,
+      "export_triangles": 720,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.178863987326622,
+          -0.18736912310123444,
+          -0.005379270762205124
+        ],
+        "max": [
+          0.19028684496879578,
+          0.18742278218269348,
+          0.06872063875198364
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "reeds_a",
+      "file": "models/reeds_a.gltf",
+      "source_triangles": 2752,
+      "export_triangles": 1980,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.18992911279201508,
+          -0.15237922966480255,
+          -0.00025617636856622994
+        ],
+        "max": [
+          0.1416955143213272,
+          0.19214577972888947,
+          0.21703669428825378
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "boulder_a",
+      "file": "models/boulder_a.gltf",
+      "source_triangles": 80,
+      "export_triangles": 80,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.23630966246128082,
+          -0.17483775317668915,
+          0.0
+        ],
+        "max": [
+          0.23951175808906555,
+          0.19087444245815277,
+          0.19281335175037384
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "boulders_cluster_a",
+      "file": "models/boulders_cluster_a.gltf",
+      "source_triangles": 400,
+      "export_triangles": 400,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.30104660987854004,
+          -0.24261941015720367,
+          0.0
+        ],
+        "max": [
+          0.29665064811706543,
+          0.19476594030857086,
+          0.20831969380378723
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "cliff_segment_a",
+      "file": "models/cliff_segment_a.gltf",
+      "source_triangles": 960,
+      "export_triangles": 960,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.6655209064483643,
+          -0.29181304574012756,
+          -0.019999999552965164
+        ],
+        "max": [
+          0.6507095694541931,
+          0.25508952140808105,
+          0.5741475820541382
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "mountain_peak_a",
+      "file": "models/mountain_peak_a.gltf",
+      "source_triangles": 3694,
+      "export_triangles": 2658,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.8770856857299805,
+          -0.6424043774604797,
+          -0.029490811750292778
+        ],
+        "max": [
+          0.8250284194946289,
+          0.680637776851654,
+          1.179418683052063
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "mountain_peak_b",
+      "file": "models/mountain_peak_b.gltf",
+      "source_triangles": 3694,
+      "export_triangles": 2658,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.8597268462181091,
+          -0.7087830901145935,
+          -0.030621185898780823
+        ],
+        "max": [
+          0.8638491630554199,
+          0.7509728670120239,
+          0.9508060812950134
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "mountain_snow_a",
+      "file": "models/mountain_snow_a.gltf",
+      "source_triangles": 3694,
+      "export_triangles": 2658,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.8328832387924194,
+          -0.7180132865905762,
+          -0.029298609122633934
+        ],
+        "max": [
+          0.8267240524291992,
+          0.6774871349334717,
+          1.2515735626220703
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "mountain_ridge_a",
+      "file": "models/mountain_ridge_a.gltf",
+      "source_triangles": 7388,
+      "export_triangles": 5318,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.6443638801574707,
+          -0.46273764967918396,
+          -0.029455579817295074
+        ],
+        "max": [
+          0.9861494898796082,
+          0.5631182789802551,
+          0.7806075215339661
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "rocky_hill_a",
+      "file": "models/rocky_hill_a.gltf",
+      "source_triangles": 2480,
+      "export_triangles": 1784,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.700467050075531,
+          -0.5021849870681763,
+          0.0
+        ],
+        "max": [
+          0.7225316762924194,
+          0.5102633237838745,
+          0.26609617471694946
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "fallen_log_a",
+      "file": "models/fallen_log_a.gltf",
+      "source_triangles": 1532,
+      "export_triangles": 1102,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.4220189154148102,
+          -0.06454114615917206,
+          -0.028290441259741783
+        ],
+        "max": [
+          0.3552686870098114,
+          0.2373284101486206,
+          0.13945206999778748
+        ]
+      },
+      "purpose": "individual_object"
+    },
+    {
+      "id": "forest_mixed_tile_a",
+      "file": "models/forest_mixed_tile_a.gltf",
+      "source_triangles": 37048,
+      "export_triangles": 10105,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.8017200231552124,
+          -0.7315173745155334,
+          -0.02754179760813713
+        ],
+        "max": [
+          0.7410469651222229,
+          0.7575351595878601,
+          0.36164602637290955
+        ]
+      },
+      "purpose": "tile_cluster"
+    },
+    {
+      "id": "forest_mixed_tile_b",
+      "file": "models/forest_mixed_tile_b.gltf",
+      "source_triangles": 37048,
+      "export_triangles": 10106,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.7946954965591431,
+          -0.7512460350990295,
+          -0.026206588372588158
+        ],
+        "max": [
+          0.7382909059524536,
+          0.7634866833686829,
+          0.3989502489566803
+        ]
+      },
+      "purpose": "tile_cluster"
+    },
+    {
+      "id": "forest_conifer_tile_a",
+      "file": "models/forest_conifer_tile_a.gltf",
+      "source_triangles": 42936,
+      "export_triangles": 11609,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.8104259967803955,
+          -0.6470136642456055,
+          -0.029007835313677788
+        ],
+        "max": [
+          0.7406002879142761,
+          0.7610403895378113,
+          0.3915008008480072
+        ]
+      },
+      "purpose": "tile_cluster"
+    },
+    {
+      "id": "jungle_tile_a",
+      "file": "models/jungle_tile_a.gltf",
+      "source_triangles": 21482,
+      "export_triangles": 5985,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.8093224763870239,
+          -0.816558301448822,
+          -0.028489451855421066
+        ],
+        "max": [
+          0.8641054630279541,
+          0.7632641792297363,
+          0.40678223967552185
+        ]
+      },
+      "purpose": "tile_cluster"
+    },
+    {
+      "id": "jungle_tile_b",
+      "file": "models/jungle_tile_b.gltf",
+      "source_triangles": 21482,
+      "export_triangles": 5992,
+      "bounds_blender_z_up": {
+        "min": [
+          -0.7837128639221191,
+          -0.8052029013633728,
+          -0.0293520987033844
+        ],
+        "max": [
+          0.8087897896766663,
+          0.7763195037841797,
+          0.41592493653297424
+        ]
+      },
+      "purpose": "tile_cluster"
+    }
+  ]
+}
