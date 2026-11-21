@@ -1,0 +1,18 @@
+{
+  "model_dir": "res://art/landscape/models/",
+  "woods": ["forest_mixed_tile_a", "forest_mixed_tile_b"],
+  "conifers": ["forest_conifer_tile_a"],
+  "jungle": ["jungle_tile_a", "jungle_tile_b"],
+  "mountains": ["mountain_peak_a", "mountain_peak_b", "mountain_ridge_a"],
+  "snow_mountains": ["mountain_snow_a"],
+  "marsh": ["reeds_a"],
+  "oasis": ["tree_palm_a", "tree_palm_b"],
+  "hill": ["rocky_hill_a"],
+  "jungle_detail": ["fern_a"],
+  "woods_detail": ["fallen_log_a"],
+  "geothermal": ["boulders_cluster_a"],
+  "forest_scale": 1.0,
+  "mountain_scale": 1.0,
+  "hill_scale": 0.7,
+  "detail_scale": 0.5
+}

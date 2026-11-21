@@ -16,6 +16,7 @@ func test_flags_respect_exploration_technology_and_removed_feature() -> void:
 	var g := blank_game(8, 6)
 	g.state.map.feature[10] = "WOODS"
 	g.state.map.resource[10] = "IRON"
+	g.state.map.relief[12] = GameMap.RELIEF_MOUNTAIN
 	for index in g.data.features.size():
 		g.state.map.feature[20 + index] = str(g.data.features.keys()[index])
 	var player := g.state.player(0)
@@ -30,16 +31,23 @@ func test_flags_respect_exploration_technology_and_removed_feature() -> void:
 	player.known_techs["BRONZE_WORKING"] = true
 	view.refresh_resources(player)
 	check_eq(layer.multimesh.instance_count, 1, "Флаг есть только у ресурса")
-	var trees_before: int = view._layers["trunks"][1].multimesh.instance_count
-	check(trees_before >= 14, "Низкие деревья покрывают лесные тайлы")
+	var trees_before := _forest_count(view)
+	check(trees_before >= 1, "Лесные тайлы используют модели Blender")
 	g.state.map.feature[10] = ""
 	view.refresh_geometry({"terrain": true})
 	view.refresh_resources(player)
 	check_eq(layer.multimesh.instance_count, 1, "Удаление особенности не убрало ресурсный флаг")
-	check_eq(view._layers["trunks"][1].multimesh.instance_count, trees_before - 14, "Исчезли деревья только вырубленного тайла")
+	check_eq(_forest_count(view), trees_before - 1, "Исчезла модель только вырубленного тайла")
 	check(not view._layers.has("forest_sprites") and not view._layers.has("resources"), "Плоские деревья и старые маркеры отключены")
-	check(view._layers.has("mountains"), "Горный слой сохранён")
+	check(view._layers.keys().any(func(key: String) -> bool: return key.begins_with("landscape_mountain")), "Горы используют модели Blender")
 	view.free()
+
+func _forest_count(view: MapView) -> int:
+	var count := 0
+	for key in view._layers:
+		if str(key).begins_with("landscape_forest_") or str(key).begins_with("landscape_jungle_tile_"):
+			count += view._layers[key][1].multimesh.instance_count
+	return count
 
 func test_biome_mesh_uses_each_atlas_region() -> void:
 	var g := blank_game(8, 6)

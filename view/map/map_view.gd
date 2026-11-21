@@ -11,6 +11,8 @@ const NatureFlags := preload("res://view/map/nature_flags.gd")
 const FLAG_SHADER := preload("res://view/map/shaders/nature_flag.gdshader")
 const FLAG_SHEET := preload("res://art/map_flags/nature_flags.png")
 const BIOME_ATLAS := preload("res://art/terrain/biomes/biome_atlas.png")
+const LandscapeModels := preload("res://view/map/landscape_models.gd")
+const LANDSCAPE_SHADER := preload("res://view/map/shaders/landscape_model.gdshader")
 
 var game: Game
 var world_width: float
@@ -31,6 +33,7 @@ var _water_mat: ShaderMaterial
 var _river_mat: ShaderMaterial
 var _border_mat: ShaderMaterial
 var _improvement_meshes := {}
+var _landscape_meshes: Dictionary = {}
 
 
 func build(g: Game) -> void:
@@ -40,6 +43,7 @@ func build(g: Game) -> void:
 	_copies.clear()
 	_materials.clear()
 	_layers.clear()
+	_landscape_meshes.clear()
 	var map := game.state.map
 	world_width = map.grid.world_width(MapStyle.HEX_SIZE)
 	fog_image = Image.create(map.width, map.height, false, Image.FORMAT_RGBA8)
@@ -70,7 +74,6 @@ func build(g: Game) -> void:
 		_copies.append(copy)
 	_set_layer("water", TerrainMeshBuilder.build_water(map), _water_mat)
 	_set_layer("rivers", TerrainMeshBuilder.build_rivers(map), _river_mat)
-	_set_layer("mountains", _build_mountains(map), _feature_mat)
 	refresh_geometry()
 
 
@@ -81,10 +84,7 @@ func refresh_geometry(parts: Dictionary = {}) -> void:
 	var all := parts.is_empty()
 	if all or parts.has("terrain"):
 		_set_layer("terrain", TerrainMeshBuilder.build_terrain(map), _terrain_mat)
-		var trees := _build_trees(map)
-		_set_layer("crowns", trees[0], _feature_mat)
-		_set_layer("conifers", trees[1], _feature_mat)
-		_set_layer("trunks", trees[2], _feature_mat)
+		refresh_landscape_models()
 	if all or parts.has("improvements"):
 		refresh_improvements()
 	if all or parts.has("borders"):
@@ -127,6 +127,88 @@ func _make_material(shader: Shader) -> ShaderMaterial:
 
 
 # --- Объекты на клетках -----------------------------------------------------------
+
+## Одна копия импортированного меша на вариант, с сохранёнными LOD и UV.
+func _landscape_mesh(id: String) -> ArrayMesh:
+	if not _landscape_meshes.has(id):
+		var original := LandscapeModels.mesh(id)
+		if original == null:
+			return null
+		var mesh := original.duplicate() as ArrayMesh
+		for surface in mesh.get_surface_count():
+			var source := original.surface_get_material(surface) as StandardMaterial3D
+			var material := _make_material(LANDSCAPE_SHADER)
+			if source != null:
+				material.set_shader_parameter("base_color", source.albedo_color)
+				material.set_shader_parameter("material_roughness", source.roughness)
+				material.set_shader_parameter("has_texture", source.albedo_texture != null)
+				if source.albedo_texture != null:
+					material.set_shader_parameter("albedo_texture", source.albedo_texture)
+			mesh.surface_set_material(surface, material)
+		mesh.set_meta("source_asset", id)
+		_landscape_meshes[id] = mesh
+	return _landscape_meshes[id]
+
+
+func _landscape_item(items: Dictionary, group: String, tile: int, scale: float = 1.0,
+		offset: Vector3 = Vector3.ZERO, salt: int = 0) -> void:
+	var variants: Array = LandscapeModels.config()[group]
+	var index := mini(variants.size() - 1, int(MapStyle.hash01(tile, salt + 220) * variants.size()))
+	var id: String = variants[index]
+	if not items.has(id):
+		items[id] = []
+	var rotation := MapStyle.hash01(tile, salt + 221) * TAU
+	var basis := Basis(Vector3.UP, rotation).scaled(Vector3.ONE * scale)
+	items[id].append([Transform3D(basis, _tile_pos(tile) + offset), Color.WHITE, _custom(tile)])
+
+
+## Варианты выбираются по индексу тайла, без изменения состояния или ГПСЧ партии.
+func refresh_landscape_models() -> void:
+	var map := game.state.map
+	var cfg := LandscapeModels.config()
+	var items := {}
+	for tile in map.size():
+		if map.is_mountain(tile):
+			_landscape_item(items, "snow_mountains" if map.terrain[tile] == "SNOW" else "mountains",
+				tile, float(cfg["mountain_scale"]))
+			continue
+		if map.is_water(tile) or map.district[tile] != "":
+			continue
+		var feature := map.feature[tile]
+		match feature:
+			"WOODS", "RAINFOREST":
+				var group := "jungle" if feature == "RAINFOREST" else \
+					("conifers" if map.terrain[tile] in ["TUNDRA", "SNOW"] else "woods")
+				_landscape_item(items, group, tile, float(cfg["forest_scale"]))
+				if feature == "RAINFOREST" or tile % 7 == 0:
+					_landscape_item(items, "jungle_detail" if feature == "RAINFOREST" else "woods_detail",
+						tile, float(cfg["detail_scale"]), Vector3(0.35, 0, 0.3), 1)
+			"MARSH":
+				for patch in 3:
+					var angle := float(patch) * TAU / 3.0
+					_landscape_item(items, "marsh", tile, 0.8, Vector3(cos(angle), 0, sin(angle)) * 0.35, patch)
+			"OASIS":
+				for palm in 2:
+					_landscape_item(items, "oasis", tile, 0.8, Vector3(-0.22 if palm == 0 else 0.22, 0, 0), palm)
+			"GEOTHERMAL":
+				_landscape_item(items, "geothermal", tile, 0.7)
+			_:
+				if map.is_hills(tile) and tile % 3 == 0:
+					_landscape_item(items, "hill", tile, float(cfg["hill_scale"]))
+	# Обновляем существующие слои тоже: удалённый лес получает ноль экземпляров.
+	var ids := items.keys()
+	for id in _landscape_meshes:
+		if not ids.has(id):
+			ids.append(id)
+	ids.sort()
+	for id in ids:
+		var mesh := _landscape_mesh(id)
+		if mesh == null:
+			continue
+		var instances: Array = items.get(id, [])
+		var mm := _new_multimesh(mesh, instances.size())
+		_fill(mm, instances)
+		_set_layer("landscape_" + id, mm, null)
 
 func _new_multimesh(mesh: Mesh, count: int) -> MultiMesh:
 	var mm := MultiMesh.new()
